@@ -42,6 +42,7 @@ export interface GameCatalogItem {
   githubRepo: string;
   gameType?: GameType;
   webUrl?: string;
+  onlineBackend?: string;
   executableNames?: {
     win32: string;
     darwin: string;

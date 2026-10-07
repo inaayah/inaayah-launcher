@@ -24,6 +24,7 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
     sizeBytes: 89450000,
     sizeFormatted: '85.3 MB',
     githubRepo: 'inaayah/aether-rush',
+    onlineBackend: 'Inaayah Nakama Relay (94.130.227.190)',
     executableNames: {
       darwin: 'AetherRush.app/Contents/MacOS/AetherRush',
       win32: 'AetherRush.exe',
@@ -88,7 +89,7 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
     description:
       'Command your court in fast-paced real-time tactical battles. Place combat units, manage energy thresholds, counter opponent formations, and capture strategic court zones with shared backend account progression and cross-platform matchmaking.',
     genres: ['Real-Time Strategy', 'Tactics', 'Multiplayer', 'Competitive'],
-    tags: ['Godot 4.3', 'Fast-Paced RTS', 'Matchmaking', 'Ranked Leaderboard'],
+    tags: ['Instant Play', 'Fast-Paced RTS', 'Edge Durable Objects', 'Matchmaking'],
     developer: 'Inaayah Game Studio',
     coverArt: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=640&auto=format&fit=crop',
     heroBanner: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=1920&auto=format&fit=crop',
@@ -101,9 +102,10 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
     sizeBytes: 0,
     sizeFormatted: 'Cloud / Instant Play',
     githubRepo: 'inaayah/kettle-court',
+    onlineBackend: 'Edge Durable Objects (WebSockets)',
     features: [
       'Dynamic Court Control: Real-time unit spawning and zone defense',
-      'Inaayah Network Backend: Cloud progress, device-based guest login, and match relays',
+      'Durable Objects Backend: Free, ultra-low-latency edge WebSocket rooms and synchronized match state',
       'Low Latency: Built for instantaneous peer reaction at 60 FPS'
     ],
     requirements: {

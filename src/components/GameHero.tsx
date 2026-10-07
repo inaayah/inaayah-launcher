@@ -344,7 +344,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Online Backend</span>
-                    <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>Nakama Cloud</span>
+                    <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>{game.onlineBackend || 'Inaayah Cloud'}</span>
                   </div>
                 </div>
               </div>

@@ -127,7 +127,22 @@ function createWindow(): void {
   });
 
   if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+    const devUrl = process.env.VITE_DEV_SERVER_URL;
+    mainWindow.loadURL(devUrl).catch(() => {
+      setTimeout(() => mainWindow?.loadURL(devUrl), 500);
+    });
+
+    // Developer keyboard shortcuts (F12: DevTools, Cmd+R/Ctrl+R/F5: Reload)
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'F12' || ((input.meta || input.control) && input.alt && input.key.toLowerCase() === 'i')) {
+        mainWindow?.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+      if (input.key === 'F5' || ((input.meta || input.control) && input.key.toLowerCase() === 'r')) {
+        mainWindow?.webContents.reloadIgnoringCache();
+        event.preventDefault();
+      }
+    });
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
