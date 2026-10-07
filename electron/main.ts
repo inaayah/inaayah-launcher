@@ -49,7 +49,7 @@ function loadConfig(): LauncherConfig {
     nakamaHost: '94.130.227.190',
     nakamaPort: 7350,
     useSSL: false,
-    releaseGatewayUrl: 'https://releases.innayah.dev',
+    releaseGatewayUrl: '',
     githubToken: ''
   };
 
@@ -198,7 +198,7 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
   if (cfg.releaseGatewayUrl) {
     try {
       const fetchUrl = `${cfg.releaseGatewayUrl.replace(/\/$/, "")}/api/games`;
-      const res = await fetch(fetchUrl, { headers: { 'User-Agent': 'InaayahLauncher' } });
+      const res = await fetch(fetchUrl, { headers: { 'User-Agent': 'InaayahLauncher' }, signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -207,7 +207,7 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
         }
       }
     } catch (e) {
-      console.warn('Gateway catalog fetch failed:', e);
+      console.log('[Catalog] Remote gateway unreachable or not configured. Using direct manifests and local cache.');
     }
   }
 
@@ -225,7 +225,10 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
       if (cfg.githubToken) {
         headers['Authorization'] = `Bearer ${cfg.githubToken}`;
       }
-      const res = await fetch(rawUrl, { headers });
+      const res = await fetch(rawUrl, {
+        headers,
+        signal: AbortSignal.timeout(2500)
+      });
       if (res.ok) {
         fetched.push(await res.json());
       }
