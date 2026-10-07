@@ -215,6 +215,36 @@ export const launcherBridge: InaayahLauncherAPI = {
     return true;
   },
 
+  async launchWebGame(gameId: string, url: string): Promise<boolean> {
+    if (window.inaayahLauncher) return window.inaayahLauncher.launchWebGame(gameId, url);
+
+    window.open(url, '_blank');
+    mockStatusListeners.forEach((fn) => fn({ gameId, status: 'RUNNING' }));
+
+    setTimeout(() => {
+      const installed = getMockInstalled();
+      installed[gameId] = installed[gameId] || {
+        id: gameId,
+        version: '1.0.0',
+        installPath: url,
+        installedAt: Date.now(),
+        lastPlayedAt: Date.now(),
+        totalPlaytimeMinutes: 0
+      };
+      installed[gameId].lastPlayedAt = Date.now();
+      installed[gameId].totalPlaytimeMinutes += 10;
+      saveMockInstalled(installed);
+      mockStatusListeners.forEach((fn) => fn({ gameId, status: 'INSTALLED', exitCode: 0 }));
+    }, 5000);
+
+    return true;
+  },
+
+  async openExternalUrl(url: string): Promise<void> {
+    if (window.inaayahLauncher) return window.inaayahLauncher.openExternalUrl(url);
+    window.open(url, '_blank');
+  },
+
   async openFolder(folderPath: string): Promise<void> {
     if (window.inaayahLauncher) return window.inaayahLauncher.openFolder(folderPath);
     console.log('[Mock Browser] Open folder:', folderPath);

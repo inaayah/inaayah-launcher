@@ -48,7 +48,9 @@ export const App: React.FC = () => {
       // Compute initial statuses
       const statuses: Record<string, GameStatus> = {};
       catalogData.forEach((game) => {
-        if (installed[game.id]) {
+        if (game.gameType === 'web') {
+          statuses[game.id] = 'INSTALLED';
+        } else if (installed[game.id]) {
           statuses[game.id] =
             installed[game.id].version !== game.version ? 'UPDATE_AVAILABLE' : 'INSTALLED';
         } else {
@@ -127,9 +129,16 @@ export const App: React.FC = () => {
   };
 
   const handleLaunch = async (gameId: string) => {
+    const game = catalogData.find((g) => g.id === gameId);
+    if (!game) return;
+
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'RUNNING' }));
     try {
-      await launcherBridge.launchGame(gameId);
+      if (game.gameType === 'web' && game.webUrl) {
+        await launcherBridge.launchWebGame(gameId, game.webUrl);
+      } else {
+        await launcherBridge.launchGame(gameId);
+      }
     } catch (err) {
       console.error('Launch failed:', err);
       setGameStatuses((prev) => ({ ...prev, [gameId]: 'INSTALLED' }));

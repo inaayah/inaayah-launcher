@@ -36,6 +36,14 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     return ipcRenderer.invoke('launcher:launch-game', gameId, args);
   },
 
+  launchWebGame: (gameId: string, url: string): Promise<boolean> => {
+    return ipcRenderer.invoke('launcher:launch-web-game', gameId, url);
+  },
+
+  openExternalUrl: (url: string): Promise<void> => {
+    return ipcRenderer.invoke('launcher:open-external-url', url);
+  },
+
   openFolder: (folderPath: string): Promise<void> => {
     return ipcRenderer.invoke('launcher:open-folder', folderPath);
   },

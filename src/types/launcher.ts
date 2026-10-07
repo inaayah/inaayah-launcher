@@ -6,6 +6,8 @@ export type GameStatus =
   | 'UPDATE_AVAILABLE'
   | 'RUNNING';
 
+export type GameType = 'desktop' | 'web';
+
 export interface GameChangelog {
   version: string;
   date: string;
@@ -38,7 +40,9 @@ export interface GameCatalogItem {
   sizeBytes: number;
   sizeFormatted: string;
   githubRepo: string;
-  executableNames: {
+  gameType?: GameType;
+  webUrl?: string;
+  executableNames?: {
     win32: string;
     darwin: string;
     linux: string;
@@ -87,7 +91,9 @@ export interface InaayahLauncherAPI {
   cancelDownload: (gameId: string) => Promise<boolean>;
   uninstallGame: (gameId: string) => Promise<boolean>;
   launchGame: (gameId: string, args?: string[]) => Promise<boolean>;
+  launchWebGame: (gameId: string, url: string) => Promise<boolean>;
   openFolder: (path: string) => Promise<void>;
+  openExternalUrl: (url: string) => Promise<void>;
   checkUpdates: (gameId: string, latestVersion: string) => Promise<boolean>;
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;
   onGameStatusChanged: (callback: (data: { gameId: string; status: GameStatus; exitCode?: number }) => void) => () => void;

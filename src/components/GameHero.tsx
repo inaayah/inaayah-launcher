@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   Sparkles,
   Layers,
-  Flame
+  Flame,
+  Globe,
+  ExternalLink
 } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
 import { launcherBridge } from '../services/electronBridge';
@@ -43,6 +45,8 @@ export const GameHero: React.FC<GameHeroProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'requirements' | 'changelog'>('overview');
   const [activeScreenshot, setActiveScreenshot] = useState<string | null>(null);
 
+  const isWebGame = game.gameType === 'web';
+
   const formatPlaytime = (mins: number) => {
     if (mins < 60) return `${mins} mins`;
     return `${(mins / 60).toFixed(1)} hrs`;
@@ -69,6 +73,11 @@ export const GameHero: React.FC<GameHeroProps> = ({
         <div className="hero-content">
           <div className="hero-info">
             <div className="game-genre-badges">
+              {isWebGame ? (
+                <span className="badge green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Globe size={12} /> Instant Web Game
+                </span>
+              ) : null}
               {game.genres.map((g, i) => (
                 <span key={g} className={`badge ${i === 0 ? 'cyan' : i === 1 ? 'magenta' : ''}`}>
                   {g}
@@ -95,117 +104,153 @@ export const GameHero: React.FC<GameHeroProps> = ({
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <HardDrive size={15} color="var(--text-muted)" />
-                <span>Size: <strong style={{ color: '#fff' }}>{game.sizeFormatted}</strong></span>
+                <span>Format: <strong style={{ color: '#fff' }}>{game.sizeFormatted}</strong></span>
               </div>
             </div>
           </div>
 
           {/* Action Box */}
           <div className="hero-action-box">
-            {status === 'NOT_INSTALLED' && (
-              <button
-                className="btn-primary-action install"
-                onClick={() => onInstall(game.id)}
-              >
-                <Download size={20} />
-                <span>Install Game</span>
-              </button>
-            )}
+            {isWebGame ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {status === 'RUNNING' ? (
+                    <button className="btn-primary-action running">
+                      <Sparkles size={18} className="animate-spin" />
+                      <span>Game is Running</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-primary-action play"
+                      onClick={() => onLaunch(game.id)}
+                    >
+                      <Globe size={20} />
+                      <span>Instant Play</span>
+                    </button>
+                  )}
 
-            {(status === 'DOWNLOADING' || status === 'EXTRACTING') && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 260 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600 }}>
-                  <span style={{ color: 'var(--accent-cyan)' }}>
-                    {status === 'EXTRACTING' ? 'Unpacking Files...' : `Downloading ${downloadProgress?.percentage || 0}%`}
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>
-                    {downloadProgress?.speedBytesPerSec
-                      ? `${(downloadProgress.speedBytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`
-                      : ''}
-                  </span>
+                  <button
+                    className="btn-secondary"
+                    style={{ height: 54, padding: '0 18px', fontSize: 13 }}
+                    title="Open in your default web browser"
+                    onClick={() => launcherBridge.openExternalUrl(game.webUrl || 'https://kettle-court.innayah.dev')}
+                  >
+                    <ExternalLink size={16} />
+                    <span>Browser</span>
+                  </button>
                 </div>
-                <div className="download-progress-bar">
-                  <div
-                    className="download-progress-fill"
-                    style={{ width: `${downloadProgress?.percentage || 0}%` }}
-                  />
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Cloud hosted at <strong style={{ color: 'var(--accent-cyan)' }}>{game.webUrl}</strong>
                 </div>
-                <button
-                  className="btn-secondary"
-                  style={{ alignSelf: 'flex-end', height: 30, fontSize: 11 }}
-                  onClick={() => onCancelDownload(game.id)}
-                >
-                  Cancel
-                </button>
               </div>
-            )}
+            ) : (
+              <>
+                {status === 'NOT_INSTALLED' && (
+                  <button
+                    className="btn-primary-action install"
+                    onClick={() => onInstall(game.id)}
+                  >
+                    <Download size={20} />
+                    <span>Install Game</span>
+                  </button>
+                )}
 
-            {status === 'UPDATE_AVAILABLE' && (
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  className="btn-primary-action update"
-                  onClick={() => onInstall(game.id)}
-                >
-                  <RefreshCw size={18} />
-                  <span>Update to v{game.version}</span>
-                </button>
-                <button
-                  className="btn-primary-action play"
-                  onClick={() => onLaunch(game.id)}
-                >
-                  <Play size={18} fill="currentColor" />
-                  <span>Play</span>
-                </button>
-              </div>
-            )}
+                {(status === 'DOWNLOADING' || status === 'EXTRACTING') && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 260 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600 }}>
+                      <span style={{ color: 'var(--accent-cyan)' }}>
+                        {status === 'EXTRACTING' ? 'Unpacking Files...' : `Downloading ${downloadProgress?.percentage || 0}%`}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>
+                        {downloadProgress?.speedBytesPerSec
+                          ? `${(downloadProgress.speedBytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`
+                          : ''}
+                      </span>
+                    </div>
+                    <div className="download-progress-bar">
+                      <div
+                        className="download-progress-fill"
+                        style={{ width: `${downloadProgress?.percentage || 0}%` }}
+                      />
+                    </div>
+                    <button
+                      className="btn-secondary"
+                      style={{ alignSelf: 'flex-end', height: 30, fontSize: 11 }}
+                      onClick={() => onCancelDownload(game.id)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
 
-            {status === 'INSTALLED' && (
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  className="btn-primary-action play"
-                  onClick={() => onLaunch(game.id)}
-                >
-                  <Play size={20} fill="currentColor" />
-                  <span>Play Now</span>
-                </button>
-              </div>
-            )}
+                {status === 'UPDATE_AVAILABLE' && (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      className="btn-primary-action update"
+                      onClick={() => onInstall(game.id)}
+                    >
+                      <RefreshCw size={18} />
+                      <span>Update to v{game.version}</span>
+                    </button>
+                    <button
+                      className="btn-primary-action play"
+                      onClick={() => onLaunch(game.id)}
+                    >
+                      <Play size={18} fill="currentColor" />
+                      <span>Play</span>
+                    </button>
+                  </div>
+                )}
 
-            {status === 'RUNNING' && (
-              <button className="btn-primary-action running">
-                <Sparkles size={18} className="animate-spin" />
-                <span>Game is Running</span>
-              </button>
-            )}
+                {status === 'INSTALLED' && (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      className="btn-primary-action play"
+                      onClick={() => onLaunch(game.id)}
+                    >
+                      <Play size={20} fill="currentColor" />
+                      <span>Play Now</span>
+                    </button>
+                  </div>
+                )}
 
-            {/* Secondary Controls Bar for Installed Game */}
-            {installed && (
-              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button
-                  className="btn-secondary"
-                  title="Open Installation Folder"
-                  onClick={() => launcherBridge.openFolder(installed.installPath)}
-                >
-                  <FolderOpen size={15} />
-                  <span>Files</span>
-                </button>
-                <button
-                  className="btn-secondary"
-                  title="Check for Latest Updates"
-                  onClick={() => onCheckUpdates(game.id)}
-                >
-                  <RefreshCw size={15} />
-                  <span>Check Update</span>
-                </button>
-                <button
-                  className="btn-secondary"
-                  title="Uninstall Game"
-                  style={{ color: '#ff6b81' }}
-                  onClick={() => onUninstall(game.id)}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
+                {status === 'RUNNING' && (
+                  <button className="btn-primary-action running">
+                    <Sparkles size={18} className="animate-spin" />
+                    <span>Game is Running</span>
+                  </button>
+                )}
+
+                {/* Secondary Controls Bar for Installed Game */}
+                {installed && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button
+                      className="btn-secondary"
+                      title="Open Installation Folder"
+                      onClick={() => launcherBridge.openFolder(installed.installPath)}
+                    >
+                      <FolderOpen size={15} />
+                      <span>Files</span>
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      title="Check for Latest Updates"
+                      onClick={() => onCheckUpdates(game.id)}
+                    >
+                      <RefreshCw size={15} />
+                      <span>Check Update</span>
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      title="Uninstall Game"
+                      style={{ color: '#ff6b81' }}
+                      onClick={() => onUninstall(game.id)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -282,6 +327,12 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <span style={{ fontWeight: 600 }}>{game.developer}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Distribution</span>
+                    <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
+                      {isWebGame ? 'Cloud / Web Hosted' : 'GitHub Releases'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Release Date</span>
                     <span>{game.releaseDate}</span>
                   </div>
@@ -327,7 +378,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                 <div className="feature-pill">
                   <Monitor size={18} color="var(--accent-cyan)" />
                   <div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>OS</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Target Environment</div>
                     <strong>{game.requirements.os}</strong>
                   </div>
                 </div>
@@ -349,7 +400,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   <HardDrive size={18} color="var(--accent-cyan)" />
                   <div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Memory & Storage</div>
-                    <strong>{game.requirements.ram} RAM / {game.requirements.storage} Space</strong>
+                    <strong>{game.requirements.ram} RAM / {game.requirements.storage}</strong>
                   </div>
                 </div>
               </div>

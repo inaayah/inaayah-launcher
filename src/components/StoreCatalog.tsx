@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Download, Play, CheckCircle } from 'lucide-react';
+import { Search, Download, Play, CheckCircle, Globe } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame } from '../types/launcher';
 
 interface StoreCatalogProps {
@@ -44,7 +44,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
         <div>
           <h2 className="catalog-title">Inaayah Studio Store</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>
-            Explore official releases, multiplayer titles, and community betas.
+            Explore official releases, multiplayer titles, and instant web games.
           </p>
         </div>
 
@@ -83,7 +83,8 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
       {/* Cards Grid */}
       <div className="catalog-grid">
         {filteredGames.map((game) => {
-          const isInstalled = Boolean(installedGames[game.id]);
+          const isWebGame = game.gameType === 'web';
+          const isInstalled = Boolean(installedGames[game.id]) || isWebGame;
 
           return (
             <div
@@ -105,7 +106,13 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     gap: 6
                   }}
                 >
-                  <span className="badge cyan">v{game.version}</span>
+                  {isWebGame ? (
+                    <span className="badge green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Globe size={11} /> Instant Web Game
+                    </span>
+                  ) : (
+                    <span className="badge cyan">v{game.version}</span>
+                  )}
                 </div>
               </div>
 
@@ -114,7 +121,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                   <h3 className="card-title">{game.title}</h3>
                   {isInstalled && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent-green)', fontSize: 12, fontWeight: 600 }}>
-                      <CheckCircle size={14} /> Installed
+                      <CheckCircle size={14} /> {isWebGame ? 'Ready' : 'Installed'}
                     </span>
                   )}
                 </div>
@@ -130,35 +137,55 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     ))}
                   </div>
 
-                  <button
-                    className={`btn-secondary`}
-                    style={{
-                      height: 34,
-                      padding: '0 14px',
-                      fontSize: 12,
-                      background: isInstalled ? 'rgba(0, 255, 136, 0.15)' : 'rgba(0, 240, 255, 0.15)',
-                      borderColor: isInstalled ? 'var(--accent-green)' : 'var(--accent-cyan)',
-                      color: isInstalled ? 'var(--accent-green)' : 'var(--accent-cyan)'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isInstalled) {
+                  {isWebGame ? (
+                    <button
+                      className="btn-secondary"
+                      style={{
+                        height: 34,
+                        padding: '0 14px',
+                        fontSize: 12,
+                        background: 'rgba(0, 255, 136, 0.15)',
+                        borderColor: 'var(--accent-green)',
+                        color: 'var(--accent-green)'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
                         onSelectGame(game.id);
-                      } else {
-                        onInstall(game.id);
-                      }
-                    }}
-                  >
-                    {isInstalled ? (
-                      <>
-                        <Play size={14} fill="currentColor" /> Play
-                      </>
-                    ) : (
-                      <>
-                        <Download size={14} /> {game.sizeFormatted}
-                      </>
-                    )}
-                  </button>
+                      }}
+                    >
+                      <Globe size={14} /> Instant Play
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-secondary"
+                      style={{
+                        height: 34,
+                        padding: '0 14px',
+                        fontSize: 12,
+                        background: isInstalled ? 'rgba(0, 255, 136, 0.15)' : 'rgba(0, 240, 255, 0.15)',
+                        borderColor: isInstalled ? 'var(--accent-green)' : 'var(--accent-cyan)',
+                        color: isInstalled ? 'var(--accent-green)' : 'var(--accent-cyan)'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isInstalled) {
+                          onSelectGame(game.id);
+                        } else {
+                          onInstall(game.id);
+                        }
+                      }}
+                    >
+                      {isInstalled ? (
+                        <>
+                          <Play size={14} fill="currentColor" /> Play
+                        </>
+                      ) : (
+                        <>
+                          <Download size={14} /> {game.sizeFormatted}
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -96,25 +96,22 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
       'https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=1280&auto=format&fit=crop',
       'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1280&auto=format&fit=crop'
     ],
-    sizeBytes: 63100000,
-    sizeFormatted: '60.2 MB',
+    gameType: 'web',
+    webUrl: 'https://kettle-court.innayah.dev',
+    sizeBytes: 0,
+    sizeFormatted: 'Cloud / Instant Play',
     githubRepo: 'inaayah/kettle-court',
-    executableNames: {
-      darwin: 'KettleCourt.app/Contents/MacOS/KettleCourt',
-      win32: 'KettleCourt.exe',
-      linux: 'KettleCourt.x86_64'
-    },
     features: [
       'Dynamic Court Control: Real-time unit spawning and zone defense',
       'Inaayah Network Backend: Cloud progress, device-based guest login, and match relays',
       'Low Latency: Built for instantaneous peer reaction at 60 FPS'
     ],
     requirements: {
-      os: 'macOS 11+ / Windows 10 64-bit / Linux',
+      os: 'Any Modern OS (Browser / WebGL)',
       cpu: '2.0 GHz Dual Core or better',
-      gpu: 'OpenGL 3.3 / Vulkan 1.0 compatible GPU',
+      gpu: 'WebGL 2.0 compatible Browser',
       ram: '2 GB RAM',
-      storage: '150 MB free space'
+      storage: 'No local disk space required'
     },
     changelog: [
       {

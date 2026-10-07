@@ -551,6 +551,70 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   }
 });
 
+ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: string) => {
+  try {
+    const cfg = loadConfig();
+    const gameDir = path.join(cfg.libraryPath, gameId);
+    fs.mkdirSync(gameDir, { recursive: true });
+
+    const webGameWin = new BrowserWindow({
+      width: 1280,
+      height: 760,
+      minWidth: 960,
+      minHeight: 540,
+      backgroundColor: '#0a0c13',
+      title: 'Inaayah Games - Web Player',
+      autoHideMenuBar: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+
+    webGameWin.loadURL(url);
+
+    const startTime = Date.now();
+    mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
+
+    webGameWin.on('closed', () => {
+      const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+      const manifestPath = path.join(gameDir, 'manifest.json');
+      let meta: any = {
+        id: gameId,
+        version: '1.0.0',
+        installPath: url,
+        installedAt: Date.now(),
+        lastPlayedAt: Date.now(),
+        totalPlaytimeMinutes: 0
+      };
+      if (fs.existsSync(manifestPath)) {
+        try {
+          meta = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        } catch (e) {}
+      }
+      meta.lastPlayedAt = Date.now();
+      meta.totalPlaytimeMinutes = (meta.totalPlaytimeMinutes || 0) + elapsedMinutes;
+      fs.writeFileSync(manifestPath, JSON.stringify(meta, null, 2));
+
+      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: 0 });
+    });
+
+    if (cfg.closeLauncherOnGameStart && mainWindow) {
+      mainWindow.minimize();
+    }
+
+    return true;
+  } catch (err: any) {
+    console.error('Failed to open web game:', err);
+    dialog.showErrorBox('Launch Web Game Failed', err.message);
+    return false;
+  }
+});
+
+ipcMain.handle('launcher:open-external-url', async (_event, targetUrl: string) => {
+  await shell.openExternal(targetUrl);
+});
+
 // Window controls
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:maximize', () => {
