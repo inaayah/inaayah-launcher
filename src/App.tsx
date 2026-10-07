@@ -30,10 +30,11 @@ export const App: React.FC = () => {
   const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>({});
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatus>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [catalog, setCatalog] = useState<GameCatalogItem[]>(catalogData);
 
   const selectedGame = useMemo(() => {
-    return catalogData.find((g) => g.id === selectedGameId) || catalogData[0];
-  }, [selectedGameId]);
+    return catalog.find((g) => g.id === selectedGameId) || catalog[0] || catalogData[0];
+  }, [catalog, selectedGameId]);
 
   // Load initial data
   const refreshInstalled = useCallback(async () => {
@@ -65,6 +66,20 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     refreshInstalled();
+    launcherBridge.refreshCatalog().then((dyn) => {
+      if (Array.isArray(dyn) && dyn.length > 0) {
+        setCatalog((prev) => {
+          const map = new Map<string, GameCatalogItem>();
+          prev.forEach((g) => map.set(g.id, g));
+          dyn.forEach((d) => {
+            if (d && d.id) {
+              map.set(d.id, { ...(map.get(d.id) || {}), ...d });
+            }
+          });
+          return Array.from(map.values());
+        });
+      }
+    }).catch(() => {});
 
     // Listeners for progress and status
     const unsubProgress = launcherBridge.onDownloadProgress((prog) => {
@@ -172,7 +187,7 @@ export const App: React.FC = () => {
         <Sidebar
           currentTab={currentTab}
           onSelectTab={setCurrentTab}
-          catalog={catalogData}
+          catalog={catalog}
           installedGames={installedGames}
           selectedGameId={selectedGameId}
           onSelectGame={(id) => {
@@ -188,7 +203,7 @@ export const App: React.FC = () => {
         <main className="content-area">
           {currentTab === 'store' && (
             <StoreCatalog
-              catalog={catalogData}
+              catalog={catalog}
               installedGames={installedGames}
               onSelectGame={(id) => {
                 setSelectedGameId(id);
@@ -214,7 +229,7 @@ export const App: React.FC = () => {
 
           {currentTab === 'downloads' && (
             <DownloadsQueue
-              catalog={catalogData}
+              catalog={catalog}
               downloads={downloads}
               onCancel={handleCancelDownload}
               onSelectGame={(id) => {

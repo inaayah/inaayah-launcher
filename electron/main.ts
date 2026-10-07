@@ -14,6 +14,8 @@ interface LauncherConfig {
   nakamaHost: string;
   nakamaPort: number;
   useSSL: boolean;
+  releaseGatewayUrl?: string;
+  githubToken?: string;
 }
 
 interface InstalledGameMeta {
@@ -45,7 +47,9 @@ function loadConfig(): LauncherConfig {
     closeLauncherOnGameStart: false,
     nakamaHost: '94.130.227.190',
     nakamaPort: 7350,
-    useSSL: false
+    useSSL: false,
+    releaseGatewayUrl: 'https://releases.innayah.dev',
+    githubToken: ''
   };
 
   try {
@@ -177,6 +181,61 @@ app.on('window-all-closed', () => {
 });
 
 // --- IPC Communication Handlers ---
+
+ipcMain.handle('launcher:refresh-catalog', async () => {
+  const cfg = loadConfig();
+  const cacheFile = path.join(app.getPath('userData'), 'catalog_cache.json');
+
+  if (cfg.releaseGatewayUrl) {
+    try {
+      const fetchUrl = `${cfg.releaseGatewayUrl.replace(/\/$/, "")}/api/games`;
+      const res = await fetch(fetchUrl, { headers: { 'User-Agent': 'InaayahLauncher' } });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2));
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Gateway catalog fetch failed:', e);
+    }
+  }
+
+  const repos = [
+    { id: 'aether-rush', repo: 'aether-rush' },
+    { id: 'kettle-court', repo: 'kettle-court' },
+    { id: 'cyber-tactics', repo: 'cyber-tactics' }
+  ];
+
+  const fetched: any[] = [];
+  for (const item of repos) {
+    try {
+      const rawUrl = `https://raw.githubusercontent.com/inaayah/${item.repo}/main/game-manifest.json`;
+      const headers: Record<string, string> = { 'User-Agent': 'InaayahLauncher' };
+      if (cfg.githubToken) {
+        headers['Authorization'] = `Bearer ${cfg.githubToken}`;
+      }
+      const res = await fetch(rawUrl, { headers });
+      if (res.ok) {
+        fetched.push(await res.json());
+      }
+    } catch {}
+  }
+
+  if (fetched.length > 0) {
+    fs.writeFileSync(cacheFile, JSON.stringify(fetched, null, 2));
+    return fetched;
+  }
+
+  if (fs.existsSync(cacheFile)) {
+    try {
+      return JSON.parse(fs.readFileSync(cacheFile, 'utf-8'));
+    } catch {}
+  }
+
+  return [];
+});
 
 ipcMain.handle('launcher:get-config', async () => {
   return loadConfig();

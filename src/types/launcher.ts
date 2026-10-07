@@ -80,6 +80,8 @@ export interface LauncherConfig {
   nakamaHost: string;
   nakamaPort: number;
   useSSL: boolean;
+  releaseGatewayUrl?: string;
+  githubToken?: string;
 }
 
 export interface InaayahLauncherAPI {
@@ -96,6 +98,7 @@ export interface InaayahLauncherAPI {
   openFolder: (path: string) => Promise<void>;
   openExternalUrl: (url: string) => Promise<void>;
   checkUpdates: (gameId: string, latestVersion: string) => Promise<boolean>;
+  refreshCatalog: () => Promise<GameCatalogItem[]>;
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;
   onGameStatusChanged: (callback: (data: { gameId: string; status: GameStatus; exitCode?: number }) => void) => () => void;
   windowMinimize: () => void;

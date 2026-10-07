@@ -1,0 +1,11 @@
+name = "inaayah-releases"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# Free tier usage: 100,000 requests/day
+# Set your fine-grained GitHub token in Cloudflare secrets:
+#   npx wrangler secret put GITHUB_TOKEN
+
+[vars]
+GITHUB_ORG = "inaayah"
+CACHE_TTL_SECONDS = 300

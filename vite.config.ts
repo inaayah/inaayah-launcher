@@ -8,19 +8,13 @@ import * as esbuild from 'esbuild';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function electronDevPlugin(): Plugin {
+function electronDevPlugin(isWebMode: boolean): Plugin {
   return {
     name: 'electron-dev',
     apply: 'serve',
     configureServer(server) {
-      const isWebOnly =
-        process.argv.includes('--web') ||
-        process.argv.includes('--no-electron') ||
-        process.env.NO_ELECTRON === 'true' ||
-        process.env.WEB_ONLY === 'true';
-
-      if (isWebOnly) {
-        console.log('[electron-dev] Running in browser-only mode (--web or NO_ELECTRON detected).');
+      if (isWebMode) {
+        console.log('\n[electron-dev] Running in browser-only mode (web mode detected).');
         return;
       }
 
@@ -128,11 +122,15 @@ function electronDevPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), electronDevPlugin()],
-  base: './',
-  server: {
-    port: 5173,
-    strictPort: true,
-  },
+export default defineConfig(({ mode }) => {
+  const isWebMode = mode === 'web' || process.env.NO_ELECTRON === 'true' || process.env.WEB_ONLY === 'true';
+
+  return {
+    plugins: [react(), electronDevPlugin(isWebMode)],
+    base: './',
+    server: {
+      port: 5173,
+      strictPort: true,
+    },
+  };
 });

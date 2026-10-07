@@ -22,6 +22,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [nakamaHost, setNakamaHost] = useState(config.nakamaHost);
   const [nakamaPort, setNakamaPort] = useState(config.nakamaPort);
   const [useSSL, setUseSSL] = useState(config.useSSL);
+  const [releaseGatewayUrl, setReleaseGatewayUrl] = useState(config.releaseGatewayUrl || 'https://releases.innayah.dev');
+  const [githubToken, setGithubToken] = useState(config.githubToken || '');
   const [savedFeedback, setSavedFeedback] = useState(false);
 
   if (!isOpen) return null;
@@ -40,7 +42,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       closeLauncherOnGameStart: closeOnStart,
       nakamaHost,
       nakamaPort: Number(nakamaPort),
-      useSSL
+      useSSL,
+      releaseGatewayUrl,
+      githubToken
     });
     setSavedFeedback(true);
     setTimeout(() => {
@@ -111,6 +115,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               style={{ width: 18, height: 18, accentColor: 'var(--accent-cyan)' }}
             />
           </label>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Release Distribution & GitHub Access</label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Release Gateway (e.g. https://releases.innayah.dev)"
+            value={releaseGatewayUrl}
+            onChange={(e) => setReleaseGatewayUrl(e.target.value)}
+          />
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            Free Cloudflare Edge Worker gateway for CDN caching and token masking.
+          </span>
+
+          <input
+            type="password"
+            className="form-input"
+            style={{ marginTop: 6 }}
+            placeholder="Studio GitHub Personal Access Token (Optional for Private Repos)"
+            value={githubToken}
+            onChange={(e) => setGithubToken(e.target.value)}
+          />
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            Enables instant pre-release builds from private repos during internal studio testing.
+          </span>
         </div>
 
         <div className="form-group">

@@ -6,6 +6,16 @@
 
 ---
 
+## 📚 Essential Documentation
+
+| Document | Purpose |
+| :--- | :--- |
+| **[`docs/SERVICES.md`](docs/SERVICES.md)** | Single source of truth for all server IPs, Nakama ports, web games, and GitHub repos. |
+| **[`docs/FREE_INFRASTRUCTURE.md`](docs/FREE_INFRASTRUCTURE.md)** | Complete blueprint explaining how GitHub Releases, Cloudflare Workers, and CDN caching run at **$0 cost**. |
+| **[`docs/GAME_MANIFEST_SPEC.md`](docs/GAME_MANIFEST_SPEC.md)** | Standard specification for `game-manifest.json` in game repositories. |
+
+---
+
 ## 🚀 Overview
 
 **Inaayah Launcher** is a Steam-inspired desktop application built with **Electron**, **React 19**, **TypeScript**, and **Vite**. It provides gamers with a seamless way to install, update, and launch Inaayah Studio games (such as *AetherRush: Cyber Brawler 3D*, *Kettle Court*, and *Cyber Tactics*), with zero manual configuration.
@@ -18,6 +28,7 @@ All game builds and updates are distributed directly from **GitHub Releases** (p
 
 - **🎮 Steam-Style Unified Library:**
   - One-click install, background auto-update, and direct play.
+  - Supports both **Desktop Binaries** and **Instant Web Games** (`https://kettle-court.innayah.dev`).
   - Tracks total playtime and last-played timestamps.
   - Direct links to game folders, patch notes, screenshots lightbox, and hardware specifications.
 - **⚡ High-Performance Streaming Downloader:**
@@ -41,17 +52,27 @@ All game builds and updates are distributed directly from **GitHub Releases** (p
 
 ```
 inaayah-launcher/
+├── docs/                  # Architecture & operations documentation
+│   ├── SERVICES.md            # Live server endpoints, repos, Nakama IPs
+│   ├── FREE_INFRASTRUCTURE.md # 100% free CDN & proxy architecture
+│   └── GAME_MANIFEST_SPEC.md  # Standard game-manifest.json specification
+├── scripts/               # Operational automation scripts
+│   └── deploy-release-worker.sh # 1-click deployment for Cloudflare Worker
+├── worker/                # Free Cloudflare Worker release caching proxy
+│   ├── src/index.ts           # Worker proxy & token masking logic
+│   ├── wrangler.toml          # Worker configuration (free tier)
+│   └── README.md              # Worker deployment guide
 ├── electron/
-│   ├── main.ts            # Electron main process (IPC, downloads, process spawning, file I/O)
+│   ├── main.ts            # Electron main process (IPC, downloads, process spawning)
 │   └── preload.ts         # Secure contextBridge IPC layer exposing `window.inaayahLauncher`
 ├── src/
 │   ├── components/        # React UI components
-│   │   ├── TitleBar.tsx       # Custom frameless title bar with Nakama status & window controls
+│   │   ├── TitleBar.tsx       # Custom frameless title bar with Nakama status
 │   │   ├── Sidebar.tsx        # Navigation & quick-access installed games list
-│   │   ├── GameHero.tsx       # Detail page with hero banner, big action button, and tabs
+│   │   ├── GameHero.tsx       # Detail page with hero banner & action button
 │   │   ├── StoreCatalog.tsx   # Catalog discovery grid with genre filters & search
 │   │   ├── DownloadsQueue.tsx # Real-time downloads manager with speed & ETA
-│   │   └── SettingsModal.tsx  # Library location picker, auto-update toggle, Nakama IP
+│   │   └── SettingsModal.tsx  # Library location, edge gateway, GitHub token
 │   ├── data/
 │   │   └── catalog.ts         # Game catalog metadata, changelogs, system specs
 │   ├── services/
@@ -78,30 +99,21 @@ inaayah-launcher/
 npm install
 ```
 
-### 3. Run in Web Browser (Fast UI Iteration)
+### 3. Run Desktop Electron App (Hot-Reloading)
 ```bash
 npm run dev
-```
-> In browser mode, simulated downloads and in-memory mock games allow full UI testing without Electron.
-
-### 4. Run Desktop Electron App
-```bash
+# OR
 npm start
 ```
-> Compiles both the React frontend and Electron main process into `dist/` and launches the native frameless desktop window.
+> Automatically compiles frontend and launches the native frameless desktop window.
 
-### 5. Type Checking & Verification
+### 4. Deploy Free Edge Release Gateway
 ```bash
-npm run lint
-npm run build:renderer
+npm run deploy:worker
 ```
+> Deploys the free Cloudflare Worker caching gateway to `releases.innayah.dev`.
 
----
-
-## 📦 Packaging & Distribution
-
-To create standalone production installers for your operating system:
-
+### 5. Packaging & Distribution
 ```bash
 # Package for current OS (macOS DMG/ZIP, Windows NSIS/EXE, Linux AppImage)
 npm run dist
@@ -113,17 +125,16 @@ Installers are generated inside the `release/` folder.
 
 ## 🚀 How to Publish a Game to the Launcher
 
-1. **Tag and Release on GitHub:**
-   - In your game repo (e.g. `inaayah/aether-rush`), create a new tag like `v1.2.0`.
-   - Export your Godot game binary into a ZIP archive named:
-     - `aether-rush-macos-universal.zip`
-     - `aether-rush-windows-x86_64.zip`
-     - `aether-rush-linux-x86_64.zip`
-   - Attach the ZIPs to the GitHub Release.
-2. **Update Catalog (`src/data/catalog.ts`):**
-   - Bump the `version` field to match your release tag.
-   - Add new patch notes to the `changelog` array.
-3. The launcher will automatically detect the new release for all users, display the **"UPDATE AVAILABLE"** badge, and download/extract the update in one click!
+1. **Add `game-manifest.json` in your Game Repo:**
+   - Follow [`docs/GAME_MANIFEST_SPEC.md`](docs/GAME_MANIFEST_SPEC.md).
+2. **Tag and Push to GitHub:**
+   - In your game repo (e.g. `inaayah/aether-rush`), create a new tag like `v1.2.0`:
+     ```bash
+     git tag v1.2.0
+     git push origin v1.2.0
+     ```
+   - The GitHub Actions workflow (`.github/workflows/release.yml`) builds the release and uploads the `.zip` packages automatically.
+3. The launcher automatically queries the manifest and alerts all players with an **"UPDATE AVAILABLE"** one-click install button!
 
 ---
 

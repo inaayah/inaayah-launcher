@@ -250,6 +250,11 @@ export const launcherBridge: InaayahLauncherAPI = {
     console.log('[Mock Browser] Open folder:', folderPath);
   },
 
+  async refreshCatalog(): Promise<GameCatalogItem[]> {
+    if (window.inaayahLauncher) return window.inaayahLauncher.refreshCatalog();
+    return [];
+  },
+
   async checkUpdates(gameId: string, latestVersion: string): Promise<boolean> {
     if (window.inaayahLauncher) return window.inaayahLauncher.checkUpdates(gameId, latestVersion);
     const installed = getMockInstalled();

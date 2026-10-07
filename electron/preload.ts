@@ -52,6 +52,10 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     return ipcRenderer.invoke('launcher:check-updates', gameId, latestVersion);
   },
 
+  refreshCatalog: () => {
+    return ipcRenderer.invoke('launcher:refresh-catalog');
+  },
+
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => {
     const handler = (_event: unknown, data: DownloadProgress) => callback(data);
     ipcRenderer.on('download-progress', handler);
