@@ -82,5 +82,17 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
 
   windowClose: () => {
     ipcRenderer.send('window:close');
+  },
+
+  restartAndInstallUpdate: () => {
+    return ipcRenderer.invoke('launcher:restart-and-install-update');
+  },
+
+  onLauncherUpdateReady: (callback: (version: string) => void) => {
+    const handler = (_event: unknown, version: string) => callback(version);
+    ipcRenderer.on('launcher-update-ready', handler);
+    return () => {
+      ipcRenderer.removeListener('launcher-update-ready', handler);
+    };
   }
 });

@@ -6,6 +6,7 @@ import https from 'https';
 import http from 'http';
 import { spawn, ChildProcess } from 'child_process';
 import AdmZip from 'adm-zip';
+import { autoUpdater } from 'electron-updater';
 
 interface LauncherConfig {
   libraryPath: string;
@@ -168,6 +169,14 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.warn('[AutoUpdater] Failed to check for launcher updates:', err);
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+      mainWindow?.webContents.send('launcher-update-ready', info.version);
+    });
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -687,6 +696,10 @@ ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: s
 
 ipcMain.handle('launcher:open-external-url', async (_event, targetUrl: string) => {
   await shell.openExternal(targetUrl);
+});
+
+ipcMain.handle('launcher:restart-and-install-update', () => {
+  autoUpdater.quitAndInstall();
 });
 
 // Window controls

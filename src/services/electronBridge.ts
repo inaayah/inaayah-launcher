@@ -288,5 +288,18 @@ export const launcherBridge: InaayahLauncherAPI = {
 
   windowClose() {
     if (window.inaayahLauncher) window.inaayahLauncher.windowClose();
+  },
+
+  async restartAndInstallUpdate(): Promise<void> {
+    if (window.inaayahLauncher?.restartAndInstallUpdate) {
+      await window.inaayahLauncher.restartAndInstallUpdate();
+    }
+  },
+
+  onLauncherUpdateReady(callback: (version: string) => void) {
+    if (window.inaayahLauncher?.onLauncherUpdateReady) {
+      return window.inaayahLauncher.onLauncherUpdateReady(callback);
+    }
+    return () => {};
   }
 };

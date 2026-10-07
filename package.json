@@ -9,7 +9,7 @@
     "dev": "vite",
     "dev:web": "vite --mode web",
     "build:renderer": "vite build",
-    "build:electron": "esbuild electron/main.ts electron/preload.ts --outdir=dist-electron --platform=node --format=cjs --bundle --external:electron --external:adm-zip",
+    "build:electron": "esbuild electron/main.ts electron/preload.ts --outdir=dist-electron --platform=node --format=cjs --bundle --external:electron --external:adm-zip --external:electron-updater",
     "build": "npm run build:renderer && npm run build:electron",
     "start": "npm run build:electron && electron .",
     "dist": "npm run build && electron-builder",
@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^0.546.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -37,6 +38,13 @@
   "build": {
     "appId": "com.inaayah.launcher",
     "productName": "Inaayah Launcher",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "inaayah",
+        "repo": "inaayah-launcher"
+      }
+    ],
     "directories": {
       "output": "release"
     },
@@ -45,14 +53,23 @@
       "dist-electron/**/*"
     ],
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.games"
     },
     "win": {
-      "target": ["nsis", "zip"]
+      "target": [
+        "nsis",
+        "zip"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "tar.gz"],
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
       "category": "Game"
     }
   }

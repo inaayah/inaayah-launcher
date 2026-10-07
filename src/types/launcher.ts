@@ -99,6 +99,8 @@ export interface InaayahLauncherAPI {
   openExternalUrl: (url: string) => Promise<void>;
   checkUpdates: (gameId: string, latestVersion: string) => Promise<boolean>;
   refreshCatalog: () => Promise<GameCatalogItem[]>;
+  restartAndInstallUpdate?: () => Promise<void>;
+  onLauncherUpdateReady?: (callback: (version: string) => void) => () => void;
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;
   onGameStatusChanged: (callback: (data: { gameId: string; status: GameStatus; exitCode?: number }) => void) => () => void;
   windowMinimize: () => void;
