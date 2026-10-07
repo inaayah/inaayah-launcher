@@ -139,4 +139,4 @@ Installers are generated inside the `release/` folder.
 ---
 
 ## 📄 License
-Private & Confidential — Proprietary to Inaayah Studio. All Rights Reserved.
+**Proprietary & Source-Available:** Copyright © 2026 Inaayah Studio. All rights reserved. Free for personal use to play official Inaayah Studio games. Commercial redistribution, rebranding, or reverse engineering of studio assets is strictly prohibited.
