@@ -14,7 +14,11 @@
     "start": "npm run build:electron && electron .",
     "dist": "npm run build && electron-builder",
     "deploy:worker": "./scripts/deploy-release-worker.sh",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "release": "node scripts/release.js patch",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",

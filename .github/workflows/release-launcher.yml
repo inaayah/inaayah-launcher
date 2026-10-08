@@ -4,13 +4,58 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump level'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
 
 jobs:
+  bump:
+    name: Autobump Version & Tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump Version and Push Tag
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+          NEW_VERSION=$(npm version ${{ inputs.bump }} -m "chore(release): v%s")
+          git push origin main --follow-tags
+          echo "Successfully created and pushed tag $NEW_VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release:
     name: Build & Release (${{ matrix.os }})
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -30,6 +75,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Sync package.json version with tag
+        run: |
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
+
       - name: Compile Application
         run: npm run build
 
@@ -39,3 +89,15 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release: true
           max_attempts: 3
+
+  publish:
+    name: Finalize & Publish Live Release
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish GitHub Release
+        run: |
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
