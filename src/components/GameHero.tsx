@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
 import { launcherBridge } from '../services/electronBridge';
+import { getAssetUrl } from '../utils/assets';
 
 interface GameHeroProps {
   game: GameCatalogItem;
@@ -70,20 +71,23 @@ export const GameHero: React.FC<GameHeroProps> = ({
       {/* Banner Header */}
       <div
         className="hero-banner"
-        style={{ backgroundImage: `url(${game.heroBanner})` }}
+        style={{ backgroundImage: `url(${getAssetUrl(game.heroBanner)})` }}
       >
         <div className="hero-overlay" />
 
-        {onBackToLibrary && (
-          <button
-            className="btn-back-library"
-            onClick={onBackToLibrary}
-            title="Back to My Library Grid"
-          >
-            <ArrowLeft size={16} />
-            <span>Library</span>
-          </button>
-        )}
+        {/* Top Header Bar for Navigation */}
+        <div className="hero-top-bar">
+          {onBackToLibrary ? (
+            <button
+              className="btn-back-library"
+              onClick={onBackToLibrary}
+              title="Back to My Library Grid"
+            >
+              <ArrowLeft size={16} />
+              <span>Library</span>
+            </button>
+          ) : <div />}
+        </div>
 
         <div className="hero-content">
           <div className="hero-info">
@@ -350,7 +354,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <div
                       key={idx}
                       className="screenshot-thumb"
-                      style={{ backgroundImage: `url(${shot})` }}
+                      style={{ backgroundImage: `url(${getAssetUrl(shot)})` }}
                       onClick={() => setActiveScreenshot(shot)}
                     />
                   ))}
@@ -493,7 +497,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
       {activeScreenshot && (
         <div className="modal-overlay" onClick={() => setActiveScreenshot(null)}>
           <img
-            src={activeScreenshot}
+            src={getAssetUrl(activeScreenshot)}
             alt="Screenshot"
             style={{
               maxWidth: '90vw',

@@ -23,11 +23,11 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
       "Original Soundtrack"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "/images/aether-rush-cover.jpg",
-    "heroBanner": "/images/aether-rush-banner.jpg",
+    "coverArt": "./images/aether-rush-cover.jpg",
+    "heroBanner": "./images/aether-rush-banner.jpg",
     "screenshots": [
-      "/images/aether-rush-banner.jpg",
-      "/images/aether-rush-cover.jpg"
+      "./images/aether-rush-banner.jpg",
+      "./images/aether-rush-cover.jpg"
     ],
     "sizeBytes": 89450000,
     "sizeFormatted": "85.3 MB",
@@ -108,11 +108,11 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
       "Digital Table Game"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "/images/kettle-court-cover.jpg",
-    "heroBanner": "/images/kettle-court-banner.jpg",
+    "coverArt": "./images/kettle-court-cover.jpg",
+    "heroBanner": "./images/kettle-court-banner.jpg",
     "screenshots": [
-      "/images/kettle-court-banner.jpg",
-      "/images/kettle-court-cover.jpg"
+      "./images/kettle-court-banner.jpg",
+      "./images/kettle-court-cover.jpg"
     ],
     "gameType": "web",
     "webUrl": "https://kettle-court.inaayah.dev/",
@@ -168,11 +168,11 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
       "Deep Customization"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "/images/cyber-tactics-cover.jpg",
-    "heroBanner": "/images/cyber-tactics-banner.jpg",
+    "coverArt": "./images/cyber-tactics-cover.jpg",
+    "heroBanner": "./images/cyber-tactics-banner.jpg",
     "screenshots": [
-      "/images/cyber-tactics-banner.jpg",
-      "/images/cyber-tactics-cover.jpg"
+      "./images/cyber-tactics-banner.jpg",
+      "./images/cyber-tactics-cover.jpg"
     ],
     "sizeBytes": 115000000,
     "sizeFormatted": "109.6 MB",

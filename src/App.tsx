@@ -15,6 +15,7 @@ import type {
   GameStatus,
   GameCatalogItem
 } from './types/launcher';
+import { getAssetUrl } from './utils/assets';
 
 export const App: React.FC = () => {
   const [config, setConfig] = useState<LauncherConfig>({
@@ -108,7 +109,16 @@ export const App: React.FC = () => {
           prev.forEach((g) => map.set(g.id, g));
           dyn.forEach((d) => {
             if (d && d.id) {
-              map.set(d.id, { ...(map.get(d.id) || {}), ...d });
+              const existing = map.get(d.id) || {} as GameCatalogItem;
+              map.set(d.id, {
+                ...existing,
+                ...d,
+                coverArt: getAssetUrl(d.coverArt || existing.coverArt),
+                heroBanner: getAssetUrl(d.heroBanner || existing.heroBanner),
+                screenshots: Array.isArray(d.screenshots)
+                  ? d.screenshots.map((s: string) => getAssetUrl(s))
+                  : existing.screenshots?.map((s: string) => getAssetUrl(s)) || []
+              });
             }
           });
           const merged = Array.from(map.values());

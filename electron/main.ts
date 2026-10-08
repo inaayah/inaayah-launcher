@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -228,6 +228,30 @@ app.whenReady().then(() => {
       console.error('Failed to create default library directory:', e);
     }
   }
+
+  // Automatic fallback for image assets in file:// mode
+  session.defaultSession.webRequest.onBeforeRequest({ urls: ['file://*'] }, (details, callback) => {
+    try {
+      const url = details.url;
+      const imgMatch = url.match(/[/\\]([^/\\]+\.(?:jpg|jpeg|png|webp|svg|ico))$/i);
+      if (imgMatch) {
+        const filename = imgMatch[1];
+        if (filename === 'icon.png' && !url.includes('/dist/icon.png')) {
+          const target = path.join(__dirname, '../dist/icon.png');
+          if (fs.existsSync(target)) {
+            return callback({ redirectURL: `file://${target}` });
+          }
+        }
+        if (!url.includes('/dist/images/')) {
+          const target = path.join(__dirname, '../dist/images', filename);
+          if (fs.existsSync(target)) {
+            return callback({ redirectURL: `file://${target}` });
+          }
+        }
+      }
+    } catch {}
+    callback({});
+  });
 
   createWindow();
   if (app.isPackaged) {

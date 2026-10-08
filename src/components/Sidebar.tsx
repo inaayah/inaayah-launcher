@@ -7,6 +7,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
+import { getAssetUrl } from '../utils/assets';
 
 export type NavTab = 'store' | 'library' | 'downloads';
 
@@ -114,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div
                   className="quick-game-icon"
-                  style={{ backgroundImage: `url(${game.coverArt})` }}
+                  style={{ backgroundImage: `url(${getAssetUrl(game.coverArt)})` }}
                 />
                 <span className="quick-game-title">{game.title}</span>
                 <span

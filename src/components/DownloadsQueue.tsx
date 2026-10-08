@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, XCircle, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
 import type { GameCatalogItem, DownloadProgress } from '../types/launcher';
+import { getAssetUrl } from '../utils/assets';
 
 interface DownloadsQueueProps {
   catalog: GameCatalogItem[];
@@ -86,7 +87,7 @@ export const DownloadsQueue: React.FC<DownloadsQueueProps> = ({
                         width: 44,
                         height: 44,
                         borderRadius: 'var(--radius-md)',
-                        backgroundImage: `url(${game?.coverArt || ''})`,
+                        backgroundImage: `url(${getAssetUrl(game?.coverArt)})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         border: '1px solid var(--border-subtle)'

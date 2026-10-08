@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Minus, Square, X, ShieldCheck, Wifi } from 'lucide-react';
 import { launcherBridge } from '../services/electronBridge';
 import type { LauncherConfig } from '../types/launcher';
+import { getAssetUrl } from '../utils/assets';
 
 interface TitleBarProps {
   config: LauncherConfig;
@@ -35,10 +36,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
         style={{ paddingLeft: hasMacTrafficLights ? 76 : 0 }}
       >
         <div className="studio-logo" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src="/icon.png" alt="Inaayah" style={{ width: 20, height: 20, borderRadius: 5, boxShadow: '0 0 10px rgba(0, 240, 255, 0.4)' }} />
+          <img src={getAssetUrl('icon.png')} alt="Inaayah" style={{ width: 20, height: 20, borderRadius: 5, boxShadow: '0 0 10px rgba(0, 240, 255, 0.4)' }} />
           INAAYAH STUDIO
         </div>
-        <span className="studio-badge">Launcher v0.1.0</span>
+        <span className="studio-badge">Launcher v0.2.0</span>
       </div>
 
       <div className="titlebar-center">

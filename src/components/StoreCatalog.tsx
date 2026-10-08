@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Download, Play, CheckCircle, Globe, Clock, BookmarkCheck, Plus } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame } from '../types/launcher';
+import { getAssetUrl } from '../utils/assets';
 
 interface StoreCatalogProps {
   catalog: GameCatalogItem[];
@@ -100,7 +101,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
             >
               <div
                 className="card-banner"
-                style={{ backgroundImage: `url(${game.heroBanner})` }}
+                style={{ backgroundImage: `url(${getAssetUrl(game.heroBanner)})` }}
               >
                 <div className="card-banner-overlay" />
                 {isInLibrary && !isComingSoon && (
