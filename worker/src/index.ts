@@ -4,7 +4,7 @@ export interface Env {
   CACHE_TTL_SECONDS: number;
 }
 
-const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'desktop' | 'web'; webUrl?: string }> = {
+const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'desktop' | 'web'; webUrl?: string; isComingSoon?: boolean }> = {
   'aether-rush': {
     repo: 'aether-rush',
     branch: 'main',
@@ -136,7 +136,41 @@ export default {
       }
     }
 
-    return new Response('Endpoint not found', { status: 404, headers: CORS_HEADERS });
+    // 6. GET /api/launcher/releases/latest or /api/launcher/latest
+    if (pathname === '/api/launcher/releases/latest' || pathname === '/api/launcher/latest') {
+      try {
+        const releaseData = await fetchLatestRelease('inaayah-launcher', env);
+        return new Response(JSON.stringify(releaseData, null, 2), {
+          headers: {
+            ...CORS_HEADERS,
+            'Content-Type': 'application/json',
+            'Cache-Control': `public, max-age=${env.CACHE_TTL_SECONDS || 300}`
+          }
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // 7. GET /api/launcher/download/:platform (e.g. windows, mac, linux)
+    const launcherDlMatch = pathname.match(/^\/api\/launcher\/download\/([^\/]+)$/);
+    if (launcherDlMatch) {
+      const platform = launcherDlMatch[1];
+      try {
+        const downloadUrl = await getReleaseAssetDownloadUrl('inaayah-launcher', platform, env);
+        return Response.redirect(downloadUrl, 302);
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+        return new Response('Endpoint not found', { status: 404, headers: CORS_HEADERS });
   }
 };
 
@@ -223,16 +257,21 @@ async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: E
   const release: any = await res.json();
   const assets: any[] = release.assets || [];
 
-  // Match platform keywords
+  // Match platform keywords and installers (.dmg, .exe, .AppImage)
   const targetAsset = assets.find((a) => {
     const name = a.name.toLowerCase();
+    if (name.endsWith('.blockmap') || name.endsWith('.yml')) return false;
+
     if (platform === 'darwin' || platform === 'mac' || platform === 'macos') {
+      if (name.endsWith('.dmg')) return true;
       return name.includes('mac') || name.includes('darwin');
     }
-    if (platform === 'win32' || platform === 'windows') {
+    if (platform === 'win32' || platform === 'windows' || platform === 'win') {
+      if (name.endsWith('.exe')) return true;
       return name.includes('win');
     }
     if (platform === 'linux') {
+      if (name.endsWith('.appimage')) return true;
       return name.includes('linux');
     }
     return false;

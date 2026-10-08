@@ -3,6 +3,8 @@ node_modules/
 dist/
 dist-electron/
 release/
+.wrangler/
+worker/.wrangler/
 
 # Logs
 *.log
