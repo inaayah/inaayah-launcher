@@ -1,4 +1,5 @@
 import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus, GameCatalogItem, UpdateCheckResult } from '../types/launcher';
+import { APP_VERSION } from '../utils/version';
 
 const STORAGE_KEY_CONFIG = 'inaayah_launcher_config_mock';
 const STORAGE_KEY_INSTALLED = 'inaayah_launcher_installed_mock';
@@ -297,27 +298,39 @@ export const launcherBridge: InaayahLauncherAPI = {
     if (window.inaayahLauncher) window.inaayahLauncher.windowClose();
   },
 
+  async getAppVersion(): Promise<string> {
+    if (window.inaayahLauncher?.getAppVersion) {
+      try {
+        const v = await window.inaayahLauncher.getAppVersion();
+        if (v) return v;
+      } catch {}
+    }
+    return APP_VERSION;
+  },
+
   async checkLauncherUpdate(): Promise<UpdateCheckResult> {
     if (window.inaayahLauncher?.checkLauncherUpdate) {
       return window.inaayahLauncher.checkLauncherUpdate();
     }
+    const currentVersion = await this.getAppVersion();
     try {
       const res = await fetch('https://api.github.com/repos/inaayah/inaayah-launcher/releases/latest', {
-        headers: { 'User-Agent': 'InaayahLauncher' }
+        headers: { 'User-Agent': `InaayahLauncher/${currentVersion}` }
       });
       if (res.ok) {
         const data = await res.json();
         const latest = (data.tag_name || '').replace(/^v/, '');
         return {
           success: true,
-          updateAvailable: Boolean(latest && latest !== '0.2.0'),
-          version: latest || null
+          updateAvailable: Boolean(latest && latest !== currentVersion),
+          version: latest || null,
+          currentVersion
         };
       }
     } catch (e: any) {
-      return { success: false, error: e.message };
+      return { success: false, currentVersion, error: e.message };
     }
-    return { success: true, updateAvailable: false, version: '0.2.0' };
+    return { success: true, updateAvailable: false, version: currentVersion, currentVersion };
   },
 
   async restartAndInstallUpdate(): Promise<void> {

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, FolderOpen, Save, Check, RefreshCw, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { LauncherConfig } from '../types/launcher';
 import { launcherBridge } from '../services/electronBridge';
+import { APP_VERSION } from '../utils/version';
 
 interface SettingsModalProps {
   config: LauncherConfig;
@@ -25,6 +26,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [releaseGatewayUrl, setReleaseGatewayUrl] = useState(config.releaseGatewayUrl || 'https://releases.inaayah.dev');
   const [githubToken, setGithubToken] = useState(config.githubToken || '');
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [appVersion, setAppVersion] = useState(APP_VERSION);
 
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{
@@ -36,6 +38,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     error?: string;
   } | null>(null);
 
+  useEffect(() => {
+    launcherBridge.getAppVersion().then((v) => {
+      if (v) setAppVersion(v);
+    });
+  }, []);
+
   if (!isOpen) return null;
 
   const handleCheckUpdate = async () => {
@@ -46,7 +54,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         checked: true,
         available: Boolean(result.updateAvailable),
         version: result.version,
-        currentVersion: result.currentVersion || '0.2.0',
+        currentVersion: result.currentVersion || appVersion,
         releaseUrl: result.releaseUrl,
         error: result.error
       });
@@ -96,7 +104,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="form-group">
+        <div className="modal-body">
+          <div className="form-group">
           <label className="form-label">Game Library Location</label>
           <div style={{ display: 'flex', gap: 10 }}>
             <input
@@ -163,7 +172,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>Inaayah Game Launcher</span>
-                <span className="studio-badge">v0.2.0</span>
+                <span className="studio-badge">v{appVersion}</span>
               </div>
               <button
                 className="btn-secondary"
@@ -219,7 +228,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       ? `New release v${updateStatus.version} is available!`
                       : updateStatus.error
                       ? `Check failed: ${updateStatus.error}`
-                      : `You have the latest version installed (v0.2.0).`}
+                      : `You have the latest version installed (v${appVersion}).`}
                   </span>
                 </div>
 
@@ -297,28 +306,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             />
           </label>
         </div>
+      </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
-          <button className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="btn-primary-action play"
-            style={{ height: 40, padding: '0 24px', fontSize: 13 }}
-            onClick={handleSave}
-          >
-            {savedFeedback ? (
-              <>
-                <Check size={16} /> Saved!
-              </>
-            ) : (
-              <>
-                <Save size={16} /> Save Changes
-              </>
-            )}
-          </button>
-        </div>
+      <div className="modal-footer">
+        <button className="btn-secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          className="btn-primary-action play"
+          style={{ height: 40, padding: '0 24px', fontSize: 13 }}
+          onClick={handleSave}
+        >
+          {savedFeedback ? (
+            <>
+              <Check size={16} /> Saved!
+            </>
+          ) : (
+            <>
+              <Save size={16} /> Save Changes
+            </>
+          )}
+        </button>
       </div>
     </div>
-  );
+  </div>
+);
 };

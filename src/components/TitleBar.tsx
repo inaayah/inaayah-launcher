@@ -3,6 +3,7 @@ import { Minus, Square, X, ShieldCheck, Wifi, Bell, RotateCcw, Download, Setting
 import { launcherBridge } from '../services/electronBridge';
 import type { LauncherConfig } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
+import { APP_VERSION } from '../utils/version';
 
 interface TitleBarProps {
   config: LauncherConfig;
@@ -22,6 +23,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   onRestartUpdate
 }) => {
   const [online, setOnline] = useState(true);
+  const [appVersion, setAppVersion] = useState(APP_VERSION);
 
   const isElectron = Boolean(launcherBridge.isElectron);
   const isMac = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('mac');
@@ -29,6 +31,12 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   const showWindowsControls = !hasMacTrafficLights;
 
   const hasUpdate = Boolean(updateReadyVersion || updateAvailableVersion);
+
+  useEffect(() => {
+    launcherBridge.getAppVersion().then((v) => {
+      if (v) setAppVersion(v);
+    });
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => setOnline(true);
@@ -55,7 +63,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           <img src={getAssetUrl('icon.png')} alt="Inaayah" style={{ width: 20, height: 20, borderRadius: 5, boxShadow: '0 0 10px rgba(0, 240, 255, 0.4)' }} />
           INAAYAH STUDIO
         </div>
-        <span className="studio-badge">Launcher v0.2.0</span>
+        <span className="studio-badge">Launcher v{appVersion}</span>
       </div>
 
       <div className="titlebar-center">

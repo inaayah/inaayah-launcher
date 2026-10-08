@@ -1045,6 +1045,10 @@ ipcMain.handle('launcher:restart-and-install-update', () => {
   autoUpdater.quitAndInstall();
 });
 
+ipcMain.handle('launcher:get-app-version', () => {
+  return app.getVersion();
+});
+
 // Window controls
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:maximize', () => {

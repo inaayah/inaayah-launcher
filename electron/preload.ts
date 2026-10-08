@@ -92,6 +92,10 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     ipcRenderer.send('window:close');
   },
 
+  getAppVersion: (): Promise<string> => {
+    return ipcRenderer.invoke('launcher:get-app-version');
+  },
+
   checkLauncherUpdate: () => {
     return ipcRenderer.invoke('launcher:check-for-updates');
   },
