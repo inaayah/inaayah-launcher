@@ -49,7 +49,7 @@ function loadConfig(): LauncherConfig {
     nakamaHost: '94.130.227.190',
     nakamaPort: 7350,
     useSSL: false,
-    releaseGatewayUrl: 'https://inaayah-releases.sazidmailbox.workers.dev',
+    releaseGatewayUrl: 'https://releases.inaayah.dev',
     githubToken: ''
   };
 

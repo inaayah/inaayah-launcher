@@ -22,7 +22,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [nakamaHost, setNakamaHost] = useState(config.nakamaHost);
   const [nakamaPort, setNakamaPort] = useState(config.nakamaPort);
   const [useSSL, setUseSSL] = useState(config.useSSL);
-  const [releaseGatewayUrl, setReleaseGatewayUrl] = useState(config.releaseGatewayUrl || 'https://inaayah-releases.sazidmailbox.workers.dev');
+  const [releaseGatewayUrl, setReleaseGatewayUrl] = useState(config.releaseGatewayUrl || 'https://releases.inaayah.dev');
   const [githubToken, setGithubToken] = useState(config.githubToken || '');
   const [savedFeedback, setSavedFeedback] = useState(false);
 
