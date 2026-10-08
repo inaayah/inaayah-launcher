@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { TitleBar } from './components/TitleBar';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { GameHero } from './components/GameHero';
+import { LibraryGrid } from './components/LibraryGrid';
 import { StoreCatalog } from './components/StoreCatalog';
 import { DownloadsQueue } from './components/DownloadsQueue';
 import { SettingsModal } from './components/SettingsModal';
@@ -27,6 +28,7 @@ export const App: React.FC = () => {
 
   const [currentTab, setCurrentTab] = useState<NavTab>('library');
   const [selectedGameId, setSelectedGameId] = useState<string>('aether-rush');
+  const [isViewingDetail, setIsViewingDetail] = useState(false);
   const [installedGames, setInstalledGames] = useState<Record<string, InstalledGame>>({});
   const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>({});
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatus>>({});
@@ -211,13 +213,20 @@ export const App: React.FC = () => {
       <div className="main-body">
         <Sidebar
           currentTab={currentTab}
-          onSelectTab={setCurrentTab}
+          onSelectTab={(tab) => {
+            setCurrentTab(tab);
+            if (tab === 'library') {
+              setIsViewingDetail(false);
+            }
+          }}
           catalog={catalog}
           installedGames={installedGames}
           selectedGameId={selectedGameId}
+          isViewingDetail={isViewingDetail}
           onSelectGame={(id) => {
             setSelectedGameId(id);
             setCurrentTab('library');
+            setIsViewingDetail(true);
           }}
           activeDownloads={downloads}
           gameStatuses={gameStatuses}
@@ -233,23 +242,41 @@ export const App: React.FC = () => {
               onSelectGame={(id) => {
                 setSelectedGameId(id);
                 setCurrentTab('library');
+                setIsViewingDetail(true);
               }}
               onInstall={handleInstall}
             />
           )}
 
           {currentTab === 'library' && (
-            <GameHero
-              game={selectedGame}
-              installed={installedGames[selectedGame.id]}
-              downloadProgress={downloads[selectedGame.id]}
-              status={gameStatuses[selectedGame.id] || 'NOT_INSTALLED'}
-              onInstall={handleInstall}
-              onCancelDownload={handleCancelDownload}
-              onLaunch={handleLaunch}
-              onUninstall={handleUninstall}
-              onCheckUpdates={handleCheckUpdates}
-            />
+            isViewingDetail ? (
+              <GameHero
+                game={selectedGame}
+                installed={installedGames[selectedGame.id]}
+                downloadProgress={downloads[selectedGame.id]}
+                status={gameStatuses[selectedGame.id] || 'NOT_INSTALLED'}
+                onBackToLibrary={() => setIsViewingDetail(false)}
+                onInstall={handleInstall}
+                onCancelDownload={handleCancelDownload}
+                onLaunch={handleLaunch}
+                onUninstall={handleUninstall}
+                onCheckUpdates={handleCheckUpdates}
+              />
+            ) : (
+              <LibraryGrid
+                catalog={catalog}
+                installedGames={installedGames}
+                gameStatuses={gameStatuses}
+                activeDownloads={downloads}
+                onSelectGame={(id) => {
+                  setSelectedGameId(id);
+                  setIsViewingDetail(true);
+                }}
+                onLaunch={handleLaunch}
+                onInstall={handleInstall}
+                onOpenStore={() => setCurrentTab('store')}
+              />
+            )
           )}
 
           {currentTab === 'downloads' && (
@@ -260,6 +287,7 @@ export const App: React.FC = () => {
               onSelectGame={(id) => {
                 setSelectedGameId(id);
                 setCurrentTab('library');
+                setIsViewingDetail(true);
               }}
             />
           )}

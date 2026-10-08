@@ -14,7 +14,8 @@ import {
   Layers,
   Flame,
   Globe,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft
 } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
 import { launcherBridge } from '../services/electronBridge';
@@ -24,6 +25,7 @@ interface GameHeroProps {
   installed?: InstalledGame;
   downloadProgress?: DownloadProgress;
   status: GameStatus;
+  onBackToLibrary?: () => void;
   onInstall: (gameId: string) => void;
   onCancelDownload: (gameId: string) => void;
   onLaunch: (gameId: string) => void;
@@ -36,6 +38,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
   installed,
   downloadProgress,
   status,
+  onBackToLibrary,
   onInstall,
   onCancelDownload,
   onLaunch,
@@ -70,6 +73,17 @@ export const GameHero: React.FC<GameHeroProps> = ({
         style={{ backgroundImage: `url(${game.heroBanner})` }}
       >
         <div className="hero-overlay" />
+
+        {onBackToLibrary && (
+          <button
+            className="btn-back-library"
+            onClick={onBackToLibrary}
+            title="Back to My Library Grid"
+          >
+            <ArrowLeft size={16} />
+            <span>Library</span>
+          </button>
+        )}
 
         <div className="hero-content">
           <div className="hero-info">

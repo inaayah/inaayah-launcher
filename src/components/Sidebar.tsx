@@ -16,6 +16,7 @@ interface SidebarProps {
   catalog: GameCatalogItem[];
   installedGames: Record<string, InstalledGame>;
   selectedGameId: string;
+  isViewingDetail?: boolean;
   onSelectGame: (gameId: string) => void;
   activeDownloads: Record<string, DownloadProgress>;
   gameStatuses: Record<string, GameStatus>;
@@ -29,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   catalog,
   installedGames,
   selectedGameId,
+  isViewingDetail = false,
   onSelectGame,
   activeDownloads,
   gameStatuses,
@@ -54,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         <button
-          className={`nav-item ${currentTab === 'library' ? 'active' : ''}`}
+          className={`nav-item ${currentTab === 'library' && !isViewingDetail ? 'active' : ''}`}
           onClick={() => onSelectTab('library')}
         >
           <div className="nav-item-left">
@@ -93,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <div
                 key={game.id}
-                className={`quick-game-item ${isSelected ? 'active' : ''}`}
+                className={`quick-game-item ${currentTab === 'library' && isViewingDetail && isSelected ? 'active' : ''}`}
                 onClick={() => {
                   onSelectGame(game.id);
                   onSelectTab('library');

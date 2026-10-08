@@ -835,3 +835,31 @@ body {
   justify-content: space-between;
   cursor: pointer;
 }
+
+/* Back to Library Button */
+.btn-back-library {
+  position: absolute;
+  top: 24px;
+  left: 32px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(10, 12, 19, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-back-library:hover {
+  background: rgba(10, 12, 19, 0.95);
+  border-color: var(--accent-cyan);
+  color: #fff;
+  transform: translateX(-3px);
+  box-shadow: 0 4px 16px rgba(0, 240, 255, 0.2);
+}
