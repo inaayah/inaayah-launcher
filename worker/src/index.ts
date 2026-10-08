@@ -16,6 +16,11 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
     type: 'web',
     webUrl: 'https://kettle-court.inaayah.dev/'
   },
+  'sundered-depths': {
+    repo: 'sundered-depths',
+    branch: 'main',
+    type: 'desktop'
+  },
   'cyber-tactics': {
     repo: 'cyber-tactics',
     branch: 'main',

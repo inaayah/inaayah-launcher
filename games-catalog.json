@@ -166,6 +166,78 @@
     ]
   },
   {
+    "id": "sundered-depths",
+    "slug": "sundered-depths",
+    "title": "Sundered Depths",
+    "subtitle": "Co-Op Endless Horde Survival Dungeon Crawler",
+    "version": "1.0.0",
+    "releaseDate": "October 2026",
+    "description": "Descend shoulder-to-shoulder into the Sundered Depths! Fight off escalating 360-degree enemy swarms across multi-floor dungeons, conquer varying floor objectives, slay ancient dungeon lords, collect powerful relics and equipment chests, and restore the Grand Seal in high-octane local and online co-op.",
+    "genres": [
+      "Horde Survival",
+      "Action RPG",
+      "Roguelite",
+      "Co-op Multiplayer",
+      "Dungeon Crawler"
+    ],
+    "tags": [
+      "Endless Horde",
+      "Local Co-op",
+      "Online Multiplayer",
+      "Split-Screen",
+      "Controller Support",
+      "Multi-Floor Dungeons",
+      "Godot 4.3"
+    ],
+    "developer": "Inaayah Game Studio",
+    "coverArt": "https://raw.githubusercontent.com/inaayah/sundered-depths/main/cover.jpg",
+    "heroBanner": "https://raw.githubusercontent.com/inaayah/sundered-depths/main/banner.jpg",
+    "screenshots": [],
+    "sizeBytes": 150000000,
+    "sizeFormatted": "145.0 MB",
+    "githubRepo": "inaayah/sundered-depths",
+    "gameType": "desktop",
+    "onlineBackend": "Inaayah Nakama Relay (94.130.227.190:7350)",
+    "executableNames": {
+      "darwin": "SunderedDepths.app/Contents/MacOS/SunderedDepths",
+      "win32": "SunderedDepths.exe",
+      "linux": "SunderedDepths.x86_64"
+    },
+    "assetPatterns": {
+      "darwin": "sundered-depths-macos-universal.zip",
+      "win32": "sundered-depths-windows-x86_64.zip",
+      "linux": "sundered-depths-linux-x86_64.zip"
+    },
+    "features": [
+      "Dual Co-Op Modes: Play locally on couch with Dynamic Shared Camera or Split-Screen, or online via Inaayah Nakama relay",
+      "5 Mastered Classes: Swordsman, Axe Fighter, Archer, Mage, Rogue with primary, melee defensive fallback, dash, and room-clearing ultimate",
+      "Dynamic Floor Objectives: Procedurally assigned survival surges, kill quotas, runic keystone hunts, obelisk charges, and boss duels",
+      "3 Escalating Dungeons: The Vermin Catacombs, The Abyssal Foundry, and The Cursed Necropolis with unique bosses",
+      "Rich Loot & Boon System: 10 in-run boon card upgrades, randomized equipment chests (Common, Rare, Epic, Legendary), and power-up drops",
+      "Lore Codex & Bestiary: Floor-by-floor story chapters, comprehensive monster threat profiles, and 25 achievements"
+    ],
+    "requirements": {
+      "os": "macOS 12+ / Windows 10/11 64-bit / Linux",
+      "cpu": "Quad-Core Intel i5 / AMD Ryzen 3 / Apple M1 or higher",
+      "gpu": "Metal 2 / Vulkan 1.2 / DirectX 12 compatible GPU",
+      "ram": "4 GB RAM",
+      "storage": "500 MB available space"
+    },
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "October 2026",
+        "title": "Initial Release of Sundered Depths",
+        "changes": [
+          "Co-Op horde survival gameplay with dual local (shared camera & split-screen) and online multiplayer",
+          "5 hero classes with melee combat defense fallbacks for ranged units",
+          "Multi-floor dungeon progression with Broodmother, Ignis, and Lich King bosses",
+          "Procedural floor objectives, in-run boon leveling, equipment drops, and complete Lore Codex"
+        ]
+      }
+    ]
+  },
+  {
     "id": "cyber-tactics",
     "isComingSoon": true,
     "slug": "cyber-tactics",
