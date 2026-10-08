@@ -24,6 +24,8 @@ jobs:
     name: Autobump Version & Tag
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.bump_step.outputs.tag_name }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -43,19 +45,24 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump Version and Push Tag
+        id: bump_step
         run: |
           npm ci
           npm run lint
           npm run build
           NEW_VERSION=$(npm version ${{ inputs.bump }} -m "chore(release): v%s")
           git push origin main --follow-tags
+          echo "tag_name=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "Successfully created and pushed tag $NEW_VERSION"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Build & Release (${{ matrix.os }})
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [bump]
+    if: |
+      always() &&
+      (startsWith(github.ref, 'refs/tags/v') || needs.bump.result == 'success')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -63,8 +70,22 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
+      - name: Determine Target Tag
+        id: target
+        shell: bash
+        run: |
+          if [ -n "${{ needs.bump.outputs.tag_name }}" ]; then
+            TAG="${{ needs.bump.outputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.tag }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,7 +98,8 @@ jobs:
 
       - name: Sync package.json version with tag
         run: |
-          TAG_VERSION=${GITHUB_REF_NAME#v}
+          TAG="${{ steps.target.outputs.tag }}"
+          TAG_VERSION=${TAG#v}
           npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
 
       - name: Compile Application
@@ -92,12 +114,26 @@ jobs:
 
   publish:
     name: Finalize & Publish Live Release
-    needs: release
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [bump, release]
+    if: |
+      always() &&
+      needs.release.result == 'success'
     runs-on: ubuntu-latest
     steps:
+      - name: Determine Target Tag
+        id: target
+        shell: bash
+        run: |
+          if [ -n "${{ needs.bump.outputs.tag_name }}" ]; then
+            TAG="${{ needs.bump.outputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Publish GitHub Release
         run: |
-          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+          gh release edit "${{ steps.target.outputs.tag }}" --draft=false --latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
