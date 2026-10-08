@@ -1,19 +1,23 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Download, Play, CheckCircle, Globe, Clock } from 'lucide-react';
+import { Search, Download, Play, CheckCircle, Globe, Clock, BookmarkCheck, Plus } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame } from '../types/launcher';
 
 interface StoreCatalogProps {
   catalog: GameCatalogItem[];
   installedGames: Record<string, InstalledGame>;
+  ownedGameIds: string[];
   onSelectGame: (gameId: string) => void;
   onInstall: (gameId: string) => void;
+  onAddToLibrary: (gameId: string) => void;
 }
 
 export const StoreCatalog: React.FC<StoreCatalogProps> = ({
   catalog,
   installedGames,
+  ownedGameIds,
   onSelectGame,
-  onInstall
+  onInstall,
+  onAddToLibrary
 }) => {
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string>('All');
@@ -85,6 +89,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
         {filteredGames.map((game) => {
           const isComingSoon = Boolean(game.isComingSoon);
           const isWebGame = game.gameType === 'web';
+          const isInLibrary = ownedGameIds.includes(game.id) || Boolean(installedGames[game.id]);
           const isInstalled = Boolean(installedGames[game.id]) || isWebGame;
 
           return (
@@ -98,6 +103,13 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                 style={{ backgroundImage: `url(${game.heroBanner})` }}
               >
                 <div className="card-banner-overlay" />
+                {isInLibrary && !isComingSoon && (
+                  <div style={{ position: 'absolute', top: 12, left: 12 }}>
+                    <span className="badge" style={{ background: 'rgba(0, 240, 255, 0.2)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.4)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <BookmarkCheck size={11} /> In Library
+                    </span>
+                  </div>
+                )}
                 <div
                   style={{
                     position: 'absolute',

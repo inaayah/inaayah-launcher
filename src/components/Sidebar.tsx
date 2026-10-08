@@ -83,9 +83,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="nav-section" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <span className="nav-section-title">Games</span>
+        <span className="nav-section-title">My Games</span>
         <div className="library-quick-list">
-          {catalog.map((game) => {
+          {catalog.length === 0 ? (
+            <div style={{ padding: '16px 10px', fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
+              No games in library.<br />
+              <button
+                className="btn-secondary"
+                style={{ marginTop: 8, height: 26, fontSize: 11, padding: '0 10px', width: '100%' }}
+                onClick={() => onSelectTab('store')}
+              >
+                Browse Discover
+              </button>
+            </div>
+          ) : (
+            catalog.map((game) => {
             const isComingSoon = Boolean(game.isComingSoon);
             const isInstalled = Boolean(installedGames[game.id]);
             const isDownloading = Boolean(activeDownloads[game.id]);
@@ -98,7 +110,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={`quick-game-item ${currentTab === 'library' && isViewingDetail && isSelected ? 'active' : ''}`}
                 onClick={() => {
                   onSelectGame(game.id);
-                  onSelectTab('library');
                 }}
               >
                 <div
@@ -132,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
               </div>
             );
-          })}
+          }))}
         </div>
       </div>
 

@@ -83,6 +83,19 @@ function scanInstalledGames(libraryPath: string): Record<string, InstalledGameMe
     return installed;
   }
 
+  // Auto-detect local development workspace for AetherRush if present
+  const localAetherRush = '/Users/sazid/Repositories/aether-rush/godot/project.godot';
+  if (fs.existsSync(localAetherRush) && !installed['aether-rush']) {
+    installed['aether-rush'] = {
+      id: 'aether-rush',
+      version: '1.2.0 (Local Dev)',
+      installPath: '/Users/sazid/Repositories/aether-rush/godot',
+      installedAt: Date.now() - 86400000 * 2,
+      lastPlayedAt: Date.now() - 3600000 * 2,
+      totalPlaytimeMinutes: 45
+    };
+  }
+
   try {
     const entries = fs.readdirSync(libraryPath, { withFileTypes: true });
     for (const entry of entries) {

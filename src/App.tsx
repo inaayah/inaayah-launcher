@@ -35,6 +35,36 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [catalog, setCatalog] = useState<GameCatalogItem[]>(catalogData);
 
+  // User's personal library collection (persisted across sessions)
+  const [ownedGameIds, setOwnedGameIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('inaayah_owned_games');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    // Default games in user library: AetherRush & Kettle Court
+    return ['aether-rush', 'kettle-court'];
+  });
+
+  const handleAddToLibrary = (gameId: string) => {
+    setOwnedGameIds((prev) => {
+      if (prev.includes(gameId)) return prev;
+      const updated = [...prev, gameId];
+      try {
+        localStorage.setItem('inaayah_owned_games', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  // Only games that are installed locally OR owned/claimed appear in Library and Sidebar!
+  const libraryGames = useMemo(() => {
+    return catalog.filter((game) => {
+      const isInstalled = Boolean(installedGames[game.id]);
+      const isOwned = ownedGameIds.includes(game.id);
+      return isInstalled || isOwned;
+    });
+  }, [catalog, installedGames, ownedGameIds]);
+
   const selectedGame = useMemo(() => {
     return catalog.find((g) => g.id === selectedGameId) || catalog[0] || catalogData[0];
   }, [catalog, selectedGameId]);
@@ -146,6 +176,7 @@ export const App: React.FC = () => {
   const handleInstall = async (gameId: string) => {
     const game = catalog.find((g) => g.id === gameId);
     if (!game || game.isComingSoon) return;
+    handleAddToLibrary(gameId);
 
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'DOWNLOADING' }));
     setCurrentTab('downloads');
@@ -219,7 +250,7 @@ export const App: React.FC = () => {
               setIsViewingDetail(false);
             }
           }}
-          catalog={catalog}
+          catalog={libraryGames}
           installedGames={installedGames}
           selectedGameId={selectedGameId}
           isViewingDetail={isViewingDetail}
@@ -239,12 +270,14 @@ export const App: React.FC = () => {
             <StoreCatalog
               catalog={catalog}
               installedGames={installedGames}
+              ownedGameIds={ownedGameIds}
               onSelectGame={(id) => {
                 setSelectedGameId(id);
                 setCurrentTab('library');
                 setIsViewingDetail(true);
               }}
               onInstall={handleInstall}
+              onAddToLibrary={handleAddToLibrary}
             />
           )}
 
@@ -264,7 +297,7 @@ export const App: React.FC = () => {
               />
             ) : (
               <LibraryGrid
-                catalog={catalog}
+                catalog={libraryGames}
                 installedGames={installedGames}
                 gameStatuses={gameStatuses}
                 activeDownloads={downloads}
