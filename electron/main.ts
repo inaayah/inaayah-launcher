@@ -211,33 +211,22 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
     }
   }
 
-  const repos = [
-    { id: 'aether-rush', repo: 'aether-rush' },
-    { id: 'kettle-court', repo: 'kettle-court' },
-    { id: 'cyber-tactics', repo: 'cyber-tactics' }
-  ];
-
-  const fetched: any[] = [];
-  for (const item of repos) {
-    try {
-      const rawUrl = `https://raw.githubusercontent.com/inaayah/${item.repo}/main/game-manifest.json`;
-      const headers: Record<string, string> = { 'User-Agent': 'InaayahLauncher' };
-      if (cfg.githubToken) {
-        headers['Authorization'] = `Bearer ${cfg.githubToken}`;
+  // 2. Direct GitHub raw manifest fallback (fetches games-catalog.json directly from public repo)
+  try {
+    const rawCatalogUrl = 'https://raw.githubusercontent.com/inaayah/inaayah-launcher/main/games-catalog.json';
+    const res = await fetch(rawCatalogUrl, {
+      headers: { 'User-Agent': 'InaayahLauncher' },
+      signal: AbortSignal.timeout(3000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2));
+        return data;
       }
-      const res = await fetch(rawUrl, {
-        headers,
-        signal: AbortSignal.timeout(2500)
-      });
-      if (res.ok) {
-        fetched.push(await res.json());
-      }
-    } catch {}
-  }
-
-  if (fetched.length > 0) {
-    fs.writeFileSync(cacheFile, JSON.stringify(fetched, null, 2));
-    return fetched;
+    }
+  } catch (e) {
+    console.log('[Catalog] Direct GitHub manifest fetch failed. Checking local disk cache...');
   }
 
   if (fs.existsSync(cacheFile)) {
@@ -341,6 +330,27 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
       });
     }
   };
+
+  // If no downloadUrl is supplied, query the releases gateway for the real platform release
+  if (!downloadUrl) {
+    const platform = process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux';
+    const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, "");
+    const candidateUrl = `${gatewayUrl}/api/games/${gameId}/download/${platform}`;
+    try {
+      const headCheck = await fetch(candidateUrl, {
+        method: 'HEAD',
+        redirect: 'manual',
+        headers: { 'User-Agent': 'InaayahLauncher' },
+        signal: AbortSignal.timeout(3000)
+      });
+      if (headCheck.status === 302 || headCheck.status === 200) {
+        const redirectLoc = headCheck.headers.get('location');
+        downloadUrl = redirectLoc || candidateUrl;
+      }
+    } catch (e) {
+      // Gateway not available or no published release yet, will fall back to simulated runner
+    }
+  }
 
   // If no downloadUrl is supplied or URL is unreachable, generate a realistic game runtime package!
   if (!downloadUrl || downloadUrl.startsWith('mock://') || !downloadUrl.startsWith('http')) {

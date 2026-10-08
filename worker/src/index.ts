@@ -47,18 +47,10 @@ export default {
       );
     }
 
-    // 2. GET /api/games -> list registered catalog
+    // 2. GET /api/games -> list registered catalog dynamically from games-catalog.json
     if (pathname === '/api/games') {
-      const results: any[] = [];
-      for (const [id, game] of Object.entries(REGISTERED_GAMES)) {
-        try {
-          const manifest = await fetchGameManifest(id, game.repo, game.branch, env);
-          results.push(manifest);
-        } catch {
-          results.push({ id, status: 'offline', type: game.type, webUrl: game.webUrl });
-        }
-      }
-      return new Response(JSON.stringify(results, null, 2), {
+      const catalog = await getDynamicCatalog(env);
+      return new Response(JSON.stringify(catalog, null, 2), {
         headers: {
           ...CORS_HEADERS,
           'Content-Type': 'application/json',
@@ -71,29 +63,22 @@ export default {
     const manifestMatch = pathname.match(/^\/api\/games\/([^/]+)\/manifest$/);
     if (manifestMatch) {
       const gameId = manifestMatch[1];
-      const gameConfig = REGISTERED_GAMES[gameId];
-      if (!gameConfig) {
+      const catalog = await getDynamicCatalog(env);
+      const game = catalog.find((g: any) => g.id === gameId);
+      if (!game) {
         return new Response(JSON.stringify({ error: `Game ${gameId} not found in catalog` }), {
           status: 404,
           headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         });
       }
 
-      try {
-        const manifest = await fetchGameManifest(gameId, gameConfig.repo, gameConfig.branch, env);
-        return new Response(JSON.stringify(manifest, null, 2), {
-          headers: {
-            ...CORS_HEADERS,
-            'Content-Type': 'application/json',
-            'Cache-Control': `public, max-age=${env.CACHE_TTL_SECONDS || 300}`
-          }
-        });
-      } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), {
-          status: 500,
-          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-        });
-      }
+      return new Response(JSON.stringify(game, null, 2), {
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'application/json',
+          'Cache-Control': `public, max-age=${env.CACHE_TTL_SECONDS || 300}`
+        }
+      });
     }
 
     // 4. GET /api/games/:id/releases/latest
@@ -130,14 +115,17 @@ export default {
     if (downloadMatch) {
       const gameId = downloadMatch[1];
       const platform = downloadMatch[2]; // darwin | win32 | linux
-      const gameConfig = REGISTERED_GAMES[gameId];
+      const catalog = await getDynamicCatalog(env);
+      const game = catalog.find((g: any) => g.id === gameId);
 
-      if (!gameConfig) {
-        return new Response('Game not found', { status: 404, headers: CORS_HEADERS });
+      const repo = game?.githubRepo ? game.githubRepo.replace(/^[^/]+\//, "") : REGISTERED_GAMES[gameId]?.repo;
+
+      if (!repo) {
+        return new Response('Game or repository not found', { status: 404, headers: CORS_HEADERS });
       }
 
       try {
-        const downloadUrl = await getReleaseAssetDownloadUrl(gameConfig.repo, platform, env);
+        const downloadUrl = await getReleaseAssetDownloadUrl(repo, platform, env);
         // Redirect directly to the signed AWS S3 CDN asset download
         return Response.redirect(downloadUrl, 302);
       } catch (err: any) {
@@ -271,4 +259,51 @@ async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: E
   }
 
   return targetAsset.browser_download_url;
+}
+
+
+async function getDynamicCatalog(env: Env): Promise<any[]> {
+  const org = env.GITHUB_ORG || "inaayah";
+  const rawUrl = `https://raw.githubusercontent.com/${org}/inaayah-launcher/main/games-catalog.json`;
+
+  try {
+    const headers: Record<string, string> = {
+      "User-Agent": "Inaayah-Releases-Worker"
+    };
+    if (env.GITHUB_TOKEN) {
+      headers["Authorization"] = `Bearer ${env.GITHUB_TOKEN}`;
+    }
+
+    const res = await fetch(rawUrl, {
+      headers,
+      cf: {
+        cacheTtl: env.CACHE_TTL_SECONDS || 300,
+        cacheEverything: true
+      }
+    });
+
+    if (res.ok) {
+      const data: any = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch dynamic games-catalog.json from GitHub:", err);
+  }
+
+  // Fallback to static registered games
+  const fallbackList: any[] = [];
+  for (const [id, game] of Object.entries(REGISTERED_GAMES)) {
+    fallbackList.push({
+      id,
+      slug: id,
+      title: id === "aether-rush" ? "AetherRush: Cyber Brawler 3D" : id === "kettle-court" ? "Kettle Court: Court of Kettle" : "Cyber Tactics",
+      gameType: game.type,
+      webUrl: game.webUrl,
+      githubRepo: `${org}/${game.repo}`,
+      isComingSoon: (game as any).isComingSoon
+    });
+  }
+  return fallbackList;
 }

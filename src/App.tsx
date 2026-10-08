@@ -79,7 +79,29 @@ export const App: React.FC = () => {
               map.set(d.id, { ...(map.get(d.id) || {}), ...d });
             }
           });
-          return Array.from(map.values());
+          const merged = Array.from(map.values());
+
+          // Automatically compute statuses for any newly discovered games
+          setGameStatuses((prevStatuses) => {
+            const nextStatuses = { ...prevStatuses };
+            merged.forEach((game) => {
+              if (!nextStatuses[game.id]) {
+                if (game.isComingSoon) {
+                  nextStatuses[game.id] = 'NOT_INSTALLED';
+                } else if (game.gameType === 'web') {
+                  nextStatuses[game.id] = 'INSTALLED';
+                } else if (installedGames[game.id]) {
+                  nextStatuses[game.id] =
+                    installedGames[game.id].version !== game.version ? 'UPDATE_AVAILABLE' : 'INSTALLED';
+                } else {
+                  nextStatuses[game.id] = 'NOT_INSTALLED';
+                }
+              }
+            });
+            return nextStatuses;
+          });
+
+          return merged;
         });
       }
     }).catch(() => {});
@@ -120,7 +142,7 @@ export const App: React.FC = () => {
 
   // Handlers
   const handleInstall = async (gameId: string) => {
-    const game = catalogData.find((g) => g.id === gameId);
+    const game = catalog.find((g) => g.id === gameId);
     if (!game || game.isComingSoon) return;
 
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'DOWNLOADING' }));
@@ -147,7 +169,7 @@ export const App: React.FC = () => {
   };
 
   const handleLaunch = async (gameId: string) => {
-    const game = catalogData.find((g) => g.id === gameId);
+    const game = catalog.find((g) => g.id === gameId);
     if (!game) return;
 
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'RUNNING' }));
@@ -169,7 +191,7 @@ export const App: React.FC = () => {
   };
 
   const handleCheckUpdates = async (gameId: string) => {
-    const game = catalogData.find((g) => g.id === gameId);
+    const game = catalog.find((g) => g.id === gameId);
     if (!game) return;
     const hasUpdate = await launcherBridge.checkUpdates(gameId, game.version);
     if (hasUpdate) {
