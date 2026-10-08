@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Download, Play, CheckCircle, Globe } from 'lucide-react';
+import { Search, Download, Play, CheckCircle, Globe, Clock } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame } from '../types/launcher';
 
 interface StoreCatalogProps {
@@ -83,6 +83,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
       {/* Cards Grid */}
       <div className="catalog-grid">
         {filteredGames.map((game) => {
+          const isComingSoon = Boolean(game.isComingSoon);
           const isWebGame = game.gameType === 'web';
           const isInstalled = Boolean(installedGames[game.id]) || isWebGame;
 
@@ -106,7 +107,11 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     gap: 6
                   }}
                 >
-                  {isWebGame ? (
+                  {isComingSoon ? (
+                    <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={11} /> Coming Soon
+                    </span>
+                  ) : isWebGame ? (
                     <span className="badge green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Globe size={11} /> Instant Web Game
                     </span>
@@ -119,11 +124,15 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
               <div className="card-body">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="card-title">{game.title}</h3>
-                  {isInstalled && (
+                  {isComingSoon ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#ffaa00', fontSize: 12, fontWeight: 600 }}>
+                      <Clock size={13} /> In Dev
+                    </span>
+                  ) : isInstalled ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent-green)', fontSize: 12, fontWeight: 600 }}>
                       <CheckCircle size={14} /> {isWebGame ? 'Ready' : 'Installed'}
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <p className="card-desc">{game.description.slice(0, 110)}...</p>
@@ -137,7 +146,25 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     ))}
                   </div>
 
-                  {isWebGame ? (
+                  {isComingSoon ? (
+                    <button
+                      className="btn-secondary"
+                      style={{
+                        height: 34,
+                        padding: '0 14px',
+                        fontSize: 12,
+                        background: 'rgba(255, 170, 0, 0.12)',
+                        borderColor: 'rgba(255, 170, 0, 0.4)',
+                        color: '#ffaa00'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectGame(game.id);
+                      }}
+                    >
+                      <Clock size={14} /> Coming Soon
+                    </button>
+                  ) : isWebGame ? (
                     <button
                       className="btn-secondary"
                       style={{

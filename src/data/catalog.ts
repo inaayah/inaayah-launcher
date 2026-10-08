@@ -130,6 +130,7 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
   },
   {
     id: 'cyber-tactics',
+    isComingSoon: true,
     slug: 'cyber-tactics',
     title: 'Cyber Tactics: Syndicate Wars',
     subtitle: 'Turn-Based Sci-Fi Squad Tactics in the Aether Universe',

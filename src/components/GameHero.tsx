@@ -45,6 +45,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'requirements' | 'changelog'>('overview');
   const [activeScreenshot, setActiveScreenshot] = useState<string | null>(null);
 
+  const isComingSoon = Boolean(game.isComingSoon);
   const isWebGame = game.gameType === 'web';
 
   const formatPlaytime = (mins: number) => {
@@ -73,7 +74,11 @@ export const GameHero: React.FC<GameHeroProps> = ({
         <div className="hero-content">
           <div className="hero-info">
             <div className="game-genre-badges">
-              {isWebGame ? (
+              {isComingSoon ? (
+                <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Clock size={12} /> Coming Soon
+                </span>
+              ) : isWebGame ? (
                 <span className="badge green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Globe size={12} /> Instant Web Game
                 </span>
@@ -111,7 +116,29 @@ export const GameHero: React.FC<GameHeroProps> = ({
 
           {/* Action Box */}
           <div className="hero-action-box">
-            {isWebGame ? (
+            {isComingSoon ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn-primary-action coming-soon">
+                    <Clock size={20} />
+                    <span>Coming Soon</span>
+                  </button>
+
+                  <button
+                    className="btn-secondary"
+                    style={{ height: 54, padding: '0 18px', fontSize: 13 }}
+                    title="View GitHub repository and development roadmap"
+                    onClick={() => launcherBridge.openExternalUrl(`https://github.com/${game.githubRepo}`)}
+                  >
+                    <ExternalLink size={16} />
+                    <span>Roadmap</span>
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  In Active Development • Target: <strong style={{ color: '#ffaa00' }}>{game.releaseDate}</strong>
+                </div>
+              </div>
+            ) : isWebGame ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10 }}>
                   {status === 'RUNNING' ? (
@@ -327,9 +354,15 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <span style={{ fontWeight: 600 }}>{game.developer}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Status</span>
+                    <span style={{ color: isComingSoon ? '#ffaa00' : 'var(--accent-green)', fontWeight: 600 }}>
+                      {isComingSoon ? 'In Development' : isWebGame ? 'Live Web Game' : 'Available Now'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Distribution</span>
-                    <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
-                      {isWebGame ? 'Cloud / Web Hosted' : 'GitHub Releases'}
+                    <span style={{ color: isComingSoon ? '#ffaa00' : 'var(--accent-green)', fontWeight: 600 }}>
+                      {isComingSoon ? 'Coming Soon' : isWebGame ? 'Cloud / Web Hosted' : 'GitHub Releases'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>

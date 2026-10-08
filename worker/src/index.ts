@@ -19,7 +19,8 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
   'cyber-tactics': {
     repo: 'cyber-tactics',
     branch: 'main',
-    type: 'desktop'
+    type: 'desktop',
+    isComingSoon: true
   }
 };
 

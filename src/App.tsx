@@ -50,7 +50,9 @@ export const App: React.FC = () => {
       // Compute initial statuses
       const statuses: Record<string, GameStatus> = {};
       catalogData.forEach((game) => {
-        if (game.gameType === 'web') {
+        if (game.isComingSoon) {
+          statuses[game.id] = 'NOT_INSTALLED';
+        } else if (game.gameType === 'web') {
           statuses[game.id] = 'INSTALLED';
         } else if (installed[game.id]) {
           statuses[game.id] =
@@ -119,7 +121,7 @@ export const App: React.FC = () => {
   // Handlers
   const handleInstall = async (gameId: string) => {
     const game = catalogData.find((g) => g.id === gameId);
-    if (!game) return;
+    if (!game || game.isComingSoon) return;
 
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'DOWNLOADING' }));
     setCurrentTab('downloads');

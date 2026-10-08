@@ -41,6 +41,7 @@ export interface GameCatalogItem {
   sizeFormatted: string;
   githubRepo: string;
   gameType?: GameType;
+  isComingSoon?: boolean;
   webUrl?: string;
   onlineBackend?: string;
   executableNames?: {

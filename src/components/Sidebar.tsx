@@ -84,6 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <span className="nav-section-title">Games</span>
         <div className="library-quick-list">
           {catalog.map((game) => {
+            const isComingSoon = Boolean(game.isComingSoon);
             const isInstalled = Boolean(installedGames[game.id]);
             const isDownloading = Boolean(activeDownloads[game.id]);
             const isRunning = gameStatuses[game.id] === 'RUNNING';
@@ -111,6 +112,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ? 'downloading'
                       : isInstalled
                       ? 'installed'
+                      : isComingSoon
+                      ? 'coming-soon'
                       : ''
                   }`}
                   title={
@@ -120,6 +123,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ? 'Downloading'
                       : isInstalled
                       ? 'Ready to Play'
+                      : isComingSoon
+                      ? 'Coming Soon (In Development)'
                       : 'Not Installed'
                   }
                 />
