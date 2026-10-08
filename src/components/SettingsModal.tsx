@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FolderOpen, Save, Check } from 'lucide-react';
+import { X, FolderOpen, Save, Check, RefreshCw, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { LauncherConfig } from '../types/launcher';
 import { launcherBridge } from '../services/electronBridge';
 
@@ -26,7 +26,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [githubToken, setGithubToken] = useState(config.githubToken || '');
   const [savedFeedback, setSavedFeedback] = useState(false);
 
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<{
+    checked: boolean;
+    available: boolean;
+    version?: string | null;
+    currentVersion?: string;
+    releaseUrl?: string;
+    error?: string;
+  } | null>(null);
+
   if (!isOpen) return null;
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      const result = await launcherBridge.checkLauncherUpdate();
+      setUpdateStatus({
+        checked: true,
+        available: Boolean(result.updateAvailable),
+        version: result.version,
+        currentVersion: result.currentVersion || '0.2.0',
+        releaseUrl: result.releaseUrl,
+        error: result.error
+      });
+    } catch (e: any) {
+      setUpdateStatus({
+        checked: true,
+        available: false,
+        error: e.message
+      });
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   const handleBrowse = async () => {
     const selected = await launcherBridge.browseDirectory();
@@ -115,6 +148,98 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               style={{ width: 18, height: 18, accentColor: 'var(--accent-cyan)' }}
             />
           </label>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Launcher Version & Updates</label>
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '12px 14px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Inaayah Game Launcher</span>
+                <span className="studio-badge">v0.2.0</span>
+              </div>
+              <button
+                className="btn-secondary"
+                style={{ height: 32, padding: '0 12px', fontSize: 12, gap: 6 }}
+                onClick={handleCheckUpdate}
+                disabled={checkingUpdate}
+              >
+                <RefreshCw size={13} className={checkingUpdate ? 'spin-fast' : ''} />
+                <span>{checkingUpdate ? 'Checking GitHub...' : 'Check for Updates'}</span>
+              </button>
+            </div>
+
+            {updateStatus && (
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  marginTop: 10,
+                  background: updateStatus.available
+                    ? 'rgba(0, 240, 255, 0.08)'
+                    : updateStatus.error
+                    ? 'rgba(255, 68, 68, 0.08)'
+                    : 'rgba(0, 255, 136, 0.08)',
+                  border: `1px solid ${
+                    updateStatus.available
+                      ? 'rgba(0, 240, 255, 0.25)'
+                      : updateStatus.error
+                      ? 'rgba(255, 68, 68, 0.25)'
+                      : 'rgba(0, 255, 136, 0.25)'
+                  }`,
+                  color: updateStatus.available
+                    ? 'var(--accent-cyan)'
+                    : updateStatus.error
+                    ? '#ff6b6b'
+                    : 'var(--accent-green)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {updateStatus.available ? (
+                    <AlertCircle size={16} />
+                  ) : updateStatus.error ? (
+                    <AlertCircle size={16} />
+                  ) : (
+                    <CheckCircle2 size={16} />
+                  )}
+                  <span>
+                    {updateStatus.available
+                      ? `New release v${updateStatus.version} is available!`
+                      : updateStatus.error
+                      ? `Check failed: ${updateStatus.error}`
+                      : `You have the latest version installed (v0.2.0).`}
+                  </span>
+                </div>
+
+                {updateStatus.available && (
+                  <button
+                    className="btn-primary-action play"
+                    style={{ height: 28, padding: '0 12px', fontSize: 11, gap: 6 }}
+                    onClick={() =>
+                      launcherBridge.openExternalUrl(
+                        updateStatus.releaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest'
+                      )
+                    }
+                  >
+                    <Download size={12} />
+                    <span>Download v{updateStatus.version}</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="form-group">

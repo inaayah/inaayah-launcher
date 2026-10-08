@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Minus, Square, X, ShieldCheck, Wifi } from 'lucide-react';
+import { Minus, Square, X, ShieldCheck, Wifi, Bell, RotateCcw, Download, Settings } from 'lucide-react';
 import { launcherBridge } from '../services/electronBridge';
 import type { LauncherConfig } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
@@ -7,16 +7,28 @@ import { getAssetUrl } from '../utils/assets';
 interface TitleBarProps {
   config: LauncherConfig;
   onOpenSettings: () => void;
+  updateReadyVersion?: string | null;
+  updateAvailableVersion?: string | null;
+  updateReleaseUrl?: string | null;
+  onRestartUpdate?: () => void;
 }
 
-export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
+export const TitleBar: React.FC<TitleBarProps> = ({
+  config,
+  onOpenSettings,
+  updateReadyVersion,
+  updateAvailableVersion,
+  updateReleaseUrl,
+  onRestartUpdate
+}) => {
   const [online, setOnline] = useState(true);
 
   const isElectron = Boolean(launcherBridge.isElectron);
   const isMac = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('mac');
-  // In Electron on macOS, native traffic light buttons are rendered at top-left.
   const hasMacTrafficLights = isElectron && isMac;
   const showWindowsControls = !hasMacTrafficLights;
+
+  const hasUpdate = Boolean(updateReadyVersion || updateAvailableVersion);
 
   useEffect(() => {
     const handleOnline = () => setOnline(true);
@@ -28,6 +40,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  const handleOpenReleasePage = () => {
+    launcherBridge.openExternalUrl(updateReleaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest');
+  };
 
   return (
     <div className="titlebar titlebar-drag">
@@ -53,33 +69,73 @@ export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
         </div>
       </div>
 
-      {showWindowsControls ? (
-        <div className="titlebar-controls titlebar-no-drag">
+      <div className="titlebar-right titlebar-no-drag" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Update Notification Pill & Bell */}
+        {updateReadyVersion ? (
           <button
-            className="window-btn"
-            title="Minimize"
-            onClick={() => launcherBridge.windowMinimize()}
+            className="update-pill-btn ready"
+            title="Update is downloaded! Click to restart launcher and apply"
+            onClick={onRestartUpdate}
           >
-            <Minus size={14} />
+            <RotateCcw size={12} className="spin-slow" />
+            <span>Restart to Update (v{updateReadyVersion})</span>
           </button>
+        ) : updateAvailableVersion ? (
           <button
-            className="window-btn"
-            title="Maximize"
-            onClick={() => launcherBridge.windowMaximize()}
+            className="update-pill-btn available"
+            title="A new launcher release is available on GitHub. Click to view installer"
+            onClick={handleOpenReleasePage}
           >
-            <Square size={12} />
+            <Download size={12} />
+            <span>v{updateAvailableVersion} Available</span>
           </button>
-          <button
-            className="window-btn close"
-            title="Close"
-            onClick={() => launcherBridge.windowClose()}
-          >
-            <X size={14} />
-          </button>
-        </div>
-      ) : (
-        <div style={{ width: 40 }} />
-      )}
+        ) : null}
+
+        <button
+          className={`titlebar-icon-btn ${hasUpdate ? 'active-update' : ''}`}
+          title={hasUpdate ? (updateReadyVersion ? `Update v${updateReadyVersion} ready to install` : `New version v${updateAvailableVersion} available`) : 'Notifications'}
+          onClick={hasUpdate ? (updateReadyVersion ? onRestartUpdate : handleOpenReleasePage) : onOpenSettings}
+        >
+          <Bell size={14} />
+          {hasUpdate && <span className="bell-badge-pulse" />}
+        </button>
+
+        <button
+          className="titlebar-icon-btn"
+          title="Launcher Settings"
+          onClick={onOpenSettings}
+        >
+          <Settings size={14} />
+        </button>
+
+        {showWindowsControls ? (
+          <div className="titlebar-controls" style={{ marginLeft: 6 }}>
+            <button
+              className="window-btn"
+              title="Minimize"
+              onClick={() => launcherBridge.windowMinimize()}
+            >
+              <Minus size={14} />
+            </button>
+            <button
+              className="window-btn"
+              title="Maximize"
+              onClick={() => launcherBridge.windowMaximize()}
+            >
+              <Square size={12} />
+            </button>
+            <button
+              className="window-btn close"
+              title="Close"
+              onClick={() => launcherBridge.windowClose()}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div style={{ width: 10 }} />
+        )}
+      </div>
     </div>
   );
 };

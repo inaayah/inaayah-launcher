@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { RotateCcw, Download, X } from 'lucide-react';
 import { TitleBar } from './components/TitleBar';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { GameHero } from './components/GameHero';
@@ -35,6 +36,11 @@ export const App: React.FC = () => {
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatus>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [catalog, setCatalog] = useState<GameCatalogItem[]>(catalogData);
+
+  // Update notifications
+  const [updateReadyVersion, setUpdateReadyVersion] = useState<string | null>(null);
+  const [updateAvailableInfo, setUpdateAvailableInfo] = useState<{ version: string; releaseUrl: string } | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // User's personal library collection (persisted across sessions)
   const [ownedGameIds, setOwnedGameIds] = useState<string[]>(() => {
@@ -176,9 +182,21 @@ export const App: React.FC = () => {
       }
     });
 
+    const unsubReady = launcherBridge.onLauncherUpdateReady((version) => {
+      setUpdateReadyVersion(version);
+      setBannerDismissed(false);
+    });
+
+    const unsubAvail = launcherBridge.onLauncherUpdateAvailable((info) => {
+      setUpdateAvailableInfo(info);
+      setBannerDismissed(false);
+    });
+
     return () => {
       unsubProgress();
       unsubStatus();
+      unsubReady();
+      unsubAvail();
     };
   }, [refreshInstalled]);
 
@@ -249,7 +267,65 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-container">
-      <TitleBar config={config} onOpenSettings={() => setIsSettingsOpen(true)} />
+      <TitleBar
+        config={config}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        updateReadyVersion={updateReadyVersion}
+        updateAvailableVersion={updateAvailableInfo?.version}
+        updateReleaseUrl={updateAvailableInfo?.releaseUrl}
+        onRestartUpdate={() => launcherBridge.restartAndInstallUpdate()}
+      />
+
+      {/* In-App Update Alert Banner */}
+      {!bannerDismissed && (updateReadyVersion || updateAvailableInfo) && (
+        <div className="update-alert-banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="bell-badge-pulse" style={{ position: 'relative', display: 'inline-block' }} />
+            {updateReadyVersion ? (
+              <span style={{ fontSize: 13 }}>
+                <strong>Inaayah Launcher v{updateReadyVersion}</strong> has been downloaded and is ready to install!
+              </span>
+            ) : (
+              <span style={{ fontSize: 13 }}>
+                <strong>Inaayah Launcher v{updateAvailableInfo?.version}</strong> is available with official bug fixes and improvements.
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {updateReadyVersion ? (
+              <button
+                className="btn-primary-action play"
+                style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
+                onClick={() => launcherBridge.restartAndInstallUpdate()}
+              >
+                <RotateCcw size={12} className="spin-slow" />
+                <span>Restart Now</span>
+              </button>
+            ) : (
+              <button
+                className="btn-primary-action play"
+                style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
+                onClick={() =>
+                  launcherBridge.openExternalUrl(
+                    updateAvailableInfo?.releaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest'
+                  )
+                }
+              >
+                <Download size={12} />
+                <span>Download v{updateAvailableInfo?.version}</span>
+              </button>
+            )}
+            <button
+              className="window-btn"
+              style={{ width: 26, height: 26 }}
+              title="Dismiss"
+              onClick={() => setBannerDismissed(true)}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="main-body">
         <Sidebar

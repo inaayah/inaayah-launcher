@@ -85,6 +85,15 @@ export interface LauncherConfig {
   githubToken?: string;
 }
 
+export interface UpdateCheckResult {
+  success: boolean;
+  updateAvailable?: boolean;
+  version?: string | null;
+  currentVersion?: string;
+  releaseUrl?: string;
+  error?: string;
+}
+
 export interface InaayahLauncherAPI {
   isElectron: boolean;
   getConfig: () => Promise<LauncherConfig>;
@@ -100,8 +109,10 @@ export interface InaayahLauncherAPI {
   openExternalUrl: (url: string) => Promise<void>;
   checkUpdates: (gameId: string, latestVersion: string) => Promise<boolean>;
   refreshCatalog: () => Promise<GameCatalogItem[]>;
-  restartAndInstallUpdate?: () => Promise<void>;
-  onLauncherUpdateReady?: (callback: (version: string) => void) => () => void;
+  checkLauncherUpdate: () => Promise<UpdateCheckResult>;
+  restartAndInstallUpdate: () => Promise<void>;
+  onLauncherUpdateReady: (callback: (version: string) => void) => () => void;
+  onLauncherUpdateAvailable: (callback: (info: { version: string; releaseUrl: string }) => void) => () => void;
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;
   onGameStatusChanged: (callback: (data: { gameId: string; status: GameStatus; exitCode?: number }) => void) => () => void;
   windowMinimize: () => void;

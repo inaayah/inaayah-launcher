@@ -1,4 +1,4 @@
-import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus, GameCatalogItem } from '../types/launcher';
+import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus, GameCatalogItem, UpdateCheckResult } from '../types/launcher';
 
 const STORAGE_KEY_CONFIG = 'inaayah_launcher_config_mock';
 const STORAGE_KEY_INSTALLED = 'inaayah_launcher_installed_mock';
@@ -290,6 +290,29 @@ export const launcherBridge: InaayahLauncherAPI = {
     if (window.inaayahLauncher) window.inaayahLauncher.windowClose();
   },
 
+  async checkLauncherUpdate(): Promise<UpdateCheckResult> {
+    if (window.inaayahLauncher?.checkLauncherUpdate) {
+      return window.inaayahLauncher.checkLauncherUpdate();
+    }
+    try {
+      const res = await fetch('https://api.github.com/repos/inaayah/inaayah-launcher/releases/latest', {
+        headers: { 'User-Agent': 'InaayahLauncher' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const latest = (data.tag_name || '').replace(/^v/, '');
+        return {
+          success: true,
+          updateAvailable: Boolean(latest && latest !== '0.2.0'),
+          version: latest || null
+        };
+      }
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+    return { success: true, updateAvailable: false, version: '0.2.0' };
+  },
+
   async restartAndInstallUpdate(): Promise<void> {
     if (window.inaayahLauncher?.restartAndInstallUpdate) {
       await window.inaayahLauncher.restartAndInstallUpdate();
@@ -299,6 +322,13 @@ export const launcherBridge: InaayahLauncherAPI = {
   onLauncherUpdateReady(callback: (version: string) => void) {
     if (window.inaayahLauncher?.onLauncherUpdateReady) {
       return window.inaayahLauncher.onLauncherUpdateReady(callback);
+    }
+    return () => {};
+  },
+
+  onLauncherUpdateAvailable(callback: (info: { version: string; releaseUrl: string }) => void) {
+    if (window.inaayahLauncher?.onLauncherUpdateAvailable) {
+      return window.inaayahLauncher.onLauncherUpdateAvailable(callback);
     }
     return () => {};
   }

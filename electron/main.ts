@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -254,14 +254,42 @@ app.whenReady().then(() => {
   });
 
   createWindow();
-  if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-      console.warn('[AutoUpdater] Failed to check for launcher updates:', err);
-    });
-    autoUpdater.on('update-downloaded', (info) => {
-      mainWindow?.webContents.send('launcher-update-ready', info.version);
-    });
-  }
+
+  setTimeout(async () => {
+    try {
+      const info = await fetchLatestLauncherRelease();
+      if (info.isNewer) {
+        mainWindow?.webContents.send('launcher-update-available', {
+          version: info.latestTag,
+          releaseUrl: info.releaseUrl
+        });
+        if (Notification.isSupported()) {
+          new Notification({
+            title: 'Inaayah Launcher Update Available',
+            body: `Version v${info.latestTag} is now available!`
+          }).show();
+        }
+      }
+    } catch (e: any) {
+      console.warn('[AutoUpdater] Startup update check warning:', e.message);
+    }
+
+    if (app.isPackaged) {
+      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+        console.warn('[AutoUpdater] checkForUpdatesAndNotify warning:', err.message);
+      });
+    }
+  }, 2500);
+
+  autoUpdater.on('update-downloaded', (info) => {
+    mainWindow?.webContents.send('launcher-update-ready', info.version);
+    if (Notification.isSupported()) {
+      new Notification({
+        title: 'Inaayah Launcher Update Ready',
+        body: `Version v${info.version} is downloaded. Restart to apply.`
+      }).show();
+    }
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -794,6 +822,68 @@ ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: s
 
 ipcMain.handle('launcher:open-external-url', async (_event, targetUrl: string) => {
   await shell.openExternal(targetUrl);
+});
+
+function compareVersions(v1: string, v2: string): number {
+  const p1 = (v1 || '').replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
+  const p2 = (v2 || '').replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+    const n1 = p1[i] || 0;
+    const n2 = p2[i] || 0;
+    if (n1 > n2) return 1;
+    if (n1 < n2) return -1;
+  }
+  return 0;
+}
+
+async function fetchLatestLauncherRelease() {
+  const currentVersion = app.getVersion();
+  const res = await fetch('https://api.github.com/repos/inaayah/inaayah-launcher/releases/latest', {
+    headers: {
+      'User-Agent': `InaayahLauncher/${currentVersion}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+  if (!res.ok) {
+    throw new Error(`GitHub API returned status ${res.status}: ${res.statusText}`);
+  }
+  const data = (await res.json()) as any;
+  const latestTag = (data.tag_name || '').replace(/^v/, '');
+  const releaseUrl = data.html_url || 'https://github.com/inaayah/inaayah-launcher/releases/latest';
+  const isNewer = compareVersions(latestTag, currentVersion) > 0;
+  return {
+    isNewer,
+    latestTag,
+    currentVersion,
+    releaseUrl,
+    releaseName: data.name || `v${latestTag}`,
+    publishedAt: data.published_at
+  };
+}
+
+ipcMain.handle('launcher:check-for-updates', async () => {
+  try {
+    const info = await fetchLatestLauncherRelease();
+    if (info.isNewer && app.isPackaged) {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.warn('[AutoUpdater] check error (expected if unsigned macOS):', err.message);
+      });
+    }
+    return {
+      success: true,
+      updateAvailable: info.isNewer,
+      version: info.latestTag,
+      currentVersion: info.currentVersion,
+      releaseUrl: info.releaseUrl
+    };
+  } catch (err: any) {
+    console.error('Failed to check for launcher updates:', err);
+    return {
+      success: false,
+      currentVersion: app.getVersion(),
+      error: err.message
+    };
+  }
 });
 
 ipcMain.handle('launcher:restart-and-install-update', () => {

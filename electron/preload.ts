@@ -84,6 +84,10 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     ipcRenderer.send('window:close');
   },
 
+  checkLauncherUpdate: () => {
+    return ipcRenderer.invoke('launcher:check-for-updates');
+  },
+
   restartAndInstallUpdate: () => {
     return ipcRenderer.invoke('launcher:restart-and-install-update');
   },
@@ -93,6 +97,14 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     ipcRenderer.on('launcher-update-ready', handler);
     return () => {
       ipcRenderer.removeListener('launcher-update-ready', handler);
+    };
+  },
+
+  onLauncherUpdateAvailable: (callback: (info: { version: string; releaseUrl: string }) => void) => {
+    const handler = (_event: unknown, info: { version: string; releaseUrl: string }) => callback(info);
+    ipcRenderer.on('launcher-update-available', handler);
+    return () => {
+      ipcRenderer.removeListener('launcher-update-available', handler);
     };
   }
 });
