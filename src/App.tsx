@@ -112,6 +112,42 @@ export const App: React.FC = () => {
     return next;
   }, []);
 
+  const autoUpdateDismissedRef = React.useRef<Set<string>>(new Set());
+
+  const handleInstall = useCallback(async (gameId: string, background = false) => {
+    const game = catalogRef.current.find((g) => g.id === gameId);
+    if (!game || game.isComingSoon) return;
+    handleAddToLibrary(gameId);
+
+    setGameStatuses((prev) => ({ ...prev, [gameId]: 'DOWNLOADING' }));
+    if (!background) {
+      setCurrentTab('downloads');
+    }
+    try {
+      await launcherBridge.downloadGame(gameId, game.version);
+    } catch (err) {
+      console.error('Download failed:', err);
+      setGameStatuses((prev) => ({ ...prev, [gameId]: 'NOT_INSTALLED' }));
+    }
+  }, []);
+
+  const handleCancelDownload = useCallback(async (gameId: string) => {
+    const game = catalogRef.current.find((g) => g.id === gameId);
+    if (game) {
+      autoUpdateDismissedRef.current.add(`${gameId}_${game.version}`);
+    }
+    await launcherBridge.cancelDownload(gameId);
+    setDownloads((prev) => {
+      const next = { ...prev };
+      delete next[gameId];
+      return next;
+    });
+    setGameStatuses((prev) => ({
+      ...prev,
+      [gameId]: installedGames[gameId] ? 'INSTALLED' : 'NOT_INSTALLED'
+    }));
+  }, [installedGames]);
+
   const refreshGames = useCallback(async (silent = false) => {
     if (!silent) setIsRefreshing(true);
     try {
@@ -146,7 +182,24 @@ export const App: React.FC = () => {
         setCatalog(activeCatalog);
       }
 
-      setGameStatuses((prev) => computeGameStatuses(activeCatalog, installed, prev));
+      setGameStatuses((prev) => {
+        const nextStatuses = computeGameStatuses(activeCatalog, installed, prev);
+
+        // Automatic Game Updates: If enabled in Settings, automatically download game updates in the background
+        if (cfg.autoUpdate) {
+          activeCatalog.forEach((game) => {
+            if (nextStatuses[game.id] === 'UPDATE_AVAILABLE') {
+              const currStatus = prev[game.id];
+              const isBusy = currStatus === 'DOWNLOADING' || currStatus === 'EXTRACTING' || currStatus === 'RUNNING';
+              if (!isBusy && !autoUpdateDismissedRef.current.has(`${game.id}_${game.version}`)) {
+                handleInstall(game.id, true /* background */);
+              }
+            }
+          });
+        }
+
+        return nextStatuses;
+      });
 
       // Quietly check for launcher self-updates
       launcherBridge.checkLauncherUpdate?.().catch(() => {});
@@ -246,35 +299,6 @@ export const App: React.FC = () => {
       unsubAvail();
     };
   }, [computeGameStatuses, refreshGames]);
-
-  // Handlers
-  const handleInstall = async (gameId: string) => {
-    const game = catalog.find((g) => g.id === gameId);
-    if (!game || game.isComingSoon) return;
-    handleAddToLibrary(gameId);
-
-    setGameStatuses((prev) => ({ ...prev, [gameId]: 'DOWNLOADING' }));
-    setCurrentTab('downloads');
-    try {
-      await launcherBridge.downloadGame(gameId, game.version);
-    } catch (err) {
-      console.error('Download failed:', err);
-      setGameStatuses((prev) => ({ ...prev, [gameId]: 'NOT_INSTALLED' }));
-    }
-  };
-
-  const handleCancelDownload = async (gameId: string) => {
-    await launcherBridge.cancelDownload(gameId);
-    setDownloads((prev) => {
-      const next = { ...prev };
-      delete next[gameId];
-      return next;
-    });
-    setGameStatuses((prev) => ({
-      ...prev,
-      [gameId]: installedGames[gameId] ? 'INSTALLED' : 'NOT_INSTALLED'
-    }));
-  };
 
   const handleLaunch = async (gameId: string) => {
     const game = catalog.find((g) => g.id === gameId);

@@ -324,6 +324,26 @@ async function getDynamicCatalog(env: Env): Promise<any[]> {
     if (res.ok) {
       const data: any = await res.json();
       if (Array.isArray(data) && data.length > 0) {
+        // Automatically reflect latest GitHub Release tags if published
+        await Promise.all(
+          data.map(async (item: any) => {
+            if (item.gameType === 'desktop' && !item.isComingSoon) {
+              const reg = REGISTERED_GAMES[item.id];
+              const repo = reg?.repo || (item.githubRepo ? item.githubRepo.replace(/^[^/]+\//, '') : null);
+              if (repo) {
+                try {
+                  const rel = await fetchLatestRelease(repo, env);
+                  if (rel && rel.version) {
+                    item.version = rel.version.replace(/^v/, '');
+                    if (rel.publishedAt) {
+                      item.releaseDate = new Date(rel.publishedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    }
+                  }
+                } catch {}
+              }
+            }
+          })
+        );
         return data;
       }
     }
