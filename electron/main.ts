@@ -4,6 +4,8 @@ import fs from 'fs';
 import os from 'os';
 import https from 'https';
 import http from 'http';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import AdmZip from 'adm-zip';
 import { autoUpdater } from 'electron-updater';
@@ -46,6 +48,51 @@ function findLocalDevGodotProject(gameId: string): string | null {
       return path.dirname(c);
     }
   }
+  return null;
+}
+
+
+function findGameExecutable(gameDir: string): string | null {
+  if (!fs.existsSync(gameDir)) return null;
+
+  const platform = process.platform;
+
+  const searchDir = (currentDir: string, depth: number): string | null => {
+    if (depth > 2) return null;
+    try {
+      const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+
+      if (platform === 'darwin') {
+        const app = entries.find(e => e.isDirectory() && e.name.endsWith('.app'));
+        if (app) return path.join(currentDir, app.name);
+      } else if (platform === 'win32') {
+        const exe = entries.find(e => !e.isDirectory() && e.name.toLowerCase().endsWith('.exe'));
+        if (exe) return path.join(currentDir, exe.name);
+      } else {
+        const bin = entries.find(e => !e.isDirectory() && (e.name.endsWith('.x86_64') || e.name.endsWith('.x86')));
+        if (bin) return path.join(currentDir, bin.name);
+      }
+
+      for (const entry of entries) {
+        if (entry.isDirectory() && !entry.name.endsWith('.app')) {
+          const sub = searchDir(path.join(currentDir, entry.name), depth + 1);
+          if (sub) return sub;
+        }
+      }
+    } catch {}
+    return null;
+  };
+
+  const binary = searchDir(gameDir, 0);
+  if (binary) return binary;
+
+  if (platform === 'win32') {
+    if (fs.existsSync(path.join(gameDir, 'launch.bat'))) return path.join(gameDir, 'launch.bat');
+    if (fs.existsSync(path.join(gameDir, 'launch.cmd'))) return path.join(gameDir, 'launch.cmd');
+  } else {
+    if (fs.existsSync(path.join(gameDir, 'launch.sh'))) return path.join(gameDir, 'launch.sh');
+  }
+
   return null;
 }
 
@@ -447,27 +494,25 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
   // If no downloadUrl is supplied, query the releases gateway for the real platform release
   if (!downloadUrl) {
     const platform = process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux';
-    const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, "");
+    const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
     const candidateUrl = `${gatewayUrl}/api/games/${gameId}/download/${platform}`;
     try {
       const headCheck = await fetch(candidateUrl, {
         method: 'HEAD',
-        redirect: 'manual',
+        redirect: 'follow',
         headers: { 'User-Agent': 'InaayahLauncher' },
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(5000)
       });
-      if (headCheck.status === 302 || headCheck.status === 200) {
-        const redirectLoc = headCheck.headers.get('location');
-        downloadUrl = redirectLoc || candidateUrl;
+      if (headCheck.ok) {
+        downloadUrl = headCheck.url;
       }
     } catch (e) {
-      // Gateway not available or no published release yet, will fall back to simulated runner
+      console.warn(`[Launcher] Gateway query failed for ${candidateUrl}:`, e);
     }
   }
 
   // If no downloadUrl is supplied or URL is unreachable, generate a realistic game runtime package!
   if (!downloadUrl || downloadUrl.startsWith('mock://') || !downloadUrl.startsWith('http')) {
-    // Generate simulated high-speed download with actual Godot bundle / mock launcher
     return new Promise<boolean>((resolve) => {
       let percent = 0;
       const totalBytes = 89450000;
@@ -486,12 +531,10 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
           clearInterval(timer);
           activeDownloads.delete(gameId);
 
-          // Verification & Extraction Phase
           sendProgress('VERIFYING', 100, 0, totalBytes, totalBytes, 0);
           setTimeout(() => {
             sendProgress('EXTRACTING', 100, 0, totalBytes, totalBytes, 0);
 
-            // Write game manifest and launch script
             const manifestData = {
               id: gameId,
               version: targetVersion || '1.2.0',
@@ -501,9 +544,8 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
             };
             fs.writeFileSync(path.join(gameDir, 'manifest.json'), JSON.stringify(manifestData, null, 2));
 
-            // Create launcher runner script
             const runScript = process.platform === 'win32'
-              ? `@echo off\necho Launching ${gameId}...\npause\n`
+              ? `@echo off\necho Launching ${gameId}...\nstart "" cmd.exe /c "echo Running ${gameId} in sandbox mode... & timeout /t 3"\n`
               : `#!/usr/bin/env bash\necho "Starting ${gameId}..."\n`;
             const runFileName = process.platform === 'win32' ? 'launch.bat' : 'launch.sh';
             const runFilePath = path.join(gameDir, runFileName);
@@ -533,114 +575,104 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     });
   }
 
-  // Real HTTP / HTTPS Download Implementation
-  return new Promise<boolean>((resolve) => {
-    try {
-      const parsedUrl = new URL(downloadUrl);
-      const httpModule = parsedUrl.protocol === 'https:' ? https : http;
+  // Real HTTP / HTTPS Download Implementation using native fetch + stream pipeline
+  return new Promise<boolean>(async (resolve) => {
+    const abortController = new AbortController();
+    activeDownloads.set(gameId, {
+      abort: () => {
+        abortController.abort();
+        if (fs.existsSync(tempZipPath)) {
+          try { fs.unlinkSync(tempZipPath); } catch {}
+        }
+        activeDownloads.delete(gameId);
+        sendProgress('ERROR', 0, 0, 0, 0, 0, 'Cancelled');
+        resolve(false);
+      }
+    });
 
-      const fileStream = fs.createWriteStream(tempZipPath);
+    try {
+      sendProgress('CONNECTING', 0, 0, 0, 0, 0);
+      const res = await fetch(downloadUrl, {
+        redirect: 'follow',
+        headers: { 'User-Agent': 'InaayahLauncher' },
+        signal: abortController.signal
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const totalBytes = parseInt(res.headers.get('content-length') || '0', 10);
       let receivedBytes = 0;
-      let totalBytes = 0;
       let startTime = Date.now();
       let lastReport = Date.now();
 
-      const req = httpModule.get(downloadUrl, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          // Handle HTTP redirect (standard for GitHub release downloads)
-          fileStream.close();
-          fs.unlinkSync(tempZipPath);
-          return resolve(ipcMain.emit('launcher:download-game', null, gameId, targetVersion, res.headers.location) as any);
+      const fileStream = fs.createWriteStream(tempZipPath);
+      const webStream = res.body;
+      if (!webStream) throw new Error('Response stream body is null');
+
+      const nodeStream = Readable.fromWeb(webStream as any);
+
+      nodeStream.on('data', (chunk: Buffer) => {
+        receivedBytes += chunk.length;
+        const now = Date.now();
+        if (now - lastReport > 200) {
+          lastReport = now;
+          const elapsed = (now - startTime) / 1000;
+          const speed = elapsed > 0 ? receivedBytes / elapsed : 0;
+          const pct = totalBytes > 0 ? Math.round((receivedBytes / totalBytes) * 100) : 0;
+          const eta = speed > 0 && totalBytes > 0 ? Math.round((totalBytes - receivedBytes) / speed) : 0;
+          sendProgress('DOWNLOADING', pct, speed, receivedBytes, totalBytes, eta);
         }
+      });
 
-        if (res.statusCode !== 200) {
-          sendProgress('ERROR', 0, 0, 0, 0, 0, `HTTP error ${res.statusCode}`);
-          fileStream.close();
-          return resolve(false);
-        }
+      await pipeline(nodeStream, fileStream);
 
-        totalBytes = parseInt(res.headers['content-length'] || '0', 10);
+      activeDownloads.delete(gameId);
+      sendProgress('VERIFYING', 100, 0, receivedBytes, totalBytes, 0);
 
-        res.on('data', (chunk) => {
-          receivedBytes += chunk.length;
-          const now = Date.now();
-          if (now - lastReport > 200) {
-            lastReport = now;
-            const elapsed = (now - startTime) / 1000;
-            const speed = elapsed > 0 ? receivedBytes / elapsed : 0;
-            const pct = totalBytes > 0 ? Math.round((receivedBytes / totalBytes) * 100) : 0;
-            const eta = speed > 0 && totalBytes > 0 ? Math.round((totalBytes - receivedBytes) / speed) : 0;
-            sendProgress('DOWNLOADING', pct, speed, receivedBytes, totalBytes, eta);
-          }
-        });
+      sendProgress('EXTRACTING', 100, 0, receivedBytes, totalBytes, 0);
+      const zip = new AdmZip(tempZipPath);
+      zip.extractAllTo(gameDir, true);
+      try { fs.unlinkSync(tempZipPath); } catch {}
 
-        res.pipe(fileStream);
+      // Write manifest
+      const manifestData = {
+        id: gameId,
+        version: targetVersion,
+        installedAt: Date.now(),
+        totalPlaytimeMinutes: 0,
+        lastPlayedAt: null
+      };
+      fs.writeFileSync(path.join(gameDir, 'manifest.json'), JSON.stringify(manifestData, null, 2));
 
-        fileStream.on('finish', () => {
-          fileStream.close(() => {
-            activeDownloads.delete(gameId);
-            sendProgress('VERIFYING', 100, 0, receivedBytes, totalBytes, 0);
-
-            try {
-              sendProgress('EXTRACTING', 100, 0, receivedBytes, totalBytes, 0);
-              const zip = new AdmZip(tempZipPath);
-              zip.extractAllTo(gameDir, true);
-              fs.unlinkSync(tempZipPath);
-
-              // Write manifest
-              const manifestData = {
-                id: gameId,
-                version: targetVersion,
-                installedAt: Date.now(),
-                totalPlaytimeMinutes: 0,
-                lastPlayedAt: null
-              };
-              fs.writeFileSync(path.join(gameDir, 'manifest.json'), JSON.stringify(manifestData, null, 2));
-
-              // Mark all shell scripts and binaries as executable
-              if (process.platform !== 'win32') {
-                const grantExec = (dir: string) => {
-                  for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
-                    const full = path.join(dir, f.name);
-                    if (f.isDirectory()) {
-                      grantExec(full);
-                    } else if (f.name.endsWith('.sh') || f.name.endsWith('.app') || !f.name.includes('.')) {
-                      try { fs.chmodSync(full, 0o755); } catch (e) {}
-                    }
-                  }
-                };
-                grantExec(gameDir);
-              }
-
-              sendProgress('COMPLETED', 100, 0, receivedBytes, totalBytes, 0);
-              resolve(true);
-            } catch (err: any) {
-              console.error('Failed to extract zip:', err);
-              sendProgress('ERROR', 0, 0, receivedBytes, totalBytes, 0, `Extraction failed: ${err.message}`);
-              resolve(false);
+      // Mark all shell scripts and binaries as executable on Unix
+      if (process.platform !== 'win32') {
+        const grantExec = (dir: string) => {
+          for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, f.name);
+            if (f.isDirectory()) {
+              grantExec(full);
+            } else if (f.name.endsWith('.sh') || f.name.endsWith('.app') || !f.name.includes('.')) {
+              try { fs.chmodSync(full, 0o755); } catch (e) {}
             }
-          });
-        });
-      });
+          }
+        };
+        grantExec(gameDir);
+      }
 
-      req.on('error', (err) => {
-        activeDownloads.delete(gameId);
-        sendProgress('ERROR', 0, 0, 0, 0, 0, err.message);
-        resolve(false);
-      });
-
-      activeDownloads.set(gameId, {
-        abort: () => {
-          req.destroy();
-          fileStream.close();
-          if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
-          activeDownloads.delete(gameId);
-          sendProgress('ERROR', 0, 0, 0, 0, 0, 'Cancelled');
-          resolve(false);
-        }
-      });
-    } catch (e: any) {
-      sendProgress('ERROR', 0, 0, 0, 0, 0, e.message);
+      sendProgress('COMPLETED', 100, 0, receivedBytes, totalBytes, 0);
+      resolve(true);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return;
+      }
+      console.error('Download/Extraction failed:', err);
+      if (fs.existsSync(tempZipPath)) {
+        try { fs.unlinkSync(tempZipPath); } catch {}
+      }
+      activeDownloads.delete(gameId);
+      sendProgress('ERROR', 0, 0, 0, 0, 0, err.message);
       resolve(false);
     }
   });
@@ -656,28 +688,10 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   }
 
   // Look for executable
-  let execPath = '';
-  if (process.platform === 'darwin') {
-    // Check for .app bundle or executable
-    const files = fs.existsSync(gameDir) ? fs.readdirSync(gameDir) : [];
-    const appBundle = files.find(f => f.endsWith('.app'));
-    if (appBundle) {
-      execPath = path.join(gameDir, appBundle);
-    } else if (fs.existsSync(path.join(gameDir, 'launch.sh'))) {
-      execPath = path.join(gameDir, 'launch.sh');
-    }
-  } else if (process.platform === 'win32') {
-    const files = fs.existsSync(gameDir) ? fs.readdirSync(gameDir) : [];
-    const exe = files.find(f => f.endsWith('.exe')) || 'launch.bat';
-    execPath = path.join(gameDir, exe);
-  } else {
-    const files = fs.existsSync(gameDir) ? fs.readdirSync(gameDir) : [];
-    const bin = files.find(f => f.endsWith('.x86_64')) || 'launch.sh';
-    execPath = path.join(gameDir, bin);
-  }
+  let execPath = findGameExecutable(gameDir);
 
   // Development Fallback: If running in dev mode and repository is present, use installed Godot runner!
-  if (!fs.existsSync(execPath)) {
+  if (!execPath || !fs.existsSync(execPath)) {
     const localDevRepo = findLocalDevGodotProject(gameId);
     const godotBin = findGodotBinary();
     if (localDevRepo && godotBin) {
@@ -714,17 +728,27 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
     }
   }
 
-  if (!fs.existsSync(execPath)) {
-    dialog.showErrorBox('Launch Error', `Could not find executable for ${gameId} at: ${execPath}`);
+  if (!execPath || !fs.existsSync(execPath)) {
+    dialog.showErrorBox('Launch Error', `Could not find executable for ${gameId} at: ${gameDir}`);
     return false;
   }
 
   try {
     let child: ChildProcess;
+    const isWindows = process.platform === 'win32';
+    const isBatch = execPath.toLowerCase().endsWith('.bat') || execPath.toLowerCase().endsWith('.cmd');
+
     if (process.platform === 'darwin' && execPath.endsWith('.app')) {
       child = spawn('open', ['-n', '-W', execPath, '--args', ...customArgs], { detached: true });
     } else {
-      child = spawn(execPath, customArgs, { detached: true, cwd: gameDir });
+      child = spawn(execPath, customArgs, {
+        detached: true,
+        cwd: path.dirname(execPath),
+        stdio: 'ignore',
+        shell: isWindows && isBatch ? true : false,
+        windowsHide: false
+      });
+      child.unref();
     }
 
     const startTime = Date.now();
