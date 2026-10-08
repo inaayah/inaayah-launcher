@@ -21,13 +21,11 @@
       "Original Soundtrack"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=640&auto=format&fit=crop",
-    "heroBanner": "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1920&auto=format&fit=crop",
+    "coverArt": "/images/aether-rush-cover.jpg",
+    "heroBanner": "/images/aether-rush-banner.jpg",
     "screenshots": [
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1280&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1280&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=1280&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=1280&auto=format&fit=crop"
+      "/images/aether-rush-banner.jpg",
+      "/images/aether-rush-cover.jpg"
     ],
     "sizeBytes": 89450000,
     "sizeFormatted": "85.3 MB",
@@ -90,40 +88,41 @@
   {
     "id": "kettle-court",
     "slug": "kettle-court",
-    "title": "Kettle Court: Court of Kettle",
-    "subtitle": "High-Stakes Multiplayer Arena RTS and Tactician Duels",
+    "title": "Kettle Court",
+    "subtitle": "Cozy Medieval Marketplace Digital Board & Table Game",
     "version": "1.0.4",
     "releaseDate": "October 2026",
-    "description": "Command your court in fast-paced real-time tactical battles. Place combat units, manage energy thresholds, counter opponent formations, and capture strategic court zones with shared backend account progression and cross-platform matchmaking.",
+    "description": "Step into the bustling fairgrounds of Kettle Court! Gather your coin pouch and merchant honors in a lively medieval marketplace digital table game. Claim artisan stalls across Bakery Row, Candle Row, and Harbor Row, draw from the communal Weather Deck, bid at town auctions, and share hot kettle stipends with 2 to 5 players over instant edge multiplayer.",
     "genres": [
-      "Real-Time Strategy",
-      "Tactics",
+      "Board Game",
+      "Tabletop",
       "Multiplayer",
-      "Competitive"
+      "Cozy Strategy"
     ],
     "tags": [
       "Instant Play",
-      "Fast-Paced RTS",
+      "Medieval Market",
       "Edge Durable Objects",
-      "Matchmaking"
+      "Digital Table Game"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=640&auto=format&fit=crop",
-    "heroBanner": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=1920&auto=format&fit=crop",
+    "coverArt": "/images/kettle-court-cover.jpg",
+    "heroBanner": "/images/kettle-court-banner.jpg",
     "screenshots": [
-      "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=1280&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1280&auto=format&fit=crop"
+      "/images/kettle-court-banner.jpg",
+      "/images/kettle-court-cover.jpg"
     ],
     "gameType": "web",
     "webUrl": "https://kettle-court.inaayah.dev/",
     "sizeBytes": 0,
     "sizeFormatted": "Cloud / Instant Play",
     "githubRepo": "inaayah/kettle-court",
-    "onlineBackend": "Edge Durable Objects (WebSockets)",
+    "onlineBackend": "Cloudflare Durable Objects & WebSockets",
     "features": [
-      "Dynamic Court Control: Real-time unit spawning and zone defense",
-      "Durable Objects Backend: Free, ultra-low-latency edge WebSocket rooms and synchronized match state",
-      "Low Latency: Built for instantaneous peer reaction at 60 FPS"
+      "40-Step Village Square: Trade across 7 artisan districts including Bakery Row, Herb Row, and Harbor Row",
+      "Weather Deck Mechanics: Draw Sun, Drizzle, Gust, and Downpour cards that alter district commerce and fees",
+      "No Player Elimination: Even with an empty coin pouch, merchants stay in the court and recover on kettle stipends",
+      "Instant Web Play: Powered by Cloudflare Durable Objects for zero-download, low-latency multiplayer rooms"
     ],
     "requirements": {
       "os": "Any Modern OS (Browser / WebGL)",
@@ -151,8 +150,8 @@
     "slug": "cyber-tactics",
     "title": "Cyber Tactics: Syndicate Wars",
     "subtitle": "Turn-Based Sci-Fi Squad Tactics in the Aether Universe",
-    "version": "0.9.1",
-    "releaseDate": "November 2026 (Coming Soon)",
+    "version": "0.9.1 (Alpha Preview)",
+    "releaseDate": "Late 2026 (Coming Soon)",
     "description": "Lead an elite cell of cybernetic mercenaries fighting corporate supremacy in turn-based tactical combat. Customize cyberware implants, flank armored enforcers, hack automated defenses, and extract with high-value syndicate data.",
     "genres": [
       "Turn-Based Tactics",
@@ -162,16 +161,16 @@
     ],
     "tags": [
       "Coming Soon",
-      "Procedural Missions",
+      "In Development",
       "Grid Tactics",
       "Deep Customization"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=640&auto=format&fit=crop",
-    "heroBanner": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1920&auto=format&fit=crop",
+    "coverArt": "/images/cyber-tactics-cover.jpg",
+    "heroBanner": "/images/cyber-tactics-banner.jpg",
     "screenshots": [
-      "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1280&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1280&auto=format&fit=crop"
+      "/images/cyber-tactics-banner.jpg",
+      "/images/cyber-tactics-cover.jpg"
     ],
     "sizeBytes": 115000000,
     "sizeFormatted": "109.6 MB",
