@@ -51,6 +51,12 @@ export const GameHero: React.FC<GameHeroProps> = ({
 
   const isComingSoon = Boolean(game.isComingSoon);
   const isWebGame = game.gameType === 'web';
+  const isInstalled = Boolean(installed) || isWebGame;
+  const effectiveStatus = (status === 'DOWNLOADING' || status === 'EXTRACTING' || status === 'RUNNING')
+    ? status
+    : (!isInstalled
+      ? 'NOT_INSTALLED'
+      : (status === 'UPDATE_AVAILABLE' && !installed?.version?.includes('Local Dev') ? 'UPDATE_AVAILABLE' : 'INSTALLED'));
 
   const formatPlaytime = (mins: number) => {
     if (mins < 60) return `${mins} mins`;
@@ -195,7 +201,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
               </div>
             ) : (
               <>
-                {status === 'NOT_INSTALLED' && (
+                {effectiveStatus === 'NOT_INSTALLED' && (
                   <button
                     className="btn-primary-action install"
                     onClick={() => onInstall(game.id)}
@@ -205,11 +211,11 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </button>
                 )}
 
-                {(status === 'DOWNLOADING' || status === 'EXTRACTING') && (
+                {(effectiveStatus === 'DOWNLOADING' || effectiveStatus === 'EXTRACTING') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 260 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600 }}>
                       <span style={{ color: 'var(--accent-cyan)' }}>
-                        {status === 'EXTRACTING' ? 'Unpacking Files...' : `Downloading ${downloadProgress?.percentage || 0}%`}
+                        {effectiveStatus === 'EXTRACTING' ? 'Unpacking Files...' : `Downloading ${downloadProgress?.percentage || 0}%`}
                       </span>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>
                         {downloadProgress?.speedBytesPerSec
@@ -233,7 +239,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                 )}
 
-                {status === 'UPDATE_AVAILABLE' && !installed?.version?.includes('Local Dev') && (
+                {effectiveStatus === 'UPDATE_AVAILABLE' && !installed?.version?.includes('Local Dev') && (
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button
                       className="btn-primary-action update"
@@ -252,7 +258,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                 )}
 
-                {(status === 'INSTALLED' || (status === 'UPDATE_AVAILABLE' && installed?.version?.includes('Local Dev'))) && (
+                {(effectiveStatus === 'INSTALLED' || (effectiveStatus === 'UPDATE_AVAILABLE' && installed?.version?.includes('Local Dev'))) && (
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button
                       className="btn-primary-action play"
@@ -264,7 +270,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                 )}
 
-                {status === 'RUNNING' && (
+                {effectiveStatus === 'RUNNING' && (
                   <button className="btn-primary-action running">
                     <Sparkles size={18} className="animate-spin" />
                     <span>Game is Running</span>

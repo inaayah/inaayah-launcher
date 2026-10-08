@@ -178,7 +178,12 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
             const isWebGame = game.gameType === 'web';
             const installed = installedGames[game.id];
             const isInstalled = Boolean(installed) || isWebGame;
-            const status = gameStatuses[game.id] || (isInstalled ? 'INSTALLED' : 'NOT_INSTALLED');
+            const rawStatus = gameStatuses[game.id];
+            const status = (rawStatus === 'DOWNLOADING' || rawStatus === 'EXTRACTING' || rawStatus === 'RUNNING')
+              ? rawStatus
+              : (!isInstalled
+                ? 'NOT_INSTALLED'
+                : (rawStatus === 'UPDATE_AVAILABLE' && !installed?.version?.includes('Local Dev') ? 'UPDATE_AVAILABLE' : 'INSTALLED'));
             const isRunning = status === 'RUNNING';
             const isDownloading = status === 'DOWNLOADING' || status === 'EXTRACTING';
             const downloadProg = activeDownloads[game.id];

@@ -234,6 +234,7 @@ function saveConfig(cfg: Partial<LauncherConfig>): LauncherConfig {
 let cachedInstalledGames: Record<string, InstalledGameMeta> = {};
 let isScanInProgress = false;
 let initialScanPromise: Promise<Record<string, InstalledGameMeta>> | null = null;
+const uninstalledDevGames = new Set<string>();
 
 async function scanInstalledGames(libraryPath?: string): Promise<Record<string, InstalledGameMeta>> {
   if (isScanInProgress) return cachedInstalledGames;
@@ -243,21 +244,23 @@ async function scanInstalledGames(libraryPath?: string): Promise<Record<string, 
     const libPath = libraryPath || loadConfig().libraryPath;
     const installed: Record<string, InstalledGameMeta> = {};
 
-    // 1. Auto-detect local development workspace for games asynchronously
-    const [localDevRepo, godotBin] = await Promise.all([
-      Promise.resolve(findLocalDevGodotProject('aether-rush')),
-      resolveGodotBinaryAsync()
-    ]);
+    // 1. Auto-detect local development workspace for games asynchronously (unless explicitly uninstalled)
+    if (!uninstalledDevGames.has('aether-rush')) {
+      const [localDevRepo, godotBin] = await Promise.all([
+        Promise.resolve(findLocalDevGodotProject('aether-rush')),
+        resolveGodotBinaryAsync()
+      ]);
 
-    if (localDevRepo && godotBin) {
-      installed['aether-rush'] = {
-        id: 'aether-rush',
-        version: '1.2.0 (Local Dev)',
-        installPath: localDevRepo,
-        installedAt: Date.now() - 86400000 * 2,
-        lastPlayedAt: Date.now() - 3600000 * 2,
-        totalPlaytimeMinutes: 45
-      };
+      if (localDevRepo && godotBin) {
+        installed['aether-rush'] = {
+          id: 'aether-rush',
+          version: '1.2.0 (Local Dev)',
+          installPath: localDevRepo,
+          installedAt: Date.now() - 86400000 * 2,
+          lastPlayedAt: Date.now() - 3600000 * 2,
+          totalPlaytimeMinutes: 45
+        };
+      }
     }
 
     if (fs.existsSync(libPath)) {
@@ -267,38 +270,66 @@ async function scanInstalledGames(libraryPath?: string): Promise<Record<string, 
           if (installed[entry.name]?.version?.includes('Local Dev')) continue;
           const gameDir = path.join(libPath, entry.name);
           const manifestPath = path.join(gameDir, 'manifest.json');
-          if (fs.existsSync(manifestPath)) {
+          if (!fs.existsSync(manifestPath)) continue;
+
+          let meta: any = null;
+          try {
+            const rawManifest = await fs.promises.readFile(manifestPath, 'utf-8');
+            meta = JSON.parse(rawManifest);
+          } catch (e) {
+            console.error(`Invalid manifest for game ${entry.name}:`, e);
+            continue;
+          }
+
+          const isWebGame = meta?.installPath && typeof meta.installPath === 'string' && meta.installPath.startsWith('http');
+
+          if (!isWebGame) {
             const execPath = await findGameExecutable(gameDir);
             const isStaleMock = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
+
             if (!execPath || isStaleMock) {
-              const devRepo = findLocalDevGodotProject(entry.name);
-              if (devRepo && godotBin) {
-                installed[entry.name] = {
-                  id: entry.name,
-                  version: '1.2.0 (Local Dev)',
-                  installPath: devRepo,
-                  installedAt: Date.now() - 86400000,
-                  lastPlayedAt: Date.now() - 3600000,
-                  totalPlaytimeMinutes: 45
-                };
-                continue;
+              if (!uninstalledDevGames.has(entry.name)) {
+                const devRepo = findLocalDevGodotProject(entry.name);
+                const godotBin = await resolveGodotBinaryAsync();
+                if (devRepo && godotBin) {
+                  installed[entry.name] = {
+                    id: entry.name,
+                    version: '1.2.0 (Local Dev)',
+                    installPath: devRepo,
+                    installedAt: Date.now() - 86400000,
+                    lastPlayedAt: Date.now() - 3600000,
+                    totalPlaytimeMinutes: 45
+                  };
+                  continue;
+                }
               }
             }
-            try {
-              const rawManifest = await fs.promises.readFile(manifestPath, 'utf-8');
-              const meta = JSON.parse(rawManifest);
-              installed[entry.name] = {
-                id: entry.name,
-                version: meta.version || '1.0.0',
-                installPath: gameDir,
-                installedAt: meta.installedAt || Date.now(),
-                lastPlayedAt: meta.lastPlayedAt || null,
-                totalPlaytimeMinutes: meta.totalPlaytimeMinutes || 0
-              };
-            } catch (e) {
-              console.error(`Invalid manifest for game ${entry.name}:`, e);
+
+            // CRITICAL: A native desktop game MUST have an existing executable on disk to be installed!
+            if (!execPath || !fs.existsSync(execPath)) {
+              console.log(`[Launcher] Game "${entry.name}" has manifest but executable is missing on disk. Marked as not installed.`);
+              continue;
             }
           }
+
+          installed[entry.name] = {
+            id: entry.name,
+            version: meta?.version || '1.0.0',
+            installPath: isWebGame ? meta.installPath : gameDir,
+            installedAt: meta?.installedAt || Date.now(),
+            lastPlayedAt: meta?.lastPlayedAt || null,
+            totalPlaytimeMinutes: meta?.totalPlaytimeMinutes || 0
+          };
+        }
+      }
+    }
+
+    // Detect games that disappeared from disk and notify frontend
+    const previousIds = Object.keys(cachedInstalledGames);
+    for (const prevId of previousIds) {
+      if (!installed[prevId]) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('game-status-changed', { gameId: prevId, status: 'NOT_INSTALLED' });
         }
       }
     }
@@ -365,6 +396,11 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  // Rescan installed games whenever the user returns focus to the launcher
+  mainWindow.on('focus', () => {
+    scanInstalledGames().catch(() => {});
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -378,6 +414,25 @@ app.whenReady().then(() => {
       fs.mkdirSync(cfg.libraryPath, { recursive: true });
     } catch (e) {
       console.error('Failed to create default library directory:', e);
+    }
+  }
+
+  // Live filesystem watcher to immediately detect external game deletions or file changes
+  let scanDebounceTimer: NodeJS.Timeout | null = null;
+  const triggerDebouncedScan = () => {
+    if (scanDebounceTimer) clearTimeout(scanDebounceTimer);
+    scanDebounceTimer = setTimeout(() => {
+      scanInstalledGames().catch(() => {});
+    }, 300);
+  };
+
+  if (fs.existsSync(cfg.libraryPath)) {
+    try {
+      fs.watch(cfg.libraryPath, { recursive: false }, () => {
+        triggerDebouncedScan();
+      });
+    } catch (e) {
+      console.warn('Library folder watcher warning:', e);
     }
   }
 
@@ -528,14 +583,6 @@ ipcMain.handle('launcher:browse-directory', async () => {
 });
 
 ipcMain.handle('launcher:get-installed-games', async () => {
-  if (Object.keys(cachedInstalledGames).length > 0) {
-    // Instantaneous response from in-memory cache! Zero blocking.
-    scanInstalledGames().catch(() => {});
-    return cachedInstalledGames;
-  }
-  if (initialScanPromise) {
-    return initialScanPromise;
-  }
   return scanInstalledGames();
 });
 
@@ -556,18 +603,36 @@ ipcMain.handle('launcher:cancel-download', async (_event, gameId: string) => {
 });
 
 ipcMain.handle('launcher:uninstall-game', async (_event, gameId: string) => {
+  uninstalledDevGames.add(gameId);
+
+  if (runningProcesses.has(gameId)) {
+    try {
+      runningProcesses.get(gameId)?.proc?.kill();
+    } catch {}
+    runningProcesses.delete(gameId);
+  }
+
+  delete cachedInstalledGames[gameId];
+
   const cfg = loadConfig();
   const gameDir = path.join(cfg.libraryPath, gameId);
+  let removed = true;
   if (fs.existsSync(gameDir)) {
     try {
       fs.rmSync(gameDir, { recursive: true, force: true });
-      return true;
     } catch (e) {
       console.error(`Failed to delete game directory ${gameDir}:`, e);
-      return false;
+      removed = false;
     }
   }
-  return false;
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('game-status-changed', { gameId, status: 'NOT_INSTALLED' });
+    mainWindow.webContents.send('launcher:installed-games-updated', cachedInstalledGames);
+  }
+
+  await scanInstalledGames();
+  return removed;
 });
 
 ipcMain.handle('launcher:check-updates', async (_event, gameId: string, latestVersion: string) => {
@@ -673,7 +738,9 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
               try { fs.chmodSync(runFilePath, 0o755); } catch (e) {}
             }
 
-            setTimeout(() => {
+            setTimeout(async () => {
+              uninstalledDevGames.delete(gameId);
+              await scanInstalledGames();
               sendProgress('COMPLETED', 100, 0, totalBytes, totalBytes, 0);
               resolve(true);
             }, 600);
@@ -748,6 +815,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
       await pipeline(nodeStream, fileStream);
 
       activeDownloads.delete(gameId);
+
       sendProgress('VERIFYING', 100, 0, receivedBytes, totalBytes, 0);
 
       sendProgress('EXTRACTING', 100, 0, receivedBytes, totalBytes, 0);
@@ -780,6 +848,8 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
         grantExec(gameDir);
       }
 
+      uninstalledDevGames.delete(gameId);
+      await scanInstalledGames();
       sendProgress('COMPLETED', 100, 0, receivedBytes, totalBytes, 0);
       resolve(true);
     } catch (err: any) {
@@ -814,51 +884,64 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
 
   // Development Fallback: If running in dev mode and repository is present, use installed Godot runner if no compiled binary exists!
   if (!hasRealBinary) {
-    const localDevRepo = findLocalDevGodotProject(gameId);
-    const godotBin = await resolveGodotBinaryAsync();
-    if (localDevRepo && godotBin) {
-      console.log(`[Launcher] Launching ${gameId} directly via local development Godot engine (${godotBin})...`);
-      const child = spawn(godotBin, ['--path', localDevRepo, ...customArgs], {
-        detached: true,
-        stdio: 'ignore'
-      });
-      child.unref();
+    if (!uninstalledDevGames.has(gameId)) {
+      const localDevRepo = findLocalDevGodotProject(gameId);
+      const godotBin = await resolveGodotBinaryAsync();
+      if (localDevRepo && godotBin) {
+        console.log(`[Launcher] Launching ${gameId} directly via local development Godot engine (${godotBin})...`);
+        const child = spawn(godotBin, ['--path', localDevRepo, ...customArgs], {
+          detached: true,
+          stdio: 'ignore'
+        });
+        child.unref();
 
-      const startTime = Date.now();
-      runningProcesses.set(gameId, { proc: child, startTime });
-      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
+        const startTime = Date.now();
+        runningProcesses.set(gameId, { proc: child, startTime });
+        mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
 
-      child.on('error', (err) => {
-        console.error('Godot dev engine error:', err);
-        runningProcesses.delete(gameId);
-        mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
-      });
+        child.on('error', (err) => {
+          console.error('Godot dev engine error:', err);
+          runningProcesses.delete(gameId);
+          mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
+        });
 
+        child.on('exit', (code) => {
+          const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+          runningProcesses.delete(gameId);
 
-    child.on('exit', (code) => {
-        const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));
-        runningProcesses.delete(gameId);
+          // Update playtime in manifest
+          const manifestPath = path.join(gameDir, 'manifest.json');
+          if (fs.existsSync(manifestPath)) {
+            try {
+              const meta = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+              meta.lastPlayedAt = Date.now();
+              meta.totalPlaytimeMinutes = (meta.totalPlaytimeMinutes || 0) + elapsedMinutes;
+              fs.writeFileSync(manifestPath, JSON.stringify(meta, null, 2));
+            } catch (e) {}
+          }
 
-        // Update playtime in manifest
-        const manifestPath = path.join(gameDir, 'manifest.json');
-        if (fs.existsSync(manifestPath)) {
-          try {
-            const meta = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-            meta.lastPlayedAt = Date.now();
-            meta.totalPlaytimeMinutes = (meta.totalPlaytimeMinutes || 0) + elapsedMinutes;
-            fs.writeFileSync(manifestPath, JSON.stringify(meta, null, 2));
-          } catch (e) {}
-        }
+          mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: code || 0 });
+        });
 
-        mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: code || 0 });
-      });
-
-      return true;
+        return true;
+      }
     }
   }
 
   if (!execPath || !fs.existsSync(execPath)) {
-    dialog.showErrorBox('Launch Error', `Could not find executable for ${gameId} at: ${gameDir}`);
+    uninstalledDevGames.add(gameId);
+    delete cachedInstalledGames[gameId];
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('game-status-changed', { gameId, status: 'NOT_INSTALLED' });
+      mainWindow.webContents.send('launcher:installed-games-updated', cachedInstalledGames);
+    }
+    scanInstalledGames().catch(() => {});
+
+    dialog.showErrorBox(
+      'Game Not Found',
+      `Could not find executable for "${gameId}" in:\n${gameDir}\n\nThe game state has been reset to "Install Game" so you can reinstall it.`
+    );
     return false;
   }
 
@@ -909,7 +992,20 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   } catch (err: any) {
     console.error('Failed to spawn game process:', err);
     runningProcesses.delete(gameId);
-    mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
+
+    const execStillExists = execPath && fs.existsSync(execPath);
+    if (!execStillExists) {
+      uninstalledDevGames.add(gameId);
+      delete cachedInstalledGames[gameId];
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('game-status-changed', { gameId, status: 'NOT_INSTALLED' });
+        mainWindow.webContents.send('launcher:installed-games-updated', cachedInstalledGames);
+      }
+      scanInstalledGames().catch(() => {});
+    } else {
+      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
+    }
+
     dialog.showErrorBox('Launch Failed', err.message);
     return false;
   }

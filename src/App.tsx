@@ -76,7 +76,7 @@ export const App: React.FC = () => {
     return catalog.find((g) => g.id === selectedGameId) || catalog[0] || catalogData[0];
   }, [catalog, selectedGameId]);
 
-  // Load initial data
+  // Load initial data and sync statuses
   const refreshInstalled = useCallback(async () => {
     try {
       const [cfg, installed] = await Promise.all([
@@ -86,33 +86,45 @@ export const App: React.FC = () => {
       setConfig(cfg);
       setInstalledGames(installed);
 
-      // Compute initial statuses
-      const statuses: Record<string, GameStatus> = {};
-      catalogData.forEach((game) => {
-        if (game.isComingSoon) {
-          statuses[game.id] = 'NOT_INSTALLED';
-        } else if (game.gameType === 'web') {
-          statuses[game.id] = 'INSTALLED';
-        } else if (installed[game.id]) {
-          const isDev = Boolean(installed[game.id].version?.includes('Local Dev') || installed[game.id].installPath?.includes('godot'));
-          statuses[game.id] = (!isDev && installed[game.id].version !== game.version) ? 'UPDATE_AVAILABLE' : 'INSTALLED';
-        } else {
-          statuses[game.id] = 'NOT_INSTALLED';
-        }
-      });
+      // Compute statuses based on actual disk installation
       setGameStatuses((prev) => {
         const next = { ...prev };
-        for (const [id, st] of Object.entries(statuses)) {
-          if (next[id] !== 'DOWNLOADING' && next[id] !== 'RUNNING') {
-            next[id] = st;
+        catalogData.forEach((game) => {
+          const curr = next[game.id];
+          if (curr === 'DOWNLOADING' || curr === 'EXTRACTING' || curr === 'RUNNING') {
+            return;
           }
-        }
+          if (game.isComingSoon) {
+            next[game.id] = 'NOT_INSTALLED';
+          } else if (game.gameType === 'web') {
+            next[game.id] = 'INSTALLED';
+          } else if (installed[game.id]) {
+            const isDev = Boolean(
+              installed[game.id].version?.includes('Local Dev') ||
+              installed[game.id].installPath?.includes('godot')
+            );
+            next[game.id] = (!isDev && installed[game.id].version !== game.version)
+              ? 'UPDATE_AVAILABLE'
+              : 'INSTALLED';
+          } else {
+            next[game.id] = 'NOT_INSTALLED';
+          }
+        });
         return next;
       });
     } catch (err) {
       console.error('Failed to initialize launcher bridge:', err);
     }
   }, []);
+
+  // Listen for window focus to detect external game deletions from Finder or terminal
+  useEffect(() => {
+    const onWindowFocus = () => {
+      refreshInstalled();
+    };
+    window.addEventListener('focus', onWindowFocus);
+    return () => window.removeEventListener('focus', onWindowFocus);
+  }, [refreshInstalled]);
 
   useEffect(() => {
     refreshInstalled();
@@ -185,10 +197,41 @@ export const App: React.FC = () => {
 
     const unsubInstalledGames = launcherBridge.onInstalledGamesUpdated?.((games) => {
       setInstalledGames(games);
+      setGameStatuses((prev) => {
+        const next = { ...prev };
+        catalog.forEach((game) => {
+          const curr = next[game.id];
+          if (curr === 'DOWNLOADING' || curr === 'EXTRACTING' || curr === 'RUNNING') return;
+          if (game.isComingSoon) {
+            next[game.id] = 'NOT_INSTALLED';
+          } else if (game.gameType === 'web') {
+            next[game.id] = 'INSTALLED';
+          } else if (games[game.id]) {
+            const isDev = Boolean(
+              games[game.id].version?.includes('Local Dev') ||
+              games[game.id].installPath?.includes('godot')
+            );
+            next[game.id] = (!isDev && games[game.id].version !== game.version)
+              ? 'UPDATE_AVAILABLE'
+              : 'INSTALLED';
+          } else {
+            next[game.id] = 'NOT_INSTALLED';
+          }
+        });
+        return next;
+      });
     });
 
     const unsubStatus = launcherBridge.onGameStatusChanged((data) => {
       setGameStatuses((prev) => ({ ...prev, [data.gameId]: data.status }));
+      if (data.status === 'NOT_INSTALLED') {
+        setInstalledGames((prev) => {
+          if (!prev[data.gameId]) return prev;
+          const next = { ...prev };
+          delete next[data.gameId];
+          return next;
+        });
+      }
       if (data.status === 'INSTALLED' || data.status === 'NOT_INSTALLED') {
         refreshInstalled();
       }
@@ -255,16 +298,39 @@ export const App: React.FC = () => {
         ok = await launcherBridge.launchGame(gameId);
       }
       if (!ok) {
-        setGameStatuses((prev) => ({ ...prev, [gameId]: 'INSTALLED' }));
+        // If launch failed (e.g. game executable missing/deleted on disk), rescan library
+        const updated = await launcherBridge.getInstalledGames();
+        setInstalledGames(updated);
+        setGameStatuses((prev) => ({
+          ...prev,
+          [gameId]: updated[gameId] || game.gameType === 'web' ? 'INSTALLED' : 'NOT_INSTALLED'
+        }));
       }
     } catch (err) {
       console.error('Launch failed:', err);
-      setGameStatuses((prev) => ({ ...prev, [gameId]: 'INSTALLED' }));
+      const updated: Record<string, InstalledGame> = await launcherBridge.getInstalledGames().catch(() => ({}));
+      setInstalledGames(updated);
+      setGameStatuses((prev) => ({
+        ...prev,
+        [gameId]: updated[gameId] || game.gameType === 'web' ? 'INSTALLED' : 'NOT_INSTALLED'
+      }));
     }
   };
 
   const handleUninstall = async (gameId: string) => {
-    await launcherBridge.uninstallGame(gameId);
+    // Optimistically remove game from installed list and reset status immediately
+    setGameStatuses((prev) => ({ ...prev, [gameId]: 'NOT_INSTALLED' }));
+    setInstalledGames((prev) => {
+      const next = { ...prev };
+      delete next[gameId];
+      return next;
+    });
+
+    try {
+      await launcherBridge.uninstallGame(gameId);
+    } catch (err) {
+      console.error('Uninstall failed:', err);
+    }
     await refreshInstalled();
   };
 
