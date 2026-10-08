@@ -107,6 +107,11 @@ export const GameHero: React.FC<GameHeroProps> = ({
                 </span>
               ))}
               <span className="badge">v{game.version}</span>
+              {installed?.version?.includes('Local Dev') && (
+                <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
+                  ⚡ Live Dev Source
+                </span>
+              )}
             </div>
 
             <h1 className="hero-title">{game.title}</h1>
@@ -254,7 +259,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                       onClick={() => onLaunch(game.id)}
                     >
                       <Play size={20} fill="currentColor" />
-                      <span>Play Now</span>
+                      <span>{installed?.version?.includes('Local Dev') ? 'Play (Live Dev Source)' : 'Play Now'}</span>
                     </button>
                   </div>
                 )}

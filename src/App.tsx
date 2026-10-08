@@ -94,8 +94,8 @@ export const App: React.FC = () => {
         } else if (game.gameType === 'web') {
           statuses[game.id] = 'INSTALLED';
         } else if (installed[game.id]) {
-          statuses[game.id] =
-            installed[game.id].version !== game.version ? 'UPDATE_AVAILABLE' : 'INSTALLED';
+          const isDev = Boolean(installed[game.id].version?.includes('Local Dev') || installed[game.id].installPath?.includes('godot'));
+          statuses[game.id] = (!isDev && installed[game.id].version !== game.version) ? 'UPDATE_AVAILABLE' : 'INSTALLED';
         } else {
           statuses[game.id] = 'NOT_INSTALLED';
         }
@@ -139,8 +139,8 @@ export const App: React.FC = () => {
                 } else if (game.gameType === 'web') {
                   nextStatuses[game.id] = 'INSTALLED';
                 } else if (installedGames[game.id]) {
-                  nextStatuses[game.id] =
-                    installedGames[game.id].version !== game.version ? 'UPDATE_AVAILABLE' : 'INSTALLED';
+                  const isDev = Boolean(installedGames[game.id].version?.includes('Local Dev') || installedGames[game.id].installPath?.includes('godot'));
+                    nextStatuses[game.id] = (!isDev && installedGames[game.id].version !== game.version) ? 'UPDATE_AVAILABLE' : 'INSTALLED';
                 } else {
                   nextStatuses[game.id] = 'NOT_INSTALLED';
                 }
@@ -258,6 +258,7 @@ export const App: React.FC = () => {
   const handleCheckUpdates = async (gameId: string) => {
     const game = catalog.find((g) => g.id === gameId);
     if (!game) return;
+    if (installedGames[gameId]?.version?.includes('Local Dev')) return;
     const hasUpdate = await launcherBridge.checkUpdates(gameId, game.version);
     if (hasUpdate) {
       setGameStatuses((prev) => ({ ...prev, [gameId]: 'UPDATE_AVAILABLE' }));
