@@ -113,6 +113,7 @@ export const App: React.FC = () => {
   }, []);
 
   const autoUpdateDismissedRef = React.useRef<Set<string>>(new Set());
+  const lastLauncherUpdateCheckRef = React.useRef<number>(0);
 
   const handleInstall = useCallback(async (gameId: string, background = false) => {
     const game = catalogRef.current.find((g) => g.id === gameId);
@@ -201,8 +202,12 @@ export const App: React.FC = () => {
         return nextStatuses;
       });
 
-      // Quietly check for launcher self-updates
-      launcherBridge.checkLauncherUpdate?.().catch(() => {});
+      // Quietly check for launcher self-updates at most once every 10 minutes (or on initial launch)
+      const now = Date.now();
+      if (now - lastLauncherUpdateCheckRef.current > 10 * 60 * 1000) {
+        lastLauncherUpdateCheckRef.current = now;
+        launcherBridge.checkLauncherUpdate?.().catch(() => {});
+      }
     } catch (err) {
       console.error('Failed to refresh games:', err);
     } finally {

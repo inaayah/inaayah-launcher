@@ -1,5 +1,5 @@
 import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus, GameCatalogItem, UpdateCheckResult } from '../types/launcher';
-import { APP_VERSION } from '../utils/version';
+import { APP_VERSION, compareVersions } from '../utils/version';
 
 const STORAGE_KEY_CONFIG = 'inaayah_launcher_config_mock';
 const STORAGE_KEY_INSTALLED = 'inaayah_launcher_installed_mock';
@@ -313,23 +313,46 @@ export const launcherBridge: InaayahLauncherAPI = {
       return window.inaayahLauncher.checkLauncherUpdate();
     }
     const currentVersion = await this.getAppVersion();
+    // 1. Try Cloudflare Edge Gateway first (cached, bypasses GitHub rate limits)
+    try {
+      const res = await fetch('https://releases.inaayah.dev/api/launcher/latest', {
+        headers: { 'User-Agent': `InaayahLauncher/${currentVersion}` },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const latest = (data.version || data.tag_name || '').replace(/^v/, '');
+        return {
+          success: true,
+          updateAvailable: Boolean(latest && compareVersions(latest, currentVersion) > 0),
+          version: latest || null,
+          currentVersion
+        };
+      }
+    } catch {
+      // Fall through to GitHub fallback
+    }
+
+    // 2. Direct GitHub API fallback
     try {
       const res = await fetch('https://api.github.com/repos/inaayah/inaayah-launcher/releases/latest', {
-        headers: { 'User-Agent': `InaayahLauncher/${currentVersion}` }
+        headers: { 'User-Agent': `InaayahLauncher/${currentVersion}` },
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) {
         const data = await res.json();
         const latest = (data.tag_name || '').replace(/^v/, '');
         return {
           success: true,
-          updateAvailable: Boolean(latest && latest !== currentVersion),
+          updateAvailable: Boolean(latest && compareVersions(latest, currentVersion) > 0),
           version: latest || null,
           currentVersion
         };
       }
-    } catch (e: any) {
-      return { success: false, currentVersion, error: e.message };
+    } catch {
+      // Gracefully swallow network/rate-limit error without breaking app UI
     }
+
     return { success: true, updateAvailable: false, version: currentVersion, currentVersion };
   },
 

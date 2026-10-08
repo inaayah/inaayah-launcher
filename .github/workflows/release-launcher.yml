@@ -138,7 +138,8 @@ jobs:
 
       - name: Publish GitHub Release
         run: |
-          gh release edit "${{ steps.target.outputs.tag }}" --draft=false --latest
+          gh release edit "${{ steps.target.outputs.tag }}" --repo "${{ github.repository }}" --draft=false --latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
 

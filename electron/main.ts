@@ -1095,26 +1095,72 @@ function compareVersions(v1: string, v2: string): number {
 
 async function fetchLatestLauncherRelease() {
   const currentVersion = app.getVersion();
-  const res = await fetch('https://api.github.com/repos/inaayah/inaayah-launcher/releases/latest', {
-    headers: {
-      'User-Agent': `InaayahLauncher/${currentVersion}`,
-      'Accept': 'application/vnd.github.v3+json'
+  const cfg = loadConfig();
+  const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
+
+  // 1. Prioritize Cloudflare edge gateway (cached, fast, and does NOT burn GitHub IP rate limits)
+  try {
+    const res = await fetch(`${gatewayUrl}/api/launcher/latest`, {
+      headers: {
+        'User-Agent': `InaayahLauncher/${currentVersion}`,
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      const latestTag = (data.version || data.tag_name || '').replace(/^v/, '');
+      const releaseUrl = data.html_url || 'https://github.com/inaayah/inaayah-launcher/releases/latest';
+      const isNewer = compareVersions(latestTag, currentVersion) > 0;
+      return {
+        isNewer,
+        latestTag,
+        currentVersion,
+        releaseUrl,
+        releaseName: data.name || `v${latestTag}`,
+        publishedAt: data.publishedAt || data.published_at
+      };
     }
-  });
-  if (!res.ok) {
-    throw new Error(`GitHub API returned status ${res.status}: ${res.statusText}`);
+  } catch (e: any) {
+    // Gateway unreachable or timed out, attempt GitHub fallback
   }
-  const data = (await res.json()) as any;
-  const latestTag = (data.tag_name || '').replace(/^v/, '');
-  const releaseUrl = data.html_url || 'https://github.com/inaayah/inaayah-launcher/releases/latest';
-  const isNewer = compareVersions(latestTag, currentVersion) > 0;
+
+  // 2. Direct GitHub API fallback
+  try {
+    const res = await fetch('https://api.github.com/repos/inaayah/inaayah-launcher/releases/latest', {
+      headers: {
+        'User-Agent': `InaayahLauncher/${currentVersion}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      const latestTag = (data.tag_name || '').replace(/^v/, '');
+      const releaseUrl = data.html_url || 'https://github.com/inaayah/inaayah-launcher/releases/latest';
+      const isNewer = compareVersions(latestTag, currentVersion) > 0;
+      return {
+        isNewer,
+        latestTag,
+        currentVersion,
+        releaseUrl,
+        releaseName: data.name || `v${latestTag}`,
+        publishedAt: data.published_at
+      };
+    }
+    if (res.status === 403) {
+      console.warn('[LauncherUpdate] GitHub API unauthenticated rate limit reached (HTTP 403). Using current version.');
+    }
+  } catch (e: any) {
+    // Gracefully handle network offline
+  }
+
   return {
-    isNewer,
-    latestTag,
+    isNewer: false,
+    latestTag: currentVersion,
     currentVersion,
-    releaseUrl,
-    releaseName: data.name || `v${latestTag}`,
-    publishedAt: data.published_at
+    releaseUrl: 'https://github.com/inaayah/inaayah-launcher/releases/latest',
+    releaseName: `v${currentVersion}`
   };
 }
 
