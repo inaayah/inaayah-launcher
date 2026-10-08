@@ -235,10 +235,14 @@ export const App: React.FC = () => {
 
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'RUNNING' }));
     try {
+      let ok = false;
       if (game.gameType === 'web' && game.webUrl) {
-        await launcherBridge.launchWebGame(gameId, game.webUrl);
+        ok = await launcherBridge.launchWebGame(gameId, game.webUrl);
       } else {
-        await launcherBridge.launchGame(gameId);
+        ok = await launcherBridge.launchGame(gameId);
+      }
+      if (!ok) {
+        setGameStatuses((prev) => ({ ...prev, [gameId]: 'INSTALLED' }));
       }
     } catch (err) {
       console.error('Launch failed:', err);

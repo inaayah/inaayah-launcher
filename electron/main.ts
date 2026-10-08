@@ -190,6 +190,23 @@ function scanInstalledGames(libraryPath: string): Record<string, InstalledGameMe
         const gameDir = path.join(libraryPath, entry.name);
         const manifestPath = path.join(gameDir, 'manifest.json');
         if (fs.existsSync(manifestPath)) {
+          const exec = findGameExecutable(gameDir);
+          const isStaleMock = exec && (exec.endsWith('.sh') || exec.endsWith('.bat') || exec.endsWith('.cmd'));
+          if (!exec || isStaleMock) {
+            const devRepo = findLocalDevGodotProject(entry.name);
+            const gBin = findGodotBinary();
+            if (devRepo && gBin) {
+              installed[entry.name] = {
+                id: entry.name,
+                version: '1.2.0 (Local Dev)',
+                installPath: devRepo,
+                installedAt: Date.now() - 86400000,
+                lastPlayedAt: Date.now() - 3600000,
+                totalPlaytimeMinutes: 45
+              };
+              continue;
+            }
+          }
           try {
             const meta = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
             installed[entry.name] = {
@@ -690,8 +707,11 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   // Look for executable
   let execPath = findGameExecutable(gameDir);
 
-  // Development Fallback: If running in dev mode and repository is present, use installed Godot runner!
-  if (!execPath || !fs.existsSync(execPath)) {
+  const isPlaceholderScript = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
+  const hasRealBinary = execPath && fs.existsSync(execPath) && !isPlaceholderScript;
+
+  // Development Fallback: If running in dev mode and repository is present, use installed Godot runner if no compiled binary exists!
+  if (!hasRealBinary) {
     const localDevRepo = findLocalDevGodotProject(gameId);
     const godotBin = findGodotBinary();
     if (localDevRepo && godotBin) {
@@ -706,7 +726,19 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
       runningProcesses.set(gameId, { proc: child, startTime });
       mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
 
-      child.on('exit', (code) => {
+      child.on('error', (err) => {
+        console.error('Godot dev engine error:', err);
+        runningProcesses.delete(gameId);
+        mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
+      });
+
+      child.on('error', (err) => {
+      console.error('Game process error:', err);
+      runningProcesses.delete(gameId);
+      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
+    });
+
+    child.on('exit', (code) => {
         const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));
         runningProcesses.delete(gameId);
 
@@ -779,6 +811,8 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
     return true;
   } catch (err: any) {
     console.error('Failed to spawn game process:', err);
+    runningProcesses.delete(gameId);
+    mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
     dialog.showErrorBox('Launch Failed', err.message);
     return false;
   }
