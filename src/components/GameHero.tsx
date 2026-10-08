@@ -133,7 +133,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     className="btn-secondary"
                     style={{ height: 54, padding: '0 18px', fontSize: 13 }}
                     title="Open in your default web browser"
-                    onClick={() => launcherBridge.openExternalUrl(game.webUrl || 'https://kettle-court.innayah.dev')}
+                    onClick={() => launcherBridge.openExternalUrl(game.webUrl || 'https://kettle-court.inaayah.dev/')}
                   >
                     <ExternalLink size={16} />
                     <span>Browser</span>

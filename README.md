@@ -28,7 +28,7 @@ All game builds and updates are distributed directly from **GitHub Releases** (p
 
 - **🎮 Steam-Style Unified Library:**
   - One-click install, background auto-update, and direct play.
-  - Supports both **Desktop Binaries** and **Instant Web Games** (`https://kettle-court.innayah.dev`).
+  - Supports both **Desktop Binaries** and **Instant Web Games** (`https://kettle-court.inaayah.dev/`).
   - Tracks total playtime and last-played timestamps.
   - Direct links to game folders, patch notes, screenshots lightbox, and hardware specifications.
 - **⚡ High-Performance Streaming Downloader:**
@@ -111,7 +111,7 @@ npm start
 ```bash
 npm run deploy:worker
 ```
-> Deploys the free Cloudflare Worker caching gateway to `releases.innayah.dev`.
+> Deploys the free Cloudflare Worker caching gateway to `releases.inaayah.dev`.
 
 ### 5. Packaging & Distribution
 ```bash

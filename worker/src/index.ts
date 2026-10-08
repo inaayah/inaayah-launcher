@@ -14,7 +14,7 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
     repo: 'kettle-court',
     branch: 'main',
     type: 'web',
-    webUrl: 'https://kettle-court.innayah.dev'
+    webUrl: 'https://kettle-court.inaayah.dev/'
   },
   'cyber-tactics': {
     repo: 'cyber-tactics',

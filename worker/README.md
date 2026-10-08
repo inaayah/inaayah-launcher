@@ -36,7 +36,7 @@ npx wrangler deploy
 ```
 
 Your worker will instantly be live at:
-`https://inaayah-releases.<your-subdomain>.workers.dev` (or route it to `releases.innayah.dev`!).
+`https://inaayah-releases.<your-subdomain>.workers.dev` (or route it to `releases.inaayah.dev`!).
 
 ---
 

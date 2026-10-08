@@ -98,7 +98,7 @@ export const INAAYAH_GAMES_CATALOG: GameCatalogItem[] = [
       'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1280&auto=format&fit=crop'
     ],
     gameType: 'web',
-    webUrl: 'https://kettle-court.innayah.dev',
+    webUrl: 'https://kettle-court.inaayah.dev/',
     sizeBytes: 0,
     sizeFormatted: 'Cloud / Instant Play',
     githubRepo: 'inaayah/kettle-court',

@@ -17,7 +17,7 @@ This document outlines the architecture enabling Inaayah Studio to distribute ga
                                              ▼
                  ┌────────────────────────────────────────────────────────┐
                  │       Cloudflare Edge Worker (100k Req/Day Free)       │
-                 │                 releases.innayah.dev                   │
+                 │                 releases.inaayah.dev                   │
                  └───────────┬────────────────────────────────┬───────────┘
                              │                                │
             5-Minute Edge    │                                │ Masks Secret
@@ -47,5 +47,5 @@ This document outlines the architecture enabling Inaayah Studio to distribute ga
 ## 🔒 Security: How Private Tokens Are Protected
 
 1. **No Client-Side Secrets:** The desktop launcher never has access to the studio's admin credentials or private repository write tokens.
-2. **Edge Token Masking:** When a player's launcher requests a private download, it talks only to `releases.innayah.dev`. The Cloudflare Worker appends the secret token server-side, requests the signed download redirect from GitHub, and returns a `302 Redirect` to the player.
+2. **Edge Token Masking:** When a player's launcher requests a private download, it talks only to `releases.inaayah.dev`. The Cloudflare Worker appends the secret token server-side, requests the signed download redirect from GitHub, and returns a `302 Redirect` to the player.
 3. **Internal Dev Mode:** For studio developers running local preview builds without deploying the Cloudflare Worker, the launcher's **Settings Modal** allows entering a temporary read-only Personal Access Token.

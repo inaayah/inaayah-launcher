@@ -122,7 +122,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <input
             type="text"
             className="form-input"
-            placeholder="Release Gateway (e.g. https://releases.innayah.dev)"
+            placeholder="Release Gateway (e.g. https://releases.inaayah.dev)"
             value={releaseGatewayUrl}
             onChange={(e) => setReleaseGatewayUrl(e.target.value)}
           />

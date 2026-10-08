@@ -1,4 +1,4 @@
-import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
+import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus, GameCatalogItem } from '../types/launcher';
 
 const STORAGE_KEY_CONFIG = 'inaayah_launcher_config_mock';
 const STORAGE_KEY_INSTALLED = 'inaayah_launcher_installed_mock';

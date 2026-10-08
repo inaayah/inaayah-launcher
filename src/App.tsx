@@ -11,7 +11,8 @@ import type {
   LauncherConfig,
   InstalledGame,
   DownloadProgress,
-  GameStatus
+  GameStatus,
+  GameCatalogItem
 } from './types/launcher';
 
 export const App: React.FC = () => {

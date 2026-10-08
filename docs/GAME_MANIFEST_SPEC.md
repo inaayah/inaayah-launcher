@@ -147,7 +147,7 @@ export interface GameManifest {
   "sizeFormatted": "Cloud / Instant Play",
   "githubRepo": "inaayah/kettle-court",
   "gameType": "web",
-  "webUrl": "https://kettle-court.innayah.dev",
+  "webUrl": "https://kettle-court.inaayah.dev/",
   "onlineBackend": "Edge Durable Objects (WebSockets)",
   "features": [
     "Zero-Install: Instant play in browser or frameless game window",
