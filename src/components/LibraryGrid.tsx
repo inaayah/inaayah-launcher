@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import {
   Search,
   Play,
@@ -37,6 +37,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
   onOpenStore
 }) => {
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
   const [filterMode, setFilterMode] = useState<'all' | 'installed'>('all');
 
   // Compute total playtime
@@ -70,15 +71,16 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
         return false;
       }
 
-      const matchesSearch =
-        game.title.toLowerCase().includes(search.toLowerCase()) ||
-        game.description.toLowerCase().includes(search.toLowerCase()) ||
-        game.genres.some((g) => g.toLowerCase().includes(search.toLowerCase())) ||
-        game.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
+      const query = deferredSearch.trim().toLowerCase();
+      const matchesSearch = !query ||
+        game.title.toLowerCase().includes(query) ||
+        game.description.toLowerCase().includes(query) ||
+        game.genres.some((g) => g.toLowerCase().includes(query)) ||
+        game.tags.some((t) => t.toLowerCase().includes(query));
 
       return matchesSearch;
     });
-  }, [catalog, installedGames, filterMode, search]);
+  }, [catalog, installedGames, filterMode, deferredSearch]);
 
   return (
     <div className="catalog-container">
@@ -257,7 +259,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                       <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={11} /> Coming Soon
                       </span>
-                    ) : status === 'UPDATE_AVAILABLE' ? (
+                    ) : (status === 'UPDATE_AVAILABLE' && !installedGames[game.id]?.version?.includes('Local Dev')) ? (
                       <span
                         className="badge"
                         style={{
@@ -360,7 +362,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                           onLaunch(game.id);
                         }}
                       >
-                        <Play size={14} fill="currentColor" /> Play Now
+                        <Play size={14} fill="currentColor" /> {installedGames[game.id]?.version?.includes('Local Dev') ? 'Play (Dev)' : 'Play Now'}
                       </button>
                     ) : (
                       <button

@@ -233,7 +233,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                 )}
 
-                {status === 'UPDATE_AVAILABLE' && (
+                {status === 'UPDATE_AVAILABLE' && !installed?.version?.includes('Local Dev') && (
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button
                       className="btn-primary-action update"
@@ -252,7 +252,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                 )}
 
-                {status === 'INSTALLED' && (
+                {(status === 'INSTALLED' || (status === 'UPDATE_AVAILABLE' && installed?.version?.includes('Local Dev'))) && (
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button
                       className="btn-primary-action play"

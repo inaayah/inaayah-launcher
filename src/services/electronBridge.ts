@@ -262,6 +262,13 @@ export const launcherBridge: InaayahLauncherAPI = {
     return current ? current.version !== latestVersion : false;
   },
 
+  onInstalledGamesUpdated(callback: (games: Record<string, InstalledGame>) => void) {
+    if (window.inaayahLauncher?.onInstalledGamesUpdated) {
+      return window.inaayahLauncher.onInstalledGamesUpdated(callback);
+    }
+    return () => {};
+  },
+
   onDownloadProgress(callback: (progress: DownloadProgress) => void) {
     if (window.inaayahLauncher) return window.inaayahLauncher.onDownloadProgress(callback);
     mockDownloadListeners.add(callback);

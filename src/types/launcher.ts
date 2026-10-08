@@ -114,6 +114,7 @@ export interface InaayahLauncherAPI {
   onLauncherUpdateReady: (callback: (version: string) => void) => () => void;
   onLauncherUpdateAvailable: (callback: (info: { version: string; releaseUrl: string }) => void) => () => void;
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;
+  onInstalledGamesUpdated?: (callback: (games: Record<string, InstalledGame>) => void) => () => void;
   onGameStatusChanged: (callback: (data: { gameId: string; status: GameStatus; exitCode?: number }) => void) => () => void;
   windowMinimize: () => void;
   windowMaximize: () => void;

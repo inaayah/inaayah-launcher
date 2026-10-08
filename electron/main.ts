@@ -6,7 +6,7 @@ import https from 'https';
 import http from 'http';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import { spawn, execSync, ChildProcess } from 'child_process';
+import { spawn, exec, ChildProcess } from 'child_process';
 import AdmZip from 'adm-zip';
 import { autoUpdater } from 'electron-updater';
 
@@ -35,95 +35,163 @@ const runningProcesses = new Map<string, { proc: ChildProcess; startTime: number
 const activeDownloads = new Map<string, { abort: () => void }>();
 
 
+// --- Cached & Background Asynchronous Discovery Helpers ---
+
+const devProjectCache = new Map<string, string | null>();
 function findLocalDevGodotProject(gameId: string): string | null {
-  if (app.isPackaged) return null;
+  if (devProjectCache.has(gameId)) return devProjectCache.get(gameId)!;
+  if (app.isPackaged) {
+    devProjectCache.set(gameId, null);
+    return null;
+  }
+  const home = app.getPath('home');
   const candidates = [
     path.resolve(app.getAppPath(), `../${gameId}/godot/project.godot`),
     path.resolve(process.cwd(), `../${gameId}/godot/project.godot`),
-    path.join(app.getPath('home'), `Repositories/${gameId}/godot/project.godot`),
-    path.join(app.getPath('home'), `Projects/${gameId}/godot/project.godot`)
+    path.join(home, `Repositories/${gameId}/godot/project.godot`),
+    path.join(home, `Projects/${gameId}/godot/project.godot`),
+    path.join(home, `Development/${gameId}/godot/project.godot`)
   ];
   for (const c of candidates) {
-    if (fs.existsSync(c)) {
-      return path.dirname(c);
-    }
+    try {
+      if (fs.existsSync(c)) {
+        const dir = path.dirname(c);
+        devProjectCache.set(gameId, dir);
+        return dir;
+      }
+    } catch {}
   }
+  devProjectCache.set(gameId, null);
   return null;
 }
 
+let cachedGodotBinary: string | null | undefined = undefined;
+let godotProbePromise: Promise<string | null> | null = null;
 
-function findGameExecutable(gameDir: string): string | null {
-  if (!fs.existsSync(gameDir)) return null;
-
-  const platform = process.platform;
-
-  const searchDir = (currentDir: string, depth: number): string | null => {
-    if (depth > 2) return null;
-    try {
-      const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-
-      if (platform === 'darwin') {
-        const app = entries.find(e => e.isDirectory() && e.name.endsWith('.app'));
-        if (app) return path.join(currentDir, app.name);
-      } else if (platform === 'win32') {
-        const exe = entries.find(e => !e.isDirectory() && e.name.toLowerCase().endsWith('.exe'));
-        if (exe) return path.join(currentDir, exe.name);
-      } else {
-        const bin = entries.find(e => !e.isDirectory() && (e.name.endsWith('.x86_64') || e.name.endsWith('.x86')));
-        if (bin) return path.join(currentDir, bin.name);
-      }
-
-      for (const entry of entries) {
-        if (entry.isDirectory() && !entry.name.endsWith('.app')) {
-          const sub = searchDir(path.join(currentDir, entry.name), depth + 1);
-          if (sub) return sub;
-        }
-      }
-    } catch {}
+// Background non-blocking Godot binary discovery
+async function resolveGodotBinaryAsync(): Promise<string | null> {
+  if (cachedGodotBinary !== undefined) return cachedGodotBinary;
+  if (app.isPackaged) {
+    cachedGodotBinary = null;
     return null;
-  };
-
-  const binary = searchDir(gameDir, 0);
-  if (binary) return binary;
-
-  if (platform === 'win32') {
-    if (fs.existsSync(path.join(gameDir, 'launch.bat'))) return path.join(gameDir, 'launch.bat');
-    if (fs.existsSync(path.join(gameDir, 'launch.cmd'))) return path.join(gameDir, 'launch.cmd');
-  } else {
-    if (fs.existsSync(path.join(gameDir, 'launch.sh'))) return path.join(gameDir, 'launch.sh');
   }
+  if (godotProbePromise) return godotProbePromise;
 
-  return null;
+  godotProbePromise = new Promise<string | null>((resolve) => {
+    const home = app.getPath('home');
+    const directCandidates = [
+      // macOS
+      '/Applications/Godot.app/Contents/MacOS/Godot',
+      '/opt/homebrew/bin/godot',
+      '/usr/local/bin/godot',
+      path.join(home, '.local/bin/godot'),
+      // Windows
+      'C:\\Program Files\\Godot\\Godot.exe',
+      'C:\\Program Files (x86)\\Godot\\Godot.exe',
+      path.join(home, 'AppData\\Local\\Programs\\Godot\\Godot.exe'),
+      path.join(home, 'scoop\\apps\\godot\\current\\godot.exe'),
+      path.join(home, '.local\\bin\\godot.exe'),
+      'C:\\Godot\\Godot.exe',
+      // Linux
+      '/usr/bin/godot',
+      '/usr/local/bin/godot'
+    ];
+
+    for (const bin of directCandidates) {
+      try {
+        if (fs.existsSync(bin)) {
+          cachedGodotBinary = bin;
+          godotProbePromise = null;
+          return resolve(bin);
+        }
+      } catch {}
+    }
+
+    // Fallback: asynchronous non-blocking PATH search (exec with callback, never execSync!)
+    const cmd = process.platform === 'win32' ? 'where godot 2>nul' : 'which godot 2>/dev/null';
+    exec(cmd, { timeout: 2500 }, (err, stdout) => {
+      godotProbePromise = null;
+      if (!err && stdout && stdout.trim()) {
+        const bin = stdout.trim().split(/\r?\n/)[0];
+        cachedGodotBinary = bin;
+        resolve(bin);
+      } else {
+        cachedGodotBinary = null;
+        resolve(null);
+      }
+    });
+  });
+
+  return godotProbePromise;
 }
 
 function findGodotBinary(): string | null {
-  if (app.isPackaged) return null;
-  const candidates = [
-    'godot',
-    path.join(app.getPath('home'), '.local/bin/godot'),
-    '/opt/homebrew/bin/godot',
-    '/usr/local/bin/godot',
-    '/Applications/Godot.app/Contents/MacOS/Godot'
-  ];
-  for (const bin of candidates) {
-    if (bin === 'godot') {
-      try {
-        const check = execSync('which godot 2>/dev/null || where godot 2>nul').toString().trim();
-        if (check) return check.split('\n')[0];
-      } catch {}
-    } else if (fs.existsSync(bin)) {
-      return bin;
-    }
-  }
+  if (cachedGodotBinary !== undefined) return cachedGodotBinary;
+  // Trigger background probe asynchronously without blocking
+  resolveGodotBinaryAsync().catch(() => {});
   return null;
+}
+
+async function findGameExecutable(gameDir: string): Promise<string | null> {
+  if (!fs.existsSync(gameDir)) return null;
+  const platform = process.platform;
+
+  // Fast O(1) checks for known binaries to avoid deep directory traversal
+  if (platform === 'darwin') {
+    if (fs.existsSync(path.join(gameDir, 'AetherRush 2.5D Arcade.app'))) return path.join(gameDir, 'AetherRush 2.5D Arcade.app');
+    if (fs.existsSync(path.join(gameDir, 'AetherRush.app'))) return path.join(gameDir, 'AetherRush.app');
+    if (fs.existsSync(path.join(gameDir, 'launch.sh'))) return path.join(gameDir, 'launch.sh');
+  } else if (platform === 'win32') {
+    if (fs.existsSync(path.join(gameDir, 'AetherRush.exe'))) return path.join(gameDir, 'AetherRush.exe');
+    if (fs.existsSync(path.join(gameDir, 'launch.bat'))) return path.join(gameDir, 'launch.bat');
+  } else {
+    if (fs.existsSync(path.join(gameDir, 'AetherRush.x86_64'))) return path.join(gameDir, 'AetherRush.x86_64');
+    if (fs.existsSync(path.join(gameDir, 'launch.sh'))) return path.join(gameDir, 'launch.sh');
+  }
+
+  // Asynchronous directory scan yielding to the event loop
+  try {
+    const entries = await fs.promises.readdir(gameDir, { withFileTypes: true });
+    if (platform === 'darwin') {
+      const appBundle = entries.find(e => e.isDirectory() && e.name.endsWith('.app'));
+      if (appBundle) return path.join(gameDir, appBundle.name);
+    } else if (platform === 'win32') {
+      const exe = entries.find(e => !e.isDirectory() && e.name.toLowerCase().endsWith('.exe'));
+      if (exe) return path.join(gameDir, exe.name);
+    } else {
+      const bin = entries.find(e => !e.isDirectory() && (e.name.endsWith('.x86_64') || e.name.endsWith('.x86')));
+      if (bin) return path.join(gameDir, bin.name);
+    }
+
+    // Check 1 subfolder level deep asynchronously
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.endsWith('.app') && entry.name !== 'node_modules') {
+        const subDir = path.join(gameDir, entry.name);
+        const subEntries = await fs.promises.readdir(subDir, { withFileTypes: true }).catch(() => []);
+        if (platform === 'darwin') {
+          const appB = subEntries.find(e => e.isDirectory() && e.name.endsWith('.app'));
+          if (appB) return path.join(subDir, appB.name);
+        } else if (platform === 'win32') {
+          const exeB = subEntries.find(e => !e.isDirectory() && e.name.toLowerCase().endsWith('.exe'));
+          if (exeB) return path.join(subDir, exeB.name);
+        } else {
+          const binB = subEntries.find(e => !e.isDirectory() && e.name.endsWith('.x86_64'));
+          if (binB) return path.join(subDir, binB.name);
+        }
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
+function getDefaultLibraryPath(): string {
+  const home = app.getPath('home');
+  return path.join(home, 'InaayahGames');
 }
 
 function getConfigPath(): string {
   return path.join(app.getPath('userData'), 'launcher_config.json');
-}
-
-function getDefaultLibraryPath(): string {
-  return path.join(app.getPath('home'), 'InaayahGames');
 }
 
 function loadConfig(): LauncherConfig {
@@ -135,14 +203,13 @@ function loadConfig(): LauncherConfig {
     nakamaHost: '94.130.227.190',
     nakamaPort: 7350,
     useSSL: false,
-    releaseGatewayUrl: 'https://releases.inaayah.dev',
-    githubToken: ''
+    releaseGatewayUrl: 'https://releases.inaayah.dev'
   };
 
   try {
     if (fs.existsSync(cfgPath)) {
-      const data = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-      return { ...defaultConfig, ...data };
+      const raw = fs.readFileSync(cfgPath, 'utf-8');
+      return { ...defaultConfig, ...JSON.parse(raw) };
     }
   } catch (err) {
     console.error('Failed to load launcher config:', err);
@@ -163,71 +230,92 @@ function saveConfig(cfg: Partial<LauncherConfig>): LauncherConfig {
   return updated;
 }
 
-function scanInstalledGames(libraryPath: string): Record<string, InstalledGameMeta> {
-  const installed: Record<string, InstalledGameMeta> = {};
-  if (!fs.existsSync(libraryPath)) {
-    return installed;
-  }
+// Background asynchronous game library scanner & cache
+let cachedInstalledGames: Record<string, InstalledGameMeta> = {};
+let isScanInProgress = false;
+let initialScanPromise: Promise<Record<string, InstalledGameMeta>> | null = null;
 
-  // Auto-detect local development workspace for games if running in dev environment
-  const localDevRepo = findLocalDevGodotProject('aether-rush');
-  const godotBin = findGodotBinary();
-  if (localDevRepo && godotBin && !installed['aether-rush']) {
-    installed['aether-rush'] = {
-      id: 'aether-rush',
-      version: '1.2.0 (Local Dev)',
-      installPath: localDevRepo,
-      installedAt: Date.now() - 86400000 * 2,
-      lastPlayedAt: Date.now() - 3600000 * 2,
-      totalPlaytimeMinutes: 45
-    };
-  }
+async function scanInstalledGames(libraryPath?: string): Promise<Record<string, InstalledGameMeta>> {
+  if (isScanInProgress) return cachedInstalledGames;
+  isScanInProgress = true;
 
   try {
-    const entries = fs.readdirSync(libraryPath, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const gameDir = path.join(libraryPath, entry.name);
-        const manifestPath = path.join(gameDir, 'manifest.json');
-        if (fs.existsSync(manifestPath)) {
-          const exec = findGameExecutable(gameDir);
-          const isStaleMock = exec && (exec.endsWith('.sh') || exec.endsWith('.bat') || exec.endsWith('.cmd'));
-          if (!exec || isStaleMock) {
-            const devRepo = findLocalDevGodotProject(entry.name);
-            const gBin = findGodotBinary();
-            if (devRepo && gBin) {
+    const libPath = libraryPath || loadConfig().libraryPath;
+    const installed: Record<string, InstalledGameMeta> = {};
+
+    // 1. Auto-detect local development workspace for games asynchronously
+    const [localDevRepo, godotBin] = await Promise.all([
+      Promise.resolve(findLocalDevGodotProject('aether-rush')),
+      resolveGodotBinaryAsync()
+    ]);
+
+    if (localDevRepo && godotBin) {
+      installed['aether-rush'] = {
+        id: 'aether-rush',
+        version: '1.2.0 (Local Dev)',
+        installPath: localDevRepo,
+        installedAt: Date.now() - 86400000 * 2,
+        lastPlayedAt: Date.now() - 3600000 * 2,
+        totalPlaytimeMinutes: 45
+      };
+    }
+
+    if (fs.existsSync(libPath)) {
+      const entries = await fs.promises.readdir(libPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          if (installed[entry.name]?.version?.includes('Local Dev')) continue;
+          const gameDir = path.join(libPath, entry.name);
+          const manifestPath = path.join(gameDir, 'manifest.json');
+          if (fs.existsSync(manifestPath)) {
+            const execPath = await findGameExecutable(gameDir);
+            const isStaleMock = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
+            if (!execPath || isStaleMock) {
+              const devRepo = findLocalDevGodotProject(entry.name);
+              if (devRepo && godotBin) {
+                installed[entry.name] = {
+                  id: entry.name,
+                  version: '1.2.0 (Local Dev)',
+                  installPath: devRepo,
+                  installedAt: Date.now() - 86400000,
+                  lastPlayedAt: Date.now() - 3600000,
+                  totalPlaytimeMinutes: 45
+                };
+                continue;
+              }
+            }
+            try {
+              const rawManifest = await fs.promises.readFile(manifestPath, 'utf-8');
+              const meta = JSON.parse(rawManifest);
               installed[entry.name] = {
                 id: entry.name,
-                version: '1.2.0 (Local Dev)',
-                installPath: devRepo,
-                installedAt: Date.now() - 86400000,
-                lastPlayedAt: Date.now() - 3600000,
-                totalPlaytimeMinutes: 45
+                version: meta.version || '1.0.0',
+                installPath: gameDir,
+                installedAt: meta.installedAt || Date.now(),
+                lastPlayedAt: meta.lastPlayedAt || null,
+                totalPlaytimeMinutes: meta.totalPlaytimeMinutes || 0
               };
-              continue;
+            } catch (e) {
+              console.error(`Invalid manifest for game ${entry.name}:`, e);
             }
-          }
-          try {
-            const meta = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-            installed[entry.name] = {
-              id: entry.name,
-              version: meta.version || '1.0.0',
-              installPath: gameDir,
-              installedAt: meta.installedAt || Date.now(),
-              lastPlayedAt: meta.lastPlayedAt || null,
-              totalPlaytimeMinutes: meta.totalPlaytimeMinutes || 0
-            };
-          } catch (e) {
-            console.error(`Invalid manifest for game ${entry.name}:`, e);
           }
         }
       }
     }
-  } catch (err) {
-    console.error('Failed to scan installed games:', err);
-  }
 
-  return installed;
+    cachedInstalledGames = installed;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('launcher:installed-games-updated', installed);
+    }
+
+    return installed;
+  } catch (err) {
+    console.error('Background game scan error:', err);
+    return cachedInstalledGames;
+  } finally {
+    isScanInProgress = false;
+  }
 }
 
 function createWindow(): void {
@@ -316,6 +404,10 @@ app.whenReady().then(() => {
     } catch {}
     callback({});
   });
+
+  // Trigger background scanning & binary search immediately without blocking the UI
+  initialScanPromise = scanInstalledGames(cfg.libraryPath);
+  resolveGodotBinaryAsync().catch(() => {});
 
   createWindow();
 
@@ -436,8 +528,15 @@ ipcMain.handle('launcher:browse-directory', async () => {
 });
 
 ipcMain.handle('launcher:get-installed-games', async () => {
-  const cfg = loadConfig();
-  return scanInstalledGames(cfg.libraryPath);
+  if (Object.keys(cachedInstalledGames).length > 0) {
+    // Instantaneous response from in-memory cache! Zero blocking.
+    scanInstalledGames().catch(() => {});
+    return cachedInstalledGames;
+  }
+  if (initialScanPromise) {
+    return initialScanPromise;
+  }
+  return scanInstalledGames();
 });
 
 ipcMain.handle('launcher:open-folder', async (_event, folderPath: string) => {
@@ -472,6 +571,9 @@ ipcMain.handle('launcher:uninstall-game', async (_event, gameId: string) => {
 });
 
 ipcMain.handle('launcher:check-updates', async (_event, gameId: string, latestVersion: string) => {
+  const localDev = findLocalDevGodotProject(gameId);
+  const gBin = await resolveGodotBinaryAsync();
+  if (localDev && gBin) return false;
   const cfg = loadConfig();
   const gameDir = path.join(cfg.libraryPath, gameId);
   const manifestPath = path.join(gameDir, 'manifest.json');
@@ -705,7 +807,7 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   }
 
   // Look for executable
-  let execPath = findGameExecutable(gameDir);
+  let execPath = await findGameExecutable(gameDir);
 
   const isPlaceholderScript = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
   const hasRealBinary = execPath && fs.existsSync(execPath) && !isPlaceholderScript;
@@ -713,7 +815,7 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   // Development Fallback: If running in dev mode and repository is present, use installed Godot runner if no compiled binary exists!
   if (!hasRealBinary) {
     const localDevRepo = findLocalDevGodotProject(gameId);
-    const godotBin = findGodotBinary();
+    const godotBin = await resolveGodotBinaryAsync();
     if (localDevRepo && godotBin) {
       console.log(`[Launcher] Launching ${gameId} directly via local development Godot engine (${godotBin})...`);
       const child = spawn(godotBin, ['--path', localDevRepo, ...customArgs], {
@@ -732,11 +834,6 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
         mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
       });
 
-      child.on('error', (err) => {
-      console.error('Game process error:', err);
-      runningProcesses.delete(gameId);
-      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
-    });
 
     child.on('exit', (code) => {
         const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));

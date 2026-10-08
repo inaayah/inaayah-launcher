@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { Search, Download, Play, CheckCircle, Globe, Clock, BookmarkCheck, Plus } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
@@ -21,6 +21,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
   onAddToLibrary
 }) => {
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
   const [selectedGenre, setSelectedGenre] = useState<string>('All');
 
   const genres = useMemo(() => {
@@ -31,17 +32,18 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
 
   const filteredGames = useMemo(() => {
     return catalog.filter((game) => {
-      const matchesSearch =
-        game.title.toLowerCase().includes(search.toLowerCase()) ||
-        game.description.toLowerCase().includes(search.toLowerCase()) ||
-        game.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
+      const query = deferredSearch.trim().toLowerCase();
+      const matchesSearch = !query ||
+        game.title.toLowerCase().includes(query) ||
+        game.description.toLowerCase().includes(query) ||
+        game.tags.some((t) => t.toLowerCase().includes(query));
 
       const matchesGenre =
         selectedGenre === 'All' || game.genres.includes(selectedGenre);
 
       return matchesSearch && matchesGenre;
     });
-  }, [catalog, search, selectedGenre]);
+  }, [catalog, deferredSearch, selectedGenre]);
 
   return (
     <div className="catalog-container">

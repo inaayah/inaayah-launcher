@@ -100,7 +100,15 @@ export const App: React.FC = () => {
           statuses[game.id] = 'NOT_INSTALLED';
         }
       });
-      setGameStatuses((prev) => ({ ...statuses, ...prev }));
+      setGameStatuses((prev) => {
+        const next = { ...prev };
+        for (const [id, st] of Object.entries(statuses)) {
+          if (next[id] !== 'DOWNLOADING' && next[id] !== 'RUNNING') {
+            next[id] = st;
+          }
+        }
+        return next;
+      });
     } catch (err) {
       console.error('Failed to initialize launcher bridge:', err);
     }
@@ -175,6 +183,10 @@ export const App: React.FC = () => {
       }
     });
 
+    const unsubInstalledGames = launcherBridge.onInstalledGamesUpdated?.((games) => {
+      setInstalledGames(games);
+    });
+
     const unsubStatus = launcherBridge.onGameStatusChanged((data) => {
       setGameStatuses((prev) => ({ ...prev, [data.gameId]: data.status }));
       if (data.status === 'INSTALLED' || data.status === 'NOT_INSTALLED') {
@@ -195,6 +207,7 @@ export const App: React.FC = () => {
     return () => {
       unsubProgress();
       unsubStatus();
+      unsubInstalledGames?.();
       unsubReady();
       unsubAvail();
     };

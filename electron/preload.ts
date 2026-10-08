@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { LauncherConfig, DownloadProgress, GameStatus } from '../src/types/launcher';
+import type { LauncherConfig, DownloadProgress, GameStatus, InstalledGame } from '../src/types/launcher';
 
 contextBridge.exposeInMainWorld('inaayahLauncher', {
   isElectron: true,
@@ -61,6 +61,14 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     ipcRenderer.on('download-progress', handler);
     return () => {
       ipcRenderer.removeListener('download-progress', handler);
+    };
+  },
+
+  onInstalledGamesUpdated: (callback: (games: Record<string, InstalledGame>) => void) => {
+    const handler = (_event: unknown, games: Record<string, InstalledGame>) => callback(games);
+    ipcRenderer.on('launcher:installed-games-updated', handler);
+    return () => {
+      ipcRenderer.removeListener('launcher:installed-games-updated', handler);
     };
   },
 
