@@ -19,6 +19,10 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   bump:
     name: Autobump Version & Tag
@@ -97,6 +101,7 @@ jobs:
         run: npm ci
 
       - name: Sync package.json version with tag
+        shell: bash
         run: |
           TAG="${{ steps.target.outputs.tag }}"
           TAG_VERSION=${TAG#v}
