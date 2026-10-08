@@ -11,6 +11,12 @@ interface TitleBarProps {
 export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
   const [online, setOnline] = useState(true);
 
+  const isElectron = Boolean(launcherBridge.isElectron);
+  const isMac = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('mac');
+  // In Electron on macOS, native traffic light buttons are rendered at top-left.
+  const hasMacTrafficLights = isElectron && isMac;
+  const showWindowsControls = !hasMacTrafficLights;
+
   useEffect(() => {
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
@@ -24,7 +30,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
 
   return (
     <div className="titlebar titlebar-drag">
-      <div className="titlebar-left titlebar-no-drag">
+      <div
+        className="titlebar-left titlebar-no-drag"
+        style={{ paddingLeft: hasMacTrafficLights ? 76 : 0 }}
+      >
         <div className="studio-logo">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path
@@ -65,29 +74,33 @@ export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
         </div>
       </div>
 
-      <div className="titlebar-controls titlebar-no-drag">
-        <button
-          className="window-btn"
-          title="Minimize"
-          onClick={() => launcherBridge.windowMinimize()}
-        >
-          <Minus size={14} />
-        </button>
-        <button
-          className="window-btn"
-          title="Maximize"
-          onClick={() => launcherBridge.windowMaximize()}
-        >
-          <Square size={12} />
-        </button>
-        <button
-          className="window-btn close"
-          title="Close"
-          onClick={() => launcherBridge.windowClose()}
-        >
-          <X size={14} />
-        </button>
-      </div>
+      {showWindowsControls ? (
+        <div className="titlebar-controls titlebar-no-drag">
+          <button
+            className="window-btn"
+            title="Minimize"
+            onClick={() => launcherBridge.windowMinimize()}
+          >
+            <Minus size={14} />
+          </button>
+          <button
+            className="window-btn"
+            title="Maximize"
+            onClick={() => launcherBridge.windowMaximize()}
+          >
+            <Square size={12} />
+          </button>
+          <button
+            className="window-btn close"
+            title="Close"
+            onClick={() => launcherBridge.windowClose()}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ) : (
+        <div style={{ width: 40 }} />
+      )}
     </div>
   );
 };
