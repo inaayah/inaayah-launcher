@@ -19,7 +19,8 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
   'sundered-depths': {
     repo: 'sundered-depths',
     branch: 'main',
-    type: 'desktop'
+    type: 'desktop',
+    isComingSoon: true
   },
   'cyber-tactics': {
     repo: 'cyber-tactics',

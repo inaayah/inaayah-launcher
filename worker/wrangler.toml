@@ -1,6 +1,12 @@
 name = "inaayah-releases"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
+workers_dev = true
+preview_urls = true
+
+routes = [
+  { pattern = "releases.inaayah.dev", zone_name = "inaayah.dev", custom_domain = true }
+]
 
 # Free tier usage: 100,000 requests/day
 # Set your fine-grained GitHub token in Cloudflare secrets:
