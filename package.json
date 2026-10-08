@@ -1,6 +1,6 @@
 {
   "name": "inaayah-launcher",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Official Steam-style Desktop Game Launcher & Auto-Updater for Inaayah Studio Games",
   "main": "dist-electron/main.js",
   "author": "Inaayah Games",

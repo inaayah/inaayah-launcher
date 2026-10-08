@@ -34,33 +34,11 @@ export const TitleBar: React.FC<TitleBarProps> = ({ config }) => {
         className="titlebar-left titlebar-no-drag"
         style={{ paddingLeft: hasMacTrafficLights ? 76 : 0 }}
       >
-        <div className="studio-logo">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 2L2 7L12 12L22 7L12 2Z"
-              stroke="#00f0ff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M2 17L12 22L22 17"
-              stroke="#ff0055"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M2 12L12 17L22 12"
-              stroke="#00f0ff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        <div className="studio-logo" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img src="/icon.png" alt="Inaayah" style={{ width: 20, height: 20, borderRadius: 5, boxShadow: '0 0 10px rgba(0, 240, 255, 0.4)' }} />
           INAAYAH STUDIO
         </div>
-        <span className="studio-badge">Launcher v1.0</span>
+        <span className="studio-badge">Launcher v0.1.0</span>
       </div>
 
       <div className="titlebar-center">

@@ -50,7 +50,7 @@ function getMockInstalled(): Record<string, InstalledGame> {
     'aether-rush': {
       id: 'aether-rush',
       version: '1.2.0',
-      installPath: '/Users/sazid/Repositories/aether-rush/godot',
+      installPath: '~/InaayahGames/aether-rush',
       installedAt: Date.now() - 86400000 * 2,
       lastPlayedAt: Date.now() - 3600000,
       totalPlaytimeMinutes: 142
@@ -84,7 +84,7 @@ export const launcherBridge: InaayahLauncherAPI = {
 
   async browseDirectory(): Promise<string | null> {
     if (window.inaayahLauncher) return window.inaayahLauncher.browseDirectory();
-    return '/Users/sazid/InaayahGames';
+    return '~/InaayahGames';
   },
 
   async getInstalledGames(): Promise<Record<string, InstalledGame>> {
@@ -130,7 +130,7 @@ export const launcherBridge: InaayahLauncherAPI = {
             installed[gameId] = {
               id: gameId,
               version: targetVersion,
-              installPath: `/Users/sazid/InaayahGames/${gameId}`,
+              installPath: `~/InaayahGames/${gameId}`,
               installedAt: Date.now(),
               lastPlayedAt: null,
               totalPlaytimeMinutes: 0

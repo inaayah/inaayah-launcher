@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import https from 'https';
 import http from 'http';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, execSync, ChildProcess } from 'child_process';
 import AdmZip from 'adm-zip';
 import { autoUpdater } from 'electron-updater';
 
@@ -31,6 +31,45 @@ interface InstalledGameMeta {
 let mainWindow: BrowserWindow | null = null;
 const runningProcesses = new Map<string, { proc: ChildProcess; startTime: number }>();
 const activeDownloads = new Map<string, { abort: () => void }>();
+
+
+function findLocalDevGodotProject(gameId: string): string | null {
+  if (app.isPackaged) return null;
+  const candidates = [
+    path.resolve(app.getAppPath(), `../${gameId}/godot/project.godot`),
+    path.resolve(process.cwd(), `../${gameId}/godot/project.godot`),
+    path.join(app.getPath('home'), `Repositories/${gameId}/godot/project.godot`),
+    path.join(app.getPath('home'), `Projects/${gameId}/godot/project.godot`)
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return path.dirname(c);
+    }
+  }
+  return null;
+}
+
+function findGodotBinary(): string | null {
+  if (app.isPackaged) return null;
+  const candidates = [
+    'godot',
+    path.join(app.getPath('home'), '.local/bin/godot'),
+    '/opt/homebrew/bin/godot',
+    '/usr/local/bin/godot',
+    '/Applications/Godot.app/Contents/MacOS/Godot'
+  ];
+  for (const bin of candidates) {
+    if (bin === 'godot') {
+      try {
+        const check = execSync('which godot 2>/dev/null || where godot 2>nul').toString().trim();
+        if (check) return check.split('\n')[0];
+      } catch {}
+    } else if (fs.existsSync(bin)) {
+      return bin;
+    }
+  }
+  return null;
+}
 
 function getConfigPath(): string {
   return path.join(app.getPath('userData'), 'launcher_config.json');
@@ -83,13 +122,14 @@ function scanInstalledGames(libraryPath: string): Record<string, InstalledGameMe
     return installed;
   }
 
-  // Auto-detect local development workspace for AetherRush if present
-  const localAetherRush = '/Users/sazid/Repositories/aether-rush/godot/project.godot';
-  if (fs.existsSync(localAetherRush) && !installed['aether-rush']) {
+  // Auto-detect local development workspace for games if running in dev environment
+  const localDevRepo = findLocalDevGodotProject('aether-rush');
+  const godotBin = findGodotBinary();
+  if (localDevRepo && godotBin && !installed['aether-rush']) {
     installed['aether-rush'] = {
       id: 'aether-rush',
       version: '1.2.0 (Local Dev)',
-      installPath: '/Users/sazid/Repositories/aether-rush/godot',
+      installPath: localDevRepo,
       installedAt: Date.now() - 86400000 * 2,
       lastPlayedAt: Date.now() - 3600000 * 2,
       totalPlaytimeMinutes: 45
@@ -127,7 +167,15 @@ function scanInstalledGames(libraryPath: string): Record<string, InstalledGameMe
 }
 
 function createWindow(): void {
+  const iconPath = path.join(app.getAppPath(), 'build/icon.png');
+  if (process.platform === 'darwin' && app.dock && fs.existsSync(iconPath)) {
+    try {
+      app.dock.setIcon(iconPath);
+    } catch {}
+  }
+
   mainWindow = new BrowserWindow({
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
     width: 1280,
     height: 820,
     minWidth: 1024,
@@ -576,13 +624,13 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
     execPath = path.join(gameDir, bin);
   }
 
-  // Development Fallback: If running AetherRush locally and repository is present, use installed Godot runner!
+  // Development Fallback: If running in dev mode and repository is present, use installed Godot runner!
   if (!fs.existsSync(execPath)) {
-    const localGodotRepo = '/Users/sazid/Repositories/aether-rush/godot';
-    const godotBin = '/Users/sazid/.local/bin/godot';
-    if (gameId === 'aether-rush' && fs.existsSync(localGodotRepo) && fs.existsSync(godotBin)) {
-      console.log(`[Launcher] Launching AetherRush directly via local development Godot engine...`);
-      const child = spawn(godotBin, ['--path', localGodotRepo, ...customArgs], {
+    const localDevRepo = findLocalDevGodotProject(gameId);
+    const godotBin = findGodotBinary();
+    if (localDevRepo && godotBin) {
+      console.log(`[Launcher] Launching ${gameId} directly via local development Godot engine (${godotBin})...`);
+      const child = spawn(godotBin, ['--path', localDevRepo, ...customArgs], {
         detached: true,
         stdio: 'ignore'
       });
