@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useDeferredValue } from 'react';
-import { Search, Download, Play, CheckCircle, Globe, Clock, BookmarkCheck, Plus } from 'lucide-react';
+import { Search, Download, Play, CheckCircle, Globe, Clock, BookmarkCheck, Plus, RotateCw } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
 
@@ -10,6 +10,8 @@ interface StoreCatalogProps {
   onSelectGame: (gameId: string) => void;
   onInstall: (gameId: string) => void;
   onAddToLibrary: (gameId: string) => void;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const StoreCatalog: React.FC<StoreCatalogProps> = ({
@@ -18,7 +20,9 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
   ownedGameIds,
   onSelectGame,
   onInstall,
-  onAddToLibrary
+  onAddToLibrary,
+  isRefreshing = false,
+  onRefresh
 }) => {
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
@@ -55,14 +59,28 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
           </p>
         </div>
 
-        <div className="search-input-box">
-          <Search size={16} color="var(--text-muted)" />
-          <input
-            type="text"
-            placeholder="Search catalog or tags..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="catalog-actions-bar">
+          <div className="search-input-box">
+            <Search size={16} color="var(--text-muted)" />
+            <input
+              type="text"
+              placeholder="Search catalog or tags..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {onRefresh && (
+            <button
+              className="btn-refresh"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              title="Refresh store catalog from network"
+              aria-label="Refresh store catalog"
+            >
+              <RotateCw size={14} className={isRefreshing ? 'spin-fast' : ''} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          )}
         </div>
       </div>
 

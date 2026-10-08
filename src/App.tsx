@@ -76,105 +76,118 @@ export const App: React.FC = () => {
     return catalog.find((g) => g.id === selectedGameId) || catalog[0] || catalogData[0];
   }, [catalog, selectedGameId]);
 
-  // Load initial data and sync statuses
-  const refreshInstalled = useCallback(async () => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const catalogRef = React.useRef<GameCatalogItem[]>(catalog);
+  useEffect(() => {
+    catalogRef.current = catalog;
+  }, [catalog]);
+
+  const computeGameStatuses = useCallback((
+    currentCatalog: GameCatalogItem[],
+    installed: Record<string, InstalledGame>,
+    existingStatuses: Record<string, GameStatus>
+  ): Record<string, GameStatus> => {
+    const next = { ...existingStatuses };
+    currentCatalog.forEach((game) => {
+      const curr = next[game.id];
+      if (curr === 'DOWNLOADING' || curr === 'EXTRACTING' || curr === 'RUNNING') {
+        return;
+      }
+      if (game.isComingSoon) {
+        next[game.id] = 'NOT_INSTALLED';
+      } else if (game.gameType === 'web') {
+        next[game.id] = 'INSTALLED';
+      } else if (installed[game.id]) {
+        const isDev = Boolean(
+          installed[game.id].version?.includes('Local Dev') ||
+          installed[game.id].installPath?.includes('godot')
+        );
+        next[game.id] = (!isDev && installed[game.id].version !== game.version)
+          ? 'UPDATE_AVAILABLE'
+          : 'INSTALLED';
+      } else {
+        next[game.id] = 'NOT_INSTALLED';
+      }
+    });
+    return next;
+  }, []);
+
+  const refreshGames = useCallback(async (silent = false) => {
+    if (!silent) setIsRefreshing(true);
     try {
-      const [cfg, installed] = await Promise.all([
+      const [cfg, installed, dyn] = await Promise.all([
         launcherBridge.getConfig(),
-        launcherBridge.getInstalledGames()
+        launcherBridge.getInstalledGames(),
+        launcherBridge.refreshCatalog().catch(() => null)
       ]);
+
       setConfig(cfg);
       setInstalledGames(installed);
 
-      // Compute statuses based on actual disk installation
-      setGameStatuses((prev) => {
-        const next = { ...prev };
-        catalogData.forEach((game) => {
-          const curr = next[game.id];
-          if (curr === 'DOWNLOADING' || curr === 'EXTRACTING' || curr === 'RUNNING') {
-            return;
-          }
-          if (game.isComingSoon) {
-            next[game.id] = 'NOT_INSTALLED';
-          } else if (game.gameType === 'web') {
-            next[game.id] = 'INSTALLED';
-          } else if (installed[game.id]) {
-            const isDev = Boolean(
-              installed[game.id].version?.includes('Local Dev') ||
-              installed[game.id].installPath?.includes('godot')
-            );
-            next[game.id] = (!isDev && installed[game.id].version !== game.version)
-              ? 'UPDATE_AVAILABLE'
-              : 'INSTALLED';
-          } else {
-            next[game.id] = 'NOT_INSTALLED';
+      let activeCatalog = catalogRef.current;
+      if (Array.isArray(dyn) && dyn.length > 0) {
+        const map = new Map<string, GameCatalogItem>();
+        catalogRef.current.forEach((g) => map.set(g.id, g));
+        dyn.forEach((d) => {
+          if (d && d.id) {
+            const existing = map.get(d.id) || ({} as GameCatalogItem);
+            map.set(d.id, {
+              ...existing,
+              ...d,
+              coverArt: getAssetUrl(d.coverArt || existing.coverArt),
+              heroBanner: getAssetUrl(d.heroBanner || existing.heroBanner),
+              screenshots: Array.isArray(d.screenshots)
+                ? d.screenshots.map((s: string) => getAssetUrl(s))
+                : existing.screenshots?.map((s: string) => getAssetUrl(s)) || []
+            });
           }
         });
-        return next;
-      });
-    } catch (err) {
-      console.error('Failed to initialize launcher bridge:', err);
-    }
-  }, []);
+        activeCatalog = Array.from(map.values());
+        setCatalog(activeCatalog);
+      }
 
-  // Listen for window focus to detect external game deletions from Finder or terminal
+      setGameStatuses((prev) => computeGameStatuses(activeCatalog, installed, prev));
+
+      // Quietly check for launcher self-updates
+      launcherBridge.checkLauncherUpdate?.().catch(() => {});
+    } catch (err) {
+      console.error('Failed to refresh games:', err);
+    } finally {
+      if (!silent) {
+        setTimeout(() => setIsRefreshing(false), 450);
+      }
+    }
+  }, [computeGameStatuses]);
+
+  // Backward-compatible alias for existing action handlers
+  const refreshInstalled = useCallback(async () => {
+    return refreshGames(true);
+  }, [refreshGames]);
+
+  // 1. Initial load
+  useEffect(() => {
+    refreshGames(true);
+  }, [refreshGames]);
+
+  // 2. Real-time background auto-refresh every 30s so new releases appear without restart!
+  useEffect(() => {
+    const timer = setInterval(() => {
+      refreshGames(true);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [refreshGames]);
+
+  // 3. Window focus: automatically refresh when returning from Finder, terminal, or Godot
   useEffect(() => {
     const onWindowFocus = () => {
-      refreshInstalled();
+      refreshGames(true);
     };
     window.addEventListener('focus', onWindowFocus);
     return () => window.removeEventListener('focus', onWindowFocus);
-  }, [refreshInstalled]);
+  }, [refreshGames]);
 
+  // 4. IPC Event Listeners
   useEffect(() => {
-    refreshInstalled();
-    launcherBridge.refreshCatalog().then((dyn) => {
-      if (Array.isArray(dyn) && dyn.length > 0) {
-        setCatalog((prev) => {
-          const map = new Map<string, GameCatalogItem>();
-          prev.forEach((g) => map.set(g.id, g));
-          dyn.forEach((d) => {
-            if (d && d.id) {
-              const existing = map.get(d.id) || {} as GameCatalogItem;
-              map.set(d.id, {
-                ...existing,
-                ...d,
-                coverArt: getAssetUrl(d.coverArt || existing.coverArt),
-                heroBanner: getAssetUrl(d.heroBanner || existing.heroBanner),
-                screenshots: Array.isArray(d.screenshots)
-                  ? d.screenshots.map((s: string) => getAssetUrl(s))
-                  : existing.screenshots?.map((s: string) => getAssetUrl(s)) || []
-              });
-            }
-          });
-          const merged = Array.from(map.values());
-
-          // Automatically compute statuses for any newly discovered games
-          setGameStatuses((prevStatuses) => {
-            const nextStatuses = { ...prevStatuses };
-            merged.forEach((game) => {
-              if (!nextStatuses[game.id]) {
-                if (game.isComingSoon) {
-                  nextStatuses[game.id] = 'NOT_INSTALLED';
-                } else if (game.gameType === 'web') {
-                  nextStatuses[game.id] = 'INSTALLED';
-                } else if (installedGames[game.id]) {
-                  const isDev = Boolean(installedGames[game.id].version?.includes('Local Dev') || installedGames[game.id].installPath?.includes('godot'));
-                    nextStatuses[game.id] = (!isDev && installedGames[game.id].version !== game.version) ? 'UPDATE_AVAILABLE' : 'INSTALLED';
-                } else {
-                  nextStatuses[game.id] = 'NOT_INSTALLED';
-                }
-              }
-            });
-            return nextStatuses;
-          });
-
-          return merged;
-        });
-      }
-    }).catch(() => {});
-
-    // Listeners for progress and status
     const unsubProgress = launcherBridge.onDownloadProgress((prog) => {
       setDownloads((prev) => {
         if (prog.phase === 'COMPLETED') {
@@ -191,35 +204,13 @@ export const App: React.FC = () => {
       }));
 
       if (prog.phase === 'COMPLETED') {
-        refreshInstalled();
+        refreshGames(true);
       }
     });
 
     const unsubInstalledGames = launcherBridge.onInstalledGamesUpdated?.((games) => {
       setInstalledGames(games);
-      setGameStatuses((prev) => {
-        const next = { ...prev };
-        catalog.forEach((game) => {
-          const curr = next[game.id];
-          if (curr === 'DOWNLOADING' || curr === 'EXTRACTING' || curr === 'RUNNING') return;
-          if (game.isComingSoon) {
-            next[game.id] = 'NOT_INSTALLED';
-          } else if (game.gameType === 'web') {
-            next[game.id] = 'INSTALLED';
-          } else if (games[game.id]) {
-            const isDev = Boolean(
-              games[game.id].version?.includes('Local Dev') ||
-              games[game.id].installPath?.includes('godot')
-            );
-            next[game.id] = (!isDev && games[game.id].version !== game.version)
-              ? 'UPDATE_AVAILABLE'
-              : 'INSTALLED';
-          } else {
-            next[game.id] = 'NOT_INSTALLED';
-          }
-        });
-        return next;
-      });
+      setGameStatuses((prev) => computeGameStatuses(catalogRef.current, games, prev));
     });
 
     const unsubStatus = launcherBridge.onGameStatusChanged((data) => {
@@ -233,7 +224,7 @@ export const App: React.FC = () => {
         });
       }
       if (data.status === 'INSTALLED' || data.status === 'NOT_INSTALLED') {
-        refreshInstalled();
+        refreshGames(true);
       }
     });
 
@@ -254,7 +245,7 @@ export const App: React.FC = () => {
       unsubReady();
       unsubAvail();
     };
-  }, [refreshInstalled]);
+  }, [computeGameStatuses, refreshGames]);
 
   // Handlers
   const handleInstall = async (gameId: string) => {
@@ -433,6 +424,8 @@ export const App: React.FC = () => {
           gameStatuses={gameStatuses}
           onOpenSettings={() => setIsSettingsOpen(true)}
           libraryPath={config.libraryPath}
+          isRefreshing={isRefreshing}
+          onRefresh={() => refreshGames(false)}
         />
 
         <main className="content-area">
@@ -448,6 +441,8 @@ export const App: React.FC = () => {
               }}
               onInstall={handleInstall}
               onAddToLibrary={handleAddToLibrary}
+              isRefreshing={isRefreshing}
+              onRefresh={() => refreshGames(false)}
             />
           )}
 
@@ -478,6 +473,8 @@ export const App: React.FC = () => {
                 onLaunch={handleLaunch}
                 onInstall={handleInstall}
                 onOpenStore={() => setCurrentTab('store')}
+                isRefreshing={isRefreshing}
+                onRefresh={() => refreshGames(false)}
               />
             )
           )}

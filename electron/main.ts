@@ -519,10 +519,16 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
   const cfg = loadConfig();
   const cacheFile = path.join(app.getPath('userData'), 'catalog_cache.json');
 
+  // Trigger background scan of installed games to re-validate disk status
+  scanInstalledGames().catch(() => {});
+
   if (cfg.releaseGatewayUrl) {
     try {
-      const fetchUrl = `${cfg.releaseGatewayUrl.replace(/\/$/, "")}/api/games`;
-      const res = await fetch(fetchUrl, { headers: { 'User-Agent': 'InaayahLauncher' }, signal: AbortSignal.timeout(2500) });
+      const fetchUrl = `${cfg.releaseGatewayUrl.replace(/\/$/, '')}/api/games?t=${Date.now()}`;
+      const res = await fetch(fetchUrl, {
+        headers: { 'User-Agent': 'InaayahLauncher', 'Cache-Control': 'no-cache' },
+        signal: AbortSignal.timeout(3000)
+      });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -537,10 +543,10 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
 
   // 2. Direct GitHub raw manifest fallback (fetches games-catalog.json directly from public repo)
   try {
-    const rawCatalogUrl = 'https://raw.githubusercontent.com/inaayah/inaayah-launcher/main/games-catalog.json';
+    const rawCatalogUrl = `https://raw.githubusercontent.com/inaayah/inaayah-launcher/main/games-catalog.json?t=${Date.now()}`;
     const res = await fetch(rawCatalogUrl, {
-      headers: { 'User-Agent': 'InaayahLauncher' },
-      signal: AbortSignal.timeout(3000)
+      headers: { 'User-Agent': 'InaayahLauncher', 'Cache-Control': 'no-cache' },
+      signal: AbortSignal.timeout(3500)
     });
     if (res.ok) {
       const data = await res.json();

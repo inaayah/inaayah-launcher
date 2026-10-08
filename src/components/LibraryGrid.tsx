@@ -24,6 +24,8 @@ interface LibraryGridProps {
   onLaunch: (gameId: string) => void;
   onInstall: (gameId: string) => void;
   onOpenStore: () => void;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const LibraryGrid: React.FC<LibraryGridProps> = ({
@@ -34,7 +36,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
   onSelectGame,
   onLaunch,
   onInstall,
-  onOpenStore
+  onOpenStore,
+  isRefreshing = false,
+  onRefresh
 }) => {
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
@@ -96,15 +100,29 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
           </p>
         </div>
 
-        {/* Search Bar */}
-        <div className="search-input-box">
-          <Search size={16} color="var(--text-muted)" />
-          <input
-            type="text"
-            placeholder="Search your library..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        {/* Search Bar & Refresh Action */}
+        <div className="catalog-actions-bar">
+          <div className="search-input-box">
+            <Search size={16} color="var(--text-muted)" />
+            <input
+              type="text"
+              placeholder="Search your library..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {onRefresh && (
+            <button
+              className="btn-refresh"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              title="Refresh games, updates, and disk library"
+              aria-label="Refresh games"
+            >
+              <RefreshCw size={14} className={isRefreshing ? 'spin-fast' : ''} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          )}
         </div>
       </div>
 

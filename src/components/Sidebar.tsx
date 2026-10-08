@@ -4,7 +4,8 @@ import {
   Library,
   Download,
   Settings,
-  HardDrive
+  HardDrive,
+  RotateCw
 } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
@@ -23,6 +24,8 @@ interface SidebarProps {
   gameStatuses: Record<string, GameStatus>;
   onOpenSettings: () => void;
   libraryPath: string;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -36,7 +39,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeDownloads,
   gameStatuses,
   onOpenSettings,
-  libraryPath
+  libraryPath,
+  isRefreshing = false,
+  onRefresh
 }) => {
   const activeDownloadsCount = Object.keys(activeDownloads).length;
   const installedCount = Object.keys(installedGames).length;
@@ -84,7 +89,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="nav-section" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <span className="nav-section-title">My Games</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 6 }}>
+          <span className="nav-section-title" style={{ padding: '4px 6px' }}>My Games</span>
+          {onRefresh && (
+            <button
+              className="sidebar-refresh-btn"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              title={isRefreshing ? 'Refreshing games...' : 'Refresh games & updates'}
+              aria-label="Refresh games"
+            >
+              <RotateCw size={12} className={isRefreshing ? 'spin-fast' : ''} />
+            </button>
+          )}
+        </div>
         <div className="library-quick-list">
           {catalog.length === 0 ? (
             <div style={{ padding: '16px 10px', fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
