@@ -159,8 +159,9 @@ export default {
     const launcherDlMatch = pathname.match(/^\/api\/launcher\/download\/([^\/]+)$/);
     if (launcherDlMatch) {
       const platform = launcherDlMatch[1];
+      const format = url.searchParams.get('format');
       try {
-        const downloadUrl = await getReleaseAssetDownloadUrl('inaayah-launcher', platform, env);
+        const downloadUrl = await getReleaseAssetDownloadUrl('inaayah-launcher', platform, env, format);
         return Response.redirect(downloadUrl, 302);
       } catch (err: any) {
         return new Response(JSON.stringify({ error: err.message }), {
@@ -239,7 +240,7 @@ async function fetchLatestRelease(repo: string, env: Env): Promise<any> {
   };
 }
 
-async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: Env): Promise<string> {
+async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: Env, format?: string | null): Promise<string> {
   const org = env.GITHUB_ORG || 'inaayah';
   const apiUrl = `https://api.github.com/repos/${org}/${repo}/releases/latest`;
 
@@ -257,22 +258,42 @@ async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: E
   const release: any = await res.json();
   const assets: any[] = release.assets || [];
 
-  // Match platform keywords: prioritize primary installers (.dmg, .exe, .AppImage)
-  let targetAsset = assets.find((a) => {
-    const name = a.name.toLowerCase();
-    if (name.endsWith('.blockmap') || name.endsWith('.yml')) return false;
+  let targetAsset: any;
 
-    if (platform === 'darwin' || platform === 'mac' || platform === 'macos') {
-      return name.endsWith('.dmg');
-    }
-    if (platform === 'win32' || platform === 'windows' || platform === 'win') {
-      return name.endsWith('.exe');
-    }
-    if (platform === 'linux') {
-      return name.endsWith('.appimage');
-    }
-    return false;
-  });
+  // If format=zip requested, prioritize matching .zip asset
+  if (format === 'zip') {
+    targetAsset = assets.find((a) => {
+      const name = a.name.toLowerCase();
+      if (name.endsWith('.blockmap') || name.endsWith('.yml')) return false;
+      if (!name.endsWith('.zip')) return false;
+      if (platform === 'darwin' || platform === 'mac' || platform === 'macos') {
+        return name.includes('mac') || name.includes('darwin') || name.includes('arm64');
+      }
+      if (platform === 'win32' || platform === 'windows' || platform === 'win') {
+        return name.includes('win');
+      }
+      return true;
+    });
+  }
+
+  // Match platform keywords: prioritize primary installers (.dmg, .exe, .AppImage)
+  if (!targetAsset) {
+    targetAsset = assets.find((a) => {
+      const name = a.name.toLowerCase();
+      if (name.endsWith('.blockmap') || name.endsWith('.yml')) return false;
+
+      if (platform === 'darwin' || platform === 'mac' || platform === 'macos') {
+        return name.endsWith('.dmg');
+      }
+      if (platform === 'win32' || platform === 'windows' || platform === 'win') {
+        return name.endsWith('.exe');
+      }
+      if (platform === 'linux') {
+        return name.endsWith('.appimage');
+      }
+      return false;
+    });
+  }
 
   // Fallback to archives (.zip, .tar.gz) if installer asset is not found
   if (!targetAsset) {

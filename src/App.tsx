@@ -41,6 +41,7 @@ export const App: React.FC = () => {
   const [updateReadyVersion, setUpdateReadyVersion] = useState<string | null>(null);
   const [updateAvailableInfo, setUpdateAvailableInfo] = useState<{ version: string; releaseUrl: string } | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isRestartingLauncher, setIsRestartingLauncher] = useState(false);
 
   // User's personal library collection (persisted across sessions)
   const [ownedGameIds, setOwnedGameIds] = useState<string[]>(() => {
@@ -400,10 +401,14 @@ export const App: React.FC = () => {
               <button
                 className="btn-primary-action play"
                 style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
-                onClick={() => launcherBridge.restartAndInstallUpdate()}
+                disabled={isRestartingLauncher}
+                onClick={() => {
+                  setIsRestartingLauncher(true);
+                  launcherBridge.restartAndInstallUpdate();
+                }}
               >
-                <RotateCcw size={12} className="spin-slow" />
-                <span>Restart Now</span>
+                <RotateCcw size={12} className={isRestartingLauncher ? 'spin-fast' : 'spin-slow'} />
+                <span>{isRestartingLauncher ? 'Applying Update...' : 'Restart Now'}</span>
               </button>
             ) : (
               <button

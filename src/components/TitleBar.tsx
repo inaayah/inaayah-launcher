@@ -24,6 +24,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 }) => {
   const [online, setOnline] = useState(true);
   const [appVersion, setAppVersion] = useState(APP_VERSION);
+  const [isRestarting, setIsRestarting] = useState(false);
 
   const isElectron = Boolean(launcherBridge.isElectron);
   const isMac = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('mac');
@@ -83,10 +84,14 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           <button
             className="update-pill-btn ready"
             title="Update is downloaded! Click to restart launcher and apply"
-            onClick={onRestartUpdate}
+            disabled={isRestarting}
+            onClick={() => {
+              setIsRestarting(true);
+              onRestartUpdate?.();
+            }}
           >
             <RotateCcw size={12} className="spin-slow" />
-            <span>Restart to Update (v{updateReadyVersion})</span>
+            <span>{isRestarting ? 'Restarting...' : `Restart to Update (v${updateReadyVersion})`}</span>
           </button>
         ) : updateAvailableVersion ? (
           <button
