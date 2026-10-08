@@ -1,6 +1,6 @@
 import pkg from '../../package.json';
 
-export const APP_VERSION: string = pkg.version || '0.2.4';
+export const APP_VERSION: string = pkg.version;
 
 export function compareVersions(v1: string, v2: string): number {
   const p1 = (v1 || '').replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
