@@ -27,8 +27,8 @@
       "./images/aether-rush-banner.jpg",
       "./images/aether-rush-cover.jpg"
     ],
-    "sizeBytes": 89450000,
-    "sizeFormatted": "85.3 MB",
+    "sizeBytes": 472000000,
+    "sizeFormatted": "450 MB",
     "githubRepo": "inaayah/aether-rush",
     "onlineBackend": "Inaayah Nakama Relay (94.130.227.190)",
     "executableNames": {
