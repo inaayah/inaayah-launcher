@@ -257,25 +257,41 @@ async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: E
   const release: any = await res.json();
   const assets: any[] = release.assets || [];
 
-  // Match platform keywords and installers (.dmg, .exe, .AppImage)
-  const targetAsset = assets.find((a) => {
+  // Match platform keywords: prioritize primary installers (.dmg, .exe, .AppImage)
+  let targetAsset = assets.find((a) => {
     const name = a.name.toLowerCase();
     if (name.endsWith('.blockmap') || name.endsWith('.yml')) return false;
 
     if (platform === 'darwin' || platform === 'mac' || platform === 'macos') {
-      if (name.endsWith('.dmg')) return true;
-      return name.includes('mac') || name.includes('darwin');
+      return name.endsWith('.dmg');
     }
     if (platform === 'win32' || platform === 'windows' || platform === 'win') {
-      if (name.endsWith('.exe')) return true;
-      return name.includes('win');
+      return name.endsWith('.exe');
     }
     if (platform === 'linux') {
-      if (name.endsWith('.appimage')) return true;
-      return name.includes('linux');
+      return name.endsWith('.appimage');
     }
     return false;
   });
+
+  // Fallback to archives (.zip, .tar.gz) if installer asset is not found
+  if (!targetAsset) {
+    targetAsset = assets.find((a) => {
+      const name = a.name.toLowerCase();
+      if (name.endsWith('.blockmap') || name.endsWith('.yml')) return false;
+
+      if (platform === 'darwin' || platform === 'mac' || platform === 'macos') {
+        return name.includes('mac') || name.includes('darwin');
+      }
+      if (platform === 'win32' || platform === 'windows' || platform === 'win') {
+        return name.includes('win');
+      }
+      if (platform === 'linux') {
+        return name.includes('linux');
+      }
+      return false;
+    });
+  }
 
   if (!targetAsset) {
     throw new Error(`No matching release asset found for platform '${platform}' in ${release.tag_name}`);

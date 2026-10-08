@@ -485,7 +485,8 @@ app.whenReady().then(() => {
       console.warn('[AutoUpdater] Startup update check warning:', e.message);
     }
 
-    if (app.isPackaged) {
+    // Background in-place autoUpdater only works on Windows and Linux without Apple Developer ID
+    if (app.isPackaged && process.platform !== 'darwin') {
       autoUpdater.checkForUpdatesAndNotify().catch((err) => {
         console.warn('[AutoUpdater] checkForUpdatesAndNotify warning:', err.message);
       });
@@ -1167,9 +1168,9 @@ async function fetchLatestLauncherRelease() {
 ipcMain.handle('launcher:check-for-updates', async () => {
   try {
     const info = await fetchLatestLauncherRelease();
-    if (info.isNewer && app.isPackaged) {
+    if (info.isNewer && app.isPackaged && process.platform !== 'darwin') {
       autoUpdater.checkForUpdates().catch((err) => {
-        console.warn('[AutoUpdater] check error (expected if unsigned macOS):', err.message);
+        console.warn('[AutoUpdater] check error:', err.message);
       });
     }
     return {
@@ -1190,7 +1191,52 @@ ipcMain.handle('launcher:check-for-updates', async () => {
 });
 
 ipcMain.handle('launcher:restart-and-install-update', () => {
-  autoUpdater.quitAndInstall();
+  console.log('[AutoUpdater] restart-and-install-update triggered');
+
+  // Development mode: restart immediately
+  if (!app.isPackaged) {
+    app.relaunch();
+    app.exit(0);
+    return;
+  }
+
+  // On macOS, unsigned apps cannot be replaced in-place by Squirrel.Mac / ShipIt.
+  // Open the latest DMG installer directly and close the launcher so the user can drag-and-drop the update.
+  if (process.platform === 'darwin') {
+    const cfg = loadConfig();
+    const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
+    const macDownloadUrl = `${gatewayUrl}/api/launcher/download/mac`;
+    shell.openExternal(macDownloadUrl);
+
+    setTimeout(() => {
+      app.removeAllListeners('window-all-closed');
+      try {
+        BrowserWindow.getAllWindows().forEach((w) => w.destroy());
+      } catch {}
+      app.quit();
+    }, 500);
+    return;
+  }
+
+  // Windows / Linux:
+  app.removeAllListeners('window-all-closed');
+  try {
+    autoUpdater.quitAndInstall(false, true);
+  } catch (err: any) {
+    console.warn('[AutoUpdater] quitAndInstall threw, forcing relaunch:', err?.message);
+    app.relaunch();
+    app.exit(0);
+    return;
+  }
+
+  // Watchdog timer: ensure the process restarts and does not hang
+  setTimeout(() => {
+    try {
+      BrowserWindow.getAllWindows().forEach((w) => w.destroy());
+    } catch {}
+    app.relaunch();
+    app.exit(0);
+  }, 1200);
 });
 
 ipcMain.handle('launcher:get-app-version', () => {
