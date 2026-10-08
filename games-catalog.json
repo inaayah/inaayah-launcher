@@ -4,7 +4,7 @@
     "slug": "aether-rush",
     "title": "AetherRush: Cyber Brawler 3D",
     "subtitle": "Classic 90s Arcade 2.5D Beat 'Em Up with Godot 4 3D Graphics",
-    "version": "1.2.0",
+    "version": "1.2.2",
     "releaseDate": "October 2026",
     "description": "Take back the neon-drenched streets of Aether City! Play as martial arts master Remy or acrobatic kickboxer Hannah across 6 adrenaline-fueled stages. Smash destructible crates, pick up weapons, execute cinematic overhand throws, and battle towering syndicate bosses with smooth gamepad controls and online 2-player co-op.",
     "genres": [
@@ -51,6 +51,27 @@
       "storage": "250 MB free drive space"
     },
     "changelog": [
+      {
+        "version": "v1.2.2",
+        "date": "Oct 8, 2026",
+        "title": "Asset Streamlining & Godot 4.3 Engine Enforcement",
+        "changes": [
+          "Purged 240MB+ of unused raw FBX models and redundant loose textures from repository",
+          "Permanently excluded raw 3D model sources from export presets to optimize download sizes",
+          "Enforced strict Godot 4.3 syntax validation in git pre-commit hooks and CI/CD pipelines",
+          "Documented comprehensive Godot 3 vs Godot 4 migration guidelines across AGENTS.md, GEMINI.md, and .agents/rules/"
+        ]
+      },
+      {
+        "version": "v1.2.1",
+        "date": "Oct 8, 2026",
+        "title": "Tween Callback Godot 4.3 Runtime Hotfix",
+        "changes": [
+          "Fixed critical IntervalTweener crash on enemy entrances and boss spawns",
+          "Fixed combat VFX tween callback chaining on hit smacks, blood spray, and prop debris",
+          "Stabilized player pummel and throw animation sequences"
+        ]
+      },
       {
         "version": "v1.2.0",
         "date": "Oct 8, 2026",
