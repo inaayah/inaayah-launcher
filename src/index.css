@@ -477,7 +477,9 @@ body {
 /* Main Content Area */
 .content-area {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -488,6 +490,8 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  width: 100%;
+  min-width: 0;
 }
 
 .hero-banner {
@@ -499,6 +503,9 @@ body {
   flex-direction: column;
   justify-content: space-between;
   padding: 28px 40px 36px 40px;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .hero-overlay {
@@ -525,16 +532,114 @@ body {
   justify-content: space-between;
   align-items: flex-end;
   width: 100%;
+  gap: 24px;
+  box-sizing: border-box;
 }
 
 .hero-info {
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 650px;
 }
 
 .game-genre-badges {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
   margin-bottom: 12px;
+  max-width: 100%;
+  position: relative;
+}
+
+.badges-more-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-more-btn {
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.badge-more-btn:hover {
+  background: rgba(0, 240, 255, 0.24);
+  border-color: rgba(0, 240, 255, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+  color: #fff;
+}
+
+.badge-more-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
+.badge-more-btn.active:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.badges-dropdown-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 100;
+  background: rgba(13, 17, 26, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.15);
+  min-width: 220px;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.badges-popover-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+}
+
+.badges-popover-hint {
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: none;
+  color: var(--accent-cyan);
+  opacity: 0.85;
+}
+
+.badges-popover-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .badge {
@@ -546,6 +651,8 @@ body {
   color: var(--text-secondary);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge.cyan {
@@ -553,7 +660,6 @@ body {
   color: var(--accent-cyan);
   border-color: rgba(0, 240, 255, 0.3);
 }
-
 
 .badge.amber {
   background: rgba(255, 170, 0, 0.15);
@@ -580,12 +686,16 @@ body {
   line-height: 1.1;
   text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   margin-bottom: 8px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .hero-subtitle {
   font-size: 16px;
   color: var(--text-secondary);
   margin-bottom: 16px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .hero-action-box {
@@ -593,12 +703,14 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 12px;
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 /* Big Play / Install Button */
 .btn-primary-action {
   height: 54px;
-  padding: 0 36px;
+  padding: 0 32px;
   border-radius: var(--radius-md);
   font-size: 16px;
   font-weight: 800;
@@ -611,6 +723,8 @@ body {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   border: none;
   outline: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-primary-action.play {
@@ -675,6 +789,8 @@ body {
   align-items: center;
   gap: 8px;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-secondary:hover {
@@ -1105,3 +1221,47 @@ body {
   transform: translateX(-3px);
   box-shadow: 0 4px 16px rgba(0, 240, 255, 0.2);
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments to prevent bleeding */
+@media (max-width: 1120px) {
+  .hero-banner {
+    padding: 24px 28px 28px 28px;
+  }
+  .hero-content {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero-content {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .hero-action-box {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .hero-action-box > div {
+    align-items: flex-start !important;
+  }
+  .hero-action-box > div > div {
+    justify-content: flex-start !important;
+  }
+  .tab-content {
+    grid-template-columns: 1fr;
+    padding: 24px 20px;
+  }
+}
+

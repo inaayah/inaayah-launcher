@@ -15,7 +15,8 @@ import {
   Flame,
   Globe,
   ExternalLink,
-  ArrowLeft
+  ArrowLeft,
+  ChevronUp
 } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
 import { launcherBridge } from '../services/electronBridge';
@@ -48,6 +49,13 @@ export const GameHero: React.FC<GameHeroProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'requirements' | 'changelog'>('overview');
   const [activeScreenshot, setActiveScreenshot] = useState<string | null>(null);
+  const [isTagsExpanded, setIsTagsExpanded] = useState(false);
+  const [isMoreHovered, setIsMoreHovered] = useState(false);
+
+  React.useEffect(() => {
+    setIsTagsExpanded(false);
+    setIsMoreHovered(false);
+  }, [game.id]);
 
   const isComingSoon = Boolean(game.isComingSoon);
   const isWebGame = game.gameType === 'web';
@@ -58,6 +66,111 @@ export const GameHero: React.FC<GameHeroProps> = ({
     : (!isInstalled
       ? 'NOT_INSTALLED'
       : (status === 'UPDATE_AVAILABLE' && !installed?.version?.includes('Local Dev') ? 'UPDATE_AVAILABLE' : 'INSTALLED'));
+
+  const allBadges = React.useMemo(() => {
+    const list: Array<{ id: string; node: React.ReactNode }> = [];
+
+    // Development / Release Status
+    if (isDev) {
+      list.push({
+        id: 'dev-mode',
+        node: (
+          <span
+            key="dev-mode"
+            className="badge"
+            style={{
+              background: 'rgba(16, 185, 129, 0.25)',
+              color: '#34d399',
+              border: '1px solid rgba(16, 185, 129, 0.5)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            ⚡ Local Dev Mode
+          </span>
+        )
+      });
+    } else if (isComingSoon) {
+      list.push({
+        id: 'coming-soon',
+        node: (
+          <span key="coming-soon" className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={12} /> Coming Soon
+          </span>
+        )
+      });
+    } else if (isWebGame) {
+      list.push({
+        id: 'web-game',
+        node: (
+          <span key="web-game" className="badge green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Globe size={12} /> Instant Web Game
+          </span>
+        )
+      });
+    }
+
+    if (isComingSoon && isDev) {
+      list.push({
+        id: 'in-dev-target',
+        node: (
+          <span key="in-dev-target" className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={12} /> In Dev ({game.releaseDate})
+          </span>
+        )
+      });
+    }
+
+    // Genres
+    game.genres.forEach((g, i) => {
+      list.push({
+        id: `genre-${g}`,
+        node: (
+          <span key={g} className={`badge ${i === 0 ? 'cyan' : i === 1 ? 'magenta' : ''}`}>
+            {g}
+          </span>
+        )
+      });
+    });
+
+    // Version
+    list.push({
+      id: 'version',
+      node: (
+        <span key="version" className="badge">
+          v{game.version}
+        </span>
+      )
+    });
+
+    // Live dev source
+    if (installed?.version?.includes('Local Dev')) {
+      list.push({
+        id: 'live-dev',
+        node: (
+          <span
+            key="live-dev"
+            className="badge"
+            style={{
+              background: 'rgba(56, 189, 248, 0.2)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.4)'
+            }}
+          >
+            ⚡ Live Dev Source
+          </span>
+        )
+      });
+    }
+
+    return list;
+  }, [isDev, isComingSoon, isWebGame, game.releaseDate, game.genres, game.version, installed?.version]);
+
+  const MAX_COLLAPSED_BADGES = 4;
+  const hasExtraBadges = allBadges.length > MAX_COLLAPSED_BADGES;
+  const visibleBadges = isTagsExpanded || !hasExtraBadges ? allBadges : allBadges.slice(0, MAX_COLLAPSED_BADGES);
+  const hiddenBadges = hasExtraBadges ? allBadges.slice(MAX_COLLAPSED_BADGES) : [];
 
   const formatPlaytime = (mins: number) => {
     if (mins < 60) return `${mins} mins`;
@@ -99,41 +212,60 @@ export const GameHero: React.FC<GameHeroProps> = ({
         <div className="hero-content">
           <div className="hero-info">
             <div className="game-genre-badges">
-              {isDev ? (
-                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  ⚡ Local Dev Mode
-                </span>
-              ) : isComingSoon ? (
-                <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Clock size={12} /> Coming Soon
-                </span>
-              ) : isWebGame ? (
-                <span className="badge green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Globe size={12} /> Instant Web Game
-                </span>
-              ) : null}
-              {isComingSoon && isDev && (
-                <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Clock size={12} /> In Dev ({game.releaseDate})
-                </span>
+              {visibleBadges.map((badge) => badge.node)}
+
+              {hasExtraBadges && !isTagsExpanded && (
+                <div
+                  className="badges-more-wrapper"
+                  onMouseEnter={() => setIsMoreHovered(true)}
+                  onMouseLeave={() => setIsMoreHovered(false)}
+                >
+                  <button
+                    type="button"
+                    className="badge badge-more-btn"
+                    onClick={() => {
+                      setIsTagsExpanded(true);
+                      setIsMoreHovered(false);
+                    }}
+                    title="Click to reveal all tags, or hover to preview"
+                    aria-label={`Show ${hiddenBadges.length} more tags`}
+                  >
+                    +{hiddenBadges.length} more
+                  </button>
+
+                  {isMoreHovered && (
+                    <div className="badges-dropdown-popover">
+                      <div className="badges-popover-header">
+                        <span>More Tags & Genres</span>
+                        <span className="badges-popover-hint">Click to expand</span>
+                      </div>
+                      <div className="badges-popover-items">
+                        {hiddenBadges.map((b) => b.node)}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
-              {game.genres.map((g, i) => (
-                <span key={g} className={`badge ${i === 0 ? 'cyan' : i === 1 ? 'magenta' : ''}`}>
-                  {g}
-                </span>
-              ))}
-              <span className="badge">v{game.version}</span>
-              {installed?.version?.includes('Local Dev') && (
-                <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
-                  ⚡ Live Dev Source
-                </span>
+
+              {hasExtraBadges && isTagsExpanded && (
+                <button
+                  type="button"
+                  className="badge badge-more-btn active"
+                  onClick={() => {
+                    setIsTagsExpanded(false);
+                    setIsMoreHovered(false);
+                  }}
+                  title="Collapse extra tags"
+                >
+                  Show less <ChevronUp size={12} />
+                </button>
               )}
             </div>
 
             <h1 className="hero-title">{game.title}</h1>
             <p className="hero-subtitle">{game.subtitle}</p>
 
-            <div style={{ display: 'flex', gap: 24, fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
               {installed && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -157,7 +289,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
           <div className="hero-action-box">
             {isDev ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                   {status === 'RUNNING' ? (
                     <button className="btn-primary-action running" style={{ background: '#a855f7' }}>
                       <Sparkles size={18} className="animate-spin" />
@@ -198,7 +330,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <span>Roadmap</span>
                   </button>
                 </div>
-                <div style={{ fontSize: 12, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 12, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <span>⚡ Local Godot Project Active</span>
                   <span>•</span>
                   <span style={{ color: 'var(--text-muted)' }}>Target: <strong style={{ color: '#ffaa00' }}>{game.releaseDate}</strong></span>
@@ -206,7 +338,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
               </div>
             ) : isComingSoon ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                   <button className="btn-primary-action coming-soon">
                     <Clock size={20} />
                     <span>Coming Soon</span>
@@ -228,7 +360,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
               </div>
             ) : isWebGame ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                   {status === 'RUNNING' ? (
                     <button className="btn-primary-action running">
                       <Sparkles size={18} className="animate-spin" />
@@ -299,7 +431,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                 )}
 
                 {effectiveStatus === 'UPDATE_AVAILABLE' && !installed?.version?.includes('Local Dev') && (
-                  <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                     <button
                       className="btn-primary-action update"
                       onClick={() => onInstall(game.id)}
@@ -318,7 +450,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                 )}
 
                 {(effectiveStatus === 'INSTALLED' || (effectiveStatus === 'UPDATE_AVAILABLE' && installed?.version?.includes('Local Dev'))) && (
-                  <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                     <button
                       className="btn-primary-action play"
                       onClick={() => onLaunch(game.id)}
@@ -338,7 +470,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
 
                 {/* Secondary Controls Bar for Installed Game */}
                 {installed && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                     <button
                       className="btn-secondary"
                       title="Open Installation Folder"
