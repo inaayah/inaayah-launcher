@@ -364,7 +364,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onPlay(game.id);
+                          onLaunch(game.id);
                         }}
                       >
                         <Play size={14} fill="#fff" /> Run (Dev)
