@@ -55,6 +55,14 @@ function getMockInstalled(): Record<string, InstalledGame> {
       installedAt: Date.now() - 86400000 * 2,
       lastPlayedAt: Date.now() - 3600000,
       totalPlaytimeMinutes: 142
+    },
+    'sundered-depths': {
+      id: 'sundered-depths',
+      version: '0.1.0 (Local Dev)',
+      installPath: '~/Repositories/sundered-depths/godot',
+      installedAt: Date.now() - 86400000,
+      lastPlayedAt: Date.now() - 3600000,
+      totalPlaytimeMinutes: 45
     }
   };
   return initial;
