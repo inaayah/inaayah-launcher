@@ -170,8 +170,8 @@
     "slug": "sundered-depths",
     "title": "Sundered Depths",
     "subtitle": "Co-Op Endless Horde Survival Dungeon Crawler",
-    "version": "1.0.0",
-    "releaseDate": "October 2026",
+    "version": "0.1.0 (In Development)",
+    "releaseDate": "In Active Development",
     "description": "Descend shoulder-to-shoulder into the Sundered Depths! Fight off escalating 360-degree enemy swarms across multi-floor dungeons, conquer varying floor objectives, slay ancient dungeon lords, collect powerful relics and equipment chests, and restore the Grand Seal in high-octane local and online co-op.",
     "genres": [
       "Horde Survival",
@@ -190,8 +190,8 @@
       "Godot 4.3"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "https://raw.githubusercontent.com/inaayah/sundered-depths/main/cover.jpg",
-    "heroBanner": "https://raw.githubusercontent.com/inaayah/sundered-depths/main/banner.jpg",
+    "coverArt": "https://inaayah.dev/images/sundered-depths-cover.jpg",
+    "heroBanner": "https://inaayah.dev/images/sundered-depths-banner.jpg",
     "screenshots": [],
     "sizeBytes": 150000000,
     "sizeFormatted": "145.0 MB",
@@ -235,7 +235,8 @@
           "Procedural floor objectives, in-run boon leveling, equipment drops, and complete Lore Codex"
         ]
       }
-    ]
+    ],
+    "isComingSoon": true
   },
   {
     "id": "cyber-tactics",

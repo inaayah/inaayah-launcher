@@ -94,16 +94,18 @@ export const App: React.FC = () => {
       if (curr === 'DOWNLOADING' || curr === 'EXTRACTING' || curr === 'RUNNING') {
         return;
       }
-      if (game.isComingSoon) {
+      const isDev = Boolean(
+        installed[game.id]?.version?.includes('Local Dev') ||
+        installed[game.id]?.installPath?.includes('godot')
+      );
+      if (isDev) {
+        next[game.id] = 'INSTALLED';
+      } else if (game.isComingSoon) {
         next[game.id] = 'NOT_INSTALLED';
       } else if (game.gameType === 'web') {
         next[game.id] = 'INSTALLED';
       } else if (installed[game.id]) {
-        const isDev = Boolean(
-          installed[game.id].version?.includes('Local Dev') ||
-          installed[game.id].installPath?.includes('godot')
-        );
-        next[game.id] = (!isDev && installed[game.id].version !== game.version)
+        next[game.id] = (installed[game.id].version !== game.version)
           ? 'UPDATE_AVAILABLE'
           : 'INSTALLED';
       } else {

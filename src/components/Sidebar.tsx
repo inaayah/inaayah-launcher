@@ -118,7 +118,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             catalog.map((game) => {
             const isComingSoon = Boolean(game.isComingSoon);
-            const isInstalled = Boolean(installedGames[game.id]);
+            const installed = installedGames[game.id];
+            const isInstalled = Boolean(installed);
+            const isDev = Boolean(installed?.version?.includes('Local Dev') || installed?.installPath?.includes('godot'));
             const isDownloading = Boolean(activeDownloads[game.id]);
             const isRunning = gameStatuses[game.id] === 'RUNNING';
             const isSelected = selectedGameId === game.id;
@@ -142,6 +144,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ? 'running'
                       : isDownloading
                       ? 'downloading'
+                      : isDev
+                      ? 'dev-active'
                       : isInstalled
                       ? 'installed'
                       : isComingSoon
@@ -153,6 +157,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ? 'Game Running'
                       : isDownloading
                       ? 'Downloading'
+                      : isDev
+                      ? 'Local Dev Mode (Ready to Run)'
                       : isInstalled
                       ? 'Ready to Play'
                       : isComingSoon

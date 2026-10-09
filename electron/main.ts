@@ -40,10 +40,6 @@ const activeDownloads = new Map<string, { abort: () => void }>();
 const devProjectCache = new Map<string, string | null>();
 function findLocalDevGodotProject(gameId: string): string | null {
   if (devProjectCache.has(gameId)) return devProjectCache.get(gameId)!;
-  if (app.isPackaged) {
-    devProjectCache.set(gameId, null);
-    return null;
-  }
   const home = app.getPath('home');
   const candidates = [
     path.resolve(app.getAppPath(), `../${gameId}/godot/project.godot`),
@@ -71,20 +67,16 @@ let godotProbePromise: Promise<string | null> | null = null;
 // Background non-blocking Godot binary discovery
 async function resolveGodotBinaryAsync(): Promise<string | null> {
   if (cachedGodotBinary !== undefined) return cachedGodotBinary;
-  if (app.isPackaged) {
-    cachedGodotBinary = null;
-    return null;
-  }
   if (godotProbePromise) return godotProbePromise;
 
   godotProbePromise = new Promise<string | null>((resolve) => {
     const home = app.getPath('home');
     const directCandidates = [
       // macOS
+      path.join(home, '.local/bin/godot'),
       '/Applications/Godot.app/Contents/MacOS/Godot',
       '/opt/homebrew/bin/godot',
       '/usr/local/bin/godot',
-      path.join(home, '.local/bin/godot'),
       // Windows
       'C:\\Program Files\\Godot\\Godot.exe',
       'C:\\Program Files (x86)\\Godot\\Godot.exe',
@@ -245,16 +237,29 @@ async function scanInstalledGames(libraryPath?: string): Promise<Record<string, 
     const installed: Record<string, InstalledGameMeta> = {};
 
     // 1. Auto-detect local development workspace for games asynchronously (unless explicitly uninstalled)
-    if (!uninstalledDevGames.has('aether-rush')) {
-      const [localDevRepo, godotBin] = await Promise.all([
-        Promise.resolve(findLocalDevGodotProject('aether-rush')),
-        resolveGodotBinaryAsync()
-      ]);
+    const godotBin = await resolveGodotBinaryAsync();
+    const candidateGameIds = new Set<string>(['aether-rush', 'sundered-depths', 'cyber-tactics', 'kettle-court']);
 
+    // Discover any additional game repos in ~/Repositories that contain godot/project.godot
+    try {
+      const reposDir = path.join(app.getPath('home'), 'Repositories');
+      if (fs.existsSync(reposDir)) {
+        const entries = await fs.promises.readdir(reposDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory() && fs.existsSync(path.join(reposDir, entry.name, 'godot', 'project.godot'))) {
+            candidateGameIds.add(entry.name);
+          }
+        }
+      }
+    } catch {}
+
+    for (const gId of candidateGameIds) {
+      if (uninstalledDevGames.has(gId)) continue;
+      const localDevRepo = findLocalDevGodotProject(gId);
       if (localDevRepo && godotBin) {
-        installed['aether-rush'] = {
-          id: 'aether-rush',
-          version: '1.2.0 (Local Dev)',
+        installed[gId] = {
+          id: gId,
+          version: '0.1.0 (Local Dev)',
           installPath: localDevRepo,
           installedAt: Date.now() - 86400000 * 2,
           lastPlayedAt: Date.now() - 3600000 * 2,
@@ -519,12 +524,49 @@ app.on('window-all-closed', () => {
 
 // --- IPC Communication Handlers ---
 
+function sanitizeCatalog(data: any[]): any[] {
+  if (!Array.isArray(data)) return [];
+  return data.map((game) => {
+    let coverArt = game.coverArt;
+    let heroBanner = game.heroBanner;
+    if (typeof coverArt === 'string' && coverArt.includes('raw.githubusercontent.com')) {
+      const fn = coverArt.split('/').pop()?.split('?')[0];
+      coverArt = `https://inaayah.dev/images/${fn || 'sundered-depths-cover.jpg'}`;
+    }
+    if (typeof heroBanner === 'string' && heroBanner.includes('raw.githubusercontent.com')) {
+      const fn = heroBanner.split('/').pop()?.split('?')[0];
+      heroBanner = `https://inaayah.dev/images/${fn || 'sundered-depths-banner.jpg'}`;
+    }
+    const isComingSoon = game.id === 'sundered-depths' || game.id === 'cyber-tactics' || Boolean(game.isComingSoon);
+    return { ...game, coverArt, heroBanner, isComingSoon };
+  });
+}
+
 ipcMain.handle('launcher:refresh-catalog', async () => {
   const cfg = loadConfig();
   const cacheFile = path.join(app.getPath('userData'), 'catalog_cache.json');
 
   // Trigger background scan of installed games to re-validate disk status
   scanInstalledGames().catch(() => {});
+
+  // 0. Check local games-catalog.json candidates (for local development)
+  const localCandidates = [
+    path.resolve(process.cwd(), 'games-catalog.json'),
+    path.resolve(__dirname, '../../games-catalog.json'),
+    path.join(app.getAppPath(), 'games-catalog.json')
+  ];
+  for (const p of localCandidates) {
+    if (fs.existsSync(p)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        if (Array.isArray(raw) && raw.length > 0) {
+          const sanitized = sanitizeCatalog(raw);
+          fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
+          return sanitized;
+        }
+      } catch {}
+    }
+  }
 
   if (cfg.releaseGatewayUrl) {
     try {
@@ -536,8 +578,9 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2));
-          return data;
+          const sanitized = sanitizeCatalog(data);
+          fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
+          return sanitized;
         }
       }
     } catch (e) {
@@ -555,8 +598,9 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2));
-        return data;
+        const sanitized = sanitizeCatalog(data);
+        fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
+        return sanitized;
       }
     }
   } catch (e) {
@@ -565,7 +609,7 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
 
   if (fs.existsSync(cacheFile)) {
     try {
-      return JSON.parse(fs.readFileSync(cacheFile, 'utf-8'));
+      return sanitizeCatalog(JSON.parse(fs.readFileSync(cacheFile, 'utf-8')));
     } catch {}
   }
 

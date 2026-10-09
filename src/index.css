@@ -447,6 +447,10 @@ body {
   background: var(--accent-green);
   box-shadow: 0 0 8px var(--accent-green-glow);
 }
+.status-dot.dev-active {
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
+}
 .status-dot.downloading {
   background: var(--accent-cyan);
   box-shadow: 0 0 8px var(--accent-cyan-glow);

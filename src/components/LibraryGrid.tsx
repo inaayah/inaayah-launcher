@@ -195,6 +195,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
             const isComingSoon = Boolean(game.isComingSoon);
             const isWebGame = game.gameType === 'web';
             const installed = installedGames[game.id];
+            const isDev = Boolean(installed?.version?.includes('Local Dev') || installed?.installPath?.includes('godot'));
             const isInstalled = Boolean(installed) || isWebGame;
             const rawStatus = gameStatuses[game.id];
             const status = (rawStatus === 'DOWNLOADING' || rawStatus === 'EXTRACTING' || rawStatus === 'RUNNING')
@@ -278,6 +279,10 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                       <span className="badge cyan" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         <Download size={11} /> {status === 'EXTRACTING' ? 'Unpacking' : `${downloadProg?.percentage || 0}%`}
                       </span>
+                    ) : isDev ? (
+                      <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        ⚡ Dev Mode
+                      </span>
                     ) : isComingSoon ? (
                       <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={11} /> Coming Soon
@@ -346,6 +351,23 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Sparkles size={14} className="animate-spin" /> Running
+                      </button>
+                    ) : isDev ? (
+                      <button
+                        className="btn-primary-action"
+                        style={{
+                          height: 34,
+                          padding: '0 16px',
+                          fontSize: 12,
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          borderColor: '#34d399'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPlay(game.id);
+                        }}
+                      >
+                        <Play size={14} fill="#fff" /> Run (Dev)
                       </button>
                     ) : isComingSoon ? (
                       <button

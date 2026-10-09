@@ -110,8 +110,10 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
         {filteredGames.map((game) => {
           const isComingSoon = Boolean(game.isComingSoon);
           const isWebGame = game.gameType === 'web';
-          const isInLibrary = ownedGameIds.includes(game.id) || Boolean(installedGames[game.id]);
-          const isInstalled = Boolean(installedGames[game.id]) || isWebGame;
+          const installed = installedGames[game.id];
+          const isDev = Boolean(installed?.version?.includes('Local Dev') || installed?.installPath?.includes('godot'));
+          const isInLibrary = ownedGameIds.includes(game.id) || Boolean(installed);
+          const isInstalled = Boolean(installed) || isWebGame;
 
           return (
             <div
@@ -124,7 +126,13 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                 style={{ backgroundImage: `url(${getAssetUrl(game.heroBanner)})` }}
               >
                 <div className="card-banner-overlay" />
-                {isInLibrary && !isComingSoon && (
+                {isDev ? (
+                  <div style={{ position: 'absolute', top: 12, left: 12 }}>
+                    <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      ⚡ Local Dev Mode
+                    </span>
+                  </div>
+                ) : isInLibrary && !isComingSoon && (
                   <div style={{ position: 'absolute', top: 12, left: 12 }}>
                     <span className="badge" style={{ background: 'rgba(0, 240, 255, 0.2)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.4)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <BookmarkCheck size={11} /> In Library
@@ -157,7 +165,11 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
               <div className="card-body">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="card-title">{game.title}</h3>
-                  {isComingSoon ? (
+                  {isDev ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#34d399', fontSize: 12, fontWeight: 600 }}>
+                      ⚡ Dev Active
+                    </span>
+                  ) : isComingSoon ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#ffaa00', fontSize: 12, fontWeight: 600 }}>
                       <Clock size={13} /> In Dev
                     </span>
@@ -179,7 +191,24 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     ))}
                   </div>
 
-                  {isComingSoon ? (
+                  {isDev ? (
+                    <button
+                      className="btn-primary-action"
+                      style={{
+                        height: 34,
+                        padding: '0 14px',
+                        fontSize: 12,
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        borderColor: '#34d399'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectGame(game.id);
+                      }}
+                    >
+                      <Play size={13} fill="#fff" /> Run (Dev)
+                    </button>
+                  ) : isComingSoon ? (
                     <button
                       className="btn-secondary"
                       style={{

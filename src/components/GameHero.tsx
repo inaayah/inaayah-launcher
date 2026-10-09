@@ -51,6 +51,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
 
   const isComingSoon = Boolean(game.isComingSoon);
   const isWebGame = game.gameType === 'web';
+  const isDev = Boolean(installed?.version?.includes('Local Dev') || installed?.installPath?.includes('godot'));
   const isInstalled = Boolean(installed) || isWebGame;
   const effectiveStatus = (status === 'DOWNLOADING' || status === 'EXTRACTING' || status === 'RUNNING')
     ? status
@@ -98,7 +99,11 @@ export const GameHero: React.FC<GameHeroProps> = ({
         <div className="hero-content">
           <div className="hero-info">
             <div className="game-genre-badges">
-              {isComingSoon ? (
+              {isDev ? (
+                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  ⚡ Local Dev Mode
+                </span>
+              ) : isComingSoon ? (
                 <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Clock size={12} /> Coming Soon
                 </span>
@@ -107,6 +112,11 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   <Globe size={12} /> Instant Web Game
                 </span>
               ) : null}
+              {isComingSoon && isDev && (
+                <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Clock size={12} /> In Dev ({game.releaseDate})
+                </span>
+              )}
               {game.genres.map((g, i) => (
                 <span key={g} className={`badge ${i === 0 ? 'cyan' : i === 1 ? 'magenta' : ''}`}>
                   {g}
@@ -145,7 +155,56 @@ export const GameHero: React.FC<GameHeroProps> = ({
 
           {/* Action Box */}
           <div className="hero-action-box">
-            {isComingSoon ? (
+            {isDev ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {status === 'RUNNING' ? (
+                    <button className="btn-primary-action running" style={{ background: '#a855f7' }}>
+                      <Sparkles size={18} className="animate-spin" />
+                      <span>Running (Dev Mode)</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-primary-action play"
+                      style={{
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        borderColor: '#34d399',
+                        boxShadow: '0 0 20px rgba(16, 185, 129, 0.4)'
+                      }}
+                      onClick={() => onLaunch(game.id)}
+                    >
+                      <Play size={20} fill="currentColor" />
+                      <span>Run (Dev Mode)</span>
+                    </button>
+                  )}
+
+                  <button
+                    className="btn-secondary"
+                    style={{ height: 54, padding: '0 18px', fontSize: 13 }}
+                    title="Open local Godot project directory"
+                    onClick={() => installed?.installPath && launcherBridge.openFolder(installed.installPath)}
+                  >
+                    <FolderOpen size={16} />
+                    <span>Open Folder</span>
+                  </button>
+
+                  <button
+                    className="btn-secondary"
+                    style={{ height: 54, padding: '0 18px', fontSize: 13 }}
+                    title="View GitHub repository and development roadmap"
+                    onClick={() => launcherBridge.openExternalUrl(`https://github.com/${game.githubRepo}`)}
+                  >
+                    <ExternalLink size={16} />
+                    <span>Roadmap</span>
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>⚡ Local Godot Project Active</span>
+                  <span>•</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Target: <strong style={{ color: '#ffaa00' }}>{game.releaseDate}</strong></span>
+                </div>
+              </div>
+            ) : isComingSoon ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button className="btn-primary-action coming-soon">
