@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useDeferredValue } from 'react';
-import { Search, Download, Play, CheckCircle, Globe, Clock, BookmarkCheck, Plus, RotateCw } from 'lucide-react';
-import type { GameCatalogItem, InstalledGame } from '../types/launcher';
+import { Search, Download, Play, CheckCircle, Globe, Clock, BookmarkCheck, Plus, RotateCw, Sparkles } from 'lucide-react';
+import type { GameCatalogItem, InstalledGame, GameStatus } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
 
 interface StoreCatalogProps {
   catalog: GameCatalogItem[];
   installedGames: Record<string, InstalledGame>;
+  gameStatuses?: Record<string, GameStatus>;
   ownedGameIds: string[];
   onSelectGame: (gameId: string) => void;
+  onLaunch: (gameId: string) => void;
   onInstall: (gameId: string) => void;
   onAddToLibrary: (gameId: string) => void;
   isRefreshing?: boolean;
@@ -17,8 +19,10 @@ interface StoreCatalogProps {
 export const StoreCatalog: React.FC<StoreCatalogProps> = ({
   catalog,
   installedGames,
+  gameStatuses = {},
   ownedGameIds,
   onSelectGame,
+  onLaunch,
   onInstall,
   onAddToLibrary,
   isRefreshing = false,
@@ -114,6 +118,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
           const isDev = Boolean(installed?.version?.includes('Local Dev') || installed?.installPath?.includes('godot'));
           const isInLibrary = ownedGameIds.includes(game.id) || Boolean(installed);
           const isInstalled = Boolean(installed) || isWebGame;
+          const isRunning = gameStatuses[game.id] === 'RUNNING';
 
           return (
             <div
@@ -148,13 +153,32 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     gap: 6
                   }}
                 >
-                  {isComingSoon ? (
+                  {isRunning ? (
+                    <span
+                      className="badge"
+                      style={{
+                        background: 'rgba(168, 85, 247, 0.25)',
+                        color: '#c084fc',
+                        border: '1px solid rgba(168, 85, 247, 0.5)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <Sparkles size={11} className="animate-spin" /> Running
+                    </span>
+                  ) : isDev ? (
+                    <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)' }}>
+                      Dev Ready
+                    </span>
+                  ) : isComingSoon ? (
                     <span className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Clock size={11} /> Coming Soon
                     </span>
-                  ) : isWebGame ? (
+                  ) : isInstalled ? (
                     <span className="badge green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Globe size={11} /> Instant Web Game
+                      {isWebGame ? <Globe size={11} /> : <CheckCircle size={11} />}
+                      {isWebGame ? 'Instant Play' : 'Installed'}
                     </span>
                   ) : (
                     <span className="badge cyan">v{game.version}</span>
@@ -165,7 +189,11 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
               <div className="card-body">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="card-title">{game.title}</h3>
-                  {isDev ? (
+                  {isRunning ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#c084fc', fontSize: 12, fontWeight: 600 }}>
+                      <Sparkles size={13} className="animate-spin" /> Running
+                    </span>
+                  ) : isDev ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#34d399', fontSize: 12, fontWeight: 600 }}>
                       ⚡ Dev Active
                     </span>
@@ -177,6 +205,18 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent-green)', fontSize: 12, fontWeight: 600 }}>
                       <CheckCircle size={14} /> {isWebGame ? 'Ready' : 'Installed'}
                     </span>
+                  ) : !isInLibrary ? (
+                    <button
+                      className="btn-secondary"
+                      style={{ height: 28, padding: '0 10px', fontSize: 11 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToLibrary(game.id);
+                      }}
+                      title="Add to My Library"
+                    >
+                      <Plus size={12} /> Add
+                    </button>
                   ) : null}
                 </div>
 
@@ -191,7 +231,15 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     ))}
                   </div>
 
-                  {isDev ? (
+                  {isRunning ? (
+                    <button
+                      className="btn-primary-action running"
+                      style={{ height: 34, padding: '0 14px', fontSize: 12 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Sparkles size={13} className="animate-spin" /> Running
+                    </button>
+                  ) : isDev ? (
                     <button
                       className="btn-primary-action"
                       style={{
@@ -203,7 +251,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectGame(game.id);
+                        onLaunch(game.id);
                       }}
                     >
                       <Play size={13} fill="#fff" /> Run (Dev)
@@ -239,7 +287,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectGame(game.id);
+                        onLaunch(game.id);
                       }}
                     >
                       <Globe size={14} /> Instant Play
@@ -258,7 +306,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (isInstalled) {
-                          onSelectGame(game.id);
+                          onLaunch(game.id);
                         } else {
                           onInstall(game.id);
                         }

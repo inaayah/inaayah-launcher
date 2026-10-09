@@ -469,12 +469,14 @@ export const App: React.FC = () => {
             <StoreCatalog
               catalog={catalog}
               installedGames={installedGames}
+              gameStatuses={gameStatuses}
               ownedGameIds={ownedGameIds}
               onSelectGame={(id) => {
                 setSelectedGameId(id);
                 setCurrentTab('library');
                 setIsViewingDetail(true);
               }}
+              onLaunch={handleLaunch}
               onInstall={handleInstall}
               onAddToLibrary={handleAddToLibrary}
               isRefreshing={isRefreshing}
