@@ -526,19 +526,23 @@ app.on('window-all-closed', () => {
 
 function sanitizeCatalog(data: any[]): any[] {
   if (!Array.isArray(data)) return [];
+  const mapUrl = (url: any): string => {
+    if (typeof url !== 'string' || !url) return '';
+    if (url.includes('raw.githubusercontent.com') || url.startsWith('./images/') || url.startsWith('images/')) {
+      const fn = url.split('/').pop()?.split('?')[0];
+      return `https://inaayah.dev/images/${fn}`;
+    }
+    return url;
+  };
+
   return data.map((game) => {
-    let coverArt = game.coverArt;
-    let heroBanner = game.heroBanner;
-    if (typeof coverArt === 'string' && coverArt.includes('raw.githubusercontent.com')) {
-      const fn = coverArt.split('/').pop()?.split('?')[0];
-      coverArt = `https://inaayah.dev/images/${fn || 'sundered-depths-cover.jpg'}`;
-    }
-    if (typeof heroBanner === 'string' && heroBanner.includes('raw.githubusercontent.com')) {
-      const fn = heroBanner.split('/').pop()?.split('?')[0];
-      heroBanner = `https://inaayah.dev/images/${fn || 'sundered-depths-banner.jpg'}`;
-    }
+    const coverArt = mapUrl(game.coverArt);
+    const heroBanner = mapUrl(game.heroBanner);
+    const screenshots = Array.isArray(game.screenshots)
+      ? game.screenshots.map(mapUrl)
+      : [];
     const isComingSoon = game.id === 'sundered-depths' || game.id === 'cyber-tactics' || Boolean(game.isComingSoon);
-    return { ...game, coverArt, heroBanner, isComingSoon };
+    return { ...game, coverArt, heroBanner, screenshots, isComingSoon };
   });
 }
 
@@ -549,22 +553,23 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
   // Trigger background scan of installed games to re-validate disk status
   scanInstalledGames().catch(() => {});
 
-  // 0. Check local games-catalog.json candidates (for local development)
-  const localCandidates = [
-    path.resolve(process.cwd(), 'games-catalog.json'),
-    path.resolve(__dirname, '../../games-catalog.json'),
-    path.join(app.getAppPath(), 'games-catalog.json')
-  ];
-  for (const p of localCandidates) {
-    if (fs.existsSync(p)) {
-      try {
-        const raw = JSON.parse(fs.readFileSync(p, 'utf-8'));
-        if (Array.isArray(raw) && raw.length > 0) {
-          const sanitized = sanitizeCatalog(raw);
-          fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
-          return sanitized;
-        }
-      } catch {}
+  // 0. Check local games-catalog.json candidates (for local development only)
+  if (!app.isPackaged) {
+    const localCandidates = [
+      path.resolve(process.cwd(), 'games-catalog.json'),
+      path.resolve(__dirname, '../../games-catalog.json')
+    ];
+    for (const p of localCandidates) {
+      if (fs.existsSync(p)) {
+        try {
+          const raw = JSON.parse(fs.readFileSync(p, 'utf-8'));
+          if (Array.isArray(raw) && raw.length > 0) {
+            const sanitized = sanitizeCatalog(raw);
+            fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
+            return sanitized;
+          }
+        } catch {}
+      }
     }
   }
 
@@ -612,6 +617,14 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
       return sanitizeCatalog(JSON.parse(fs.readFileSync(cacheFile, 'utf-8')));
     } catch {}
   }
+
+  // 4. Offline fallback to bundled games-catalog.json
+  try {
+    const bundledPath = path.join(app.getAppPath(), 'games-catalog.json');
+    if (fs.existsSync(bundledPath)) {
+      return sanitizeCatalog(JSON.parse(fs.readFileSync(bundledPath, 'utf-8')));
+    }
+  } catch {}
 
   return [];
 });

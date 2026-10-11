@@ -21,14 +21,14 @@
       "Original Soundtrack"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "./images/aether-rush-cover.jpg",
-    "heroBanner": "./images/aether-rush-banner.jpg",
+    "coverArt": "https://inaayah.dev/images/aether-rush-cover.jpg",
+    "heroBanner": "https://inaayah.dev/images/aether-rush-banner.jpg",
     "screenshots": [
-      "./images/aether-rush-banner.jpg",
-      "./images/aether-rush-shot1.jpg",
-      "./images/aether-rush-shot2.jpg",
-      "./images/aether-rush-shot3.jpg",
-      "./images/aether-rush-shot4.jpg"
+      "https://inaayah.dev/images/aether-rush-banner.jpg",
+      "https://inaayah.dev/images/aether-rush-shot1.jpg",
+      "https://inaayah.dev/images/aether-rush-shot2.jpg",
+      "https://inaayah.dev/images/aether-rush-shot3.jpg",
+      "https://inaayah.dev/images/aether-rush-shot4.jpg"
     ],
     "sizeBytes": 472000000,
     "sizeFormatted": "450 MB",
@@ -130,11 +130,11 @@
       "Digital Table Game"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "./images/kettle-court-cover.jpg",
-    "heroBanner": "./images/kettle-court-banner.jpg",
+    "coverArt": "https://inaayah.dev/images/kettle-court-cover.jpg",
+    "heroBanner": "https://inaayah.dev/images/kettle-court-banner.jpg",
     "screenshots": [
-      "./images/kettle-court-banner.jpg",
-      "./images/kettle-court-cover.jpg"
+      "https://inaayah.dev/images/kettle-court-banner.jpg",
+      "https://inaayah.dev/images/kettle-court-cover.jpg"
     ],
     "gameType": "web",
     "webUrl": "https://kettle-court.inaayah.dev/",
@@ -263,11 +263,11 @@
       "Deep Customization"
     ],
     "developer": "Inaayah Game Studio",
-    "coverArt": "./images/cyber-tactics-cover.jpg",
-    "heroBanner": "./images/cyber-tactics-banner.jpg",
+    "coverArt": "https://inaayah.dev/images/cyber-tactics-cover.jpg",
+    "heroBanner": "https://inaayah.dev/images/cyber-tactics-banner.jpg",
     "screenshots": [
-      "./images/cyber-tactics-banner.jpg",
-      "./images/cyber-tactics-cover.jpg"
+      "https://inaayah.dev/images/cyber-tactics-banner.jpg",
+      "https://inaayah.dev/images/cyber-tactics-cover.jpg"
     ],
     "sizeBytes": 115000000,
     "sizeFormatted": "109.6 MB",

@@ -41,6 +41,13 @@ export function getAssetUrl(rawPath: string | undefined | null): string {
     return './icon.png';
   }
 
+  // If path is a game asset (e.g. aether-rush, sundered-depths, kettle-court, cyber-tactics),
+  // route to Cloudflare edge CDN so packaged desktop launchers without bundled new images load them seamlessly
+  const filename = path.split('/').pop()?.split('?')[0] || '';
+  if (/^(aether-rush|sundered-depths|kettle-court|cyber-tactics)/i.test(filename)) {
+    return 'https://inaayah.dev/images/' + filename;
+  }
+
   // If path is a bare image filename (e.g. "aether-rush-cover.jpg"), route it to images/
   if (
     !path.startsWith('images/') &&
