@@ -114,7 +114,7 @@
     "slug": "kettle-court",
     "title": "Kettle Court",
     "subtitle": "Cozy Medieval Marketplace Digital Board & Table Game",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "releaseDate": "October 2026",
     "description": "Step into the bustling fairgrounds of Kettle Court! Gather your coin pouch and merchant honors in a lively medieval marketplace digital table game. Claim artisan stalls across Bakery Row, Candle Row, and Harbor Row, draw from the communal Weather Deck, bid at town auctions, and share hot kettle stipends with 2 to 5 players over instant edge multiplayer.",
     "genres": [
@@ -156,6 +156,20 @@
       "storage": "No local disk space required"
     },
     "changelog": [
+      {
+        "version": "1.0.5",
+        "date": "Oct 12, 2026",
+        "title": "Debt Settlement Mechanics & Village Ground Visual Overhaul",
+        "changes": [
+          "Introduced Debt Settlement Phase requiring insolvent debtors to liquidate assets, negotiate deed transfers, or seek Court relief",
+          "Added Town Mercy (court forgives debt, allowing debtor to stay in game with 0 coins) and Bankruptcy concession options",
+          "Enabled pawning stalls for emergency cash, selling back to the till at full price, and public auctions during debt settlement",
+          "Overhauled village view assets with custom foundation plinths, connecting cobblestone road aprons, and perimeter turf accents",
+          "Added multi-tier ambient contact occlusion and directional cast shadows under all 40 buildings, stalls, and central plaza props",
+          "Added recessed dark sockets and drop shadows under all 40 stepping stone discs",
+          "Updated comprehensive in-game rulebook and player handbook with debt settlement and court mercy guidance"
+        ]
+      },
       {
         "version": "v1.0.4",
         "date": "Oct 6, 2026",
