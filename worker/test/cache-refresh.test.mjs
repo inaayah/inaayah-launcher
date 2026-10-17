@@ -14,11 +14,11 @@ test('manual refresh prepares a new revision and rejects unsafe or reused revisi
   copyFileSync(new URL('../../scripts/refresh_release_cache.py', import.meta.url), script);
   const config = join(root, 'worker/wrangler.toml');
   writeFileSync(config, '[vars]\nCACHE_REVISION = "previous"\nCACHE_TTL_SECONDS = 604800\n');
-  assert.equal(spawnSync('python3', [script, 'v1.0.1', '--prepare-only']).status, 0);
+  assert.equal(spawnSync(process.platform === 'win32' ? 'python' : 'python3', [script, 'v1.0.1', '--prepare-only']).status, 0);
   const updated = readFileSync(config, 'utf8');
   assert.match(updated, /CACHE_REVISION = "v1.0.1"/);
   assert.match(updated, /CACHE_TTL_SECONDS = 604800/);
-  assert.notEqual(spawnSync('python3', [script, 'v1.0.1', '--prepare-only']).status, 0);
-  assert.notEqual(spawnSync('python3', [script, 'invalid revision!', '--prepare-only']).status, 0);
+  assert.notEqual(spawnSync(process.platform === 'win32' ? 'python' : 'python3', [script, 'v1.0.1', '--prepare-only']).status, 0);
+  assert.notEqual(spawnSync(process.platform === 'win32' ? 'python' : 'python3', [script, 'invalid revision!', '--prepare-only']).status, 0);
   assert.equal(readFileSync(config, 'utf8'), updated);
 });

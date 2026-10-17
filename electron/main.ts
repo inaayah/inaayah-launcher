@@ -6,9 +6,10 @@ import https from 'https';
 import http from 'http';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import { spawn, exec, ChildProcess } from 'child_process';
+import { spawn, exec, execFile, ChildProcess } from 'child_process';
 import AdmZip from 'adm-zip';
 import { autoUpdater } from 'electron-updater';
+import { macUpdatePaths, stagedAppMatchesVersion, macInstallScript } from './mac-update-state';
 
 interface LauncherConfig {
   libraryPath: string;
@@ -1165,7 +1166,7 @@ let isMacUpdateDownloading = false;
 
 async function downloadMacUpdateInBackground(version: string, cfg: LauncherConfig): Promise<void> {
   if (isMacUpdateDownloading) return;
-  if (macPendingUpdate && macPendingUpdate.version === version) {
+  if (macPendingUpdate && macPendingUpdate.version === version && await stagedAppMatchesVersion(macPendingUpdate.extractedAppPath, version)) {
     mainWindow?.webContents.send('launcher-update-ready', version);
     return;
   }
@@ -1174,16 +1175,14 @@ async function downloadMacUpdateInBackground(version: string, cfg: LauncherConfi
   console.log(`[MacUpdater] Initiating background download for v${version}...`);
 
   const updateDir = path.join(app.getPath('userData'), 'mac_update');
-  const zipPath = path.join(updateDir, `Inaayah-Launcher-${version}.zip`);
-  const extractedDir = path.join(updateDir, 'extracted');
-  const extractedAppPath = path.join(extractedDir, 'Inaayah Launcher.app');
+  const { zipPath, extractedDir, extractedAppPath } = macUpdatePaths(updateDir, version);
   const targetAppBundle = path.resolve(process.execPath, '../../../');
 
   try {
     fs.mkdirSync(extractedDir, { recursive: true });
 
     // Check if previously downloaded, extracted, and verified
-    if (fs.existsSync(path.join(extractedAppPath, 'Contents', 'Info.plist'))) {
+    if (await stagedAppMatchesVersion(extractedAppPath, version)) {
       console.log(`[MacUpdater] Update v${version} already downloaded and staged.`);
       macPendingUpdate = { version, extractedAppPath, targetAppBundle };
       mainWindow?.webContents.send('launcher-update-ready', version);
@@ -1215,7 +1214,7 @@ async function downloadMacUpdateInBackground(version: string, cfg: LauncherConfi
     }
 
     await new Promise<void>((resolve, reject) => {
-      exec(`/usr/bin/ditto -xk "${zipPath}" "${extractedDir}"`, (err, _stdout, stderr) => {
+      execFile('/usr/bin/ditto', ['-xk', zipPath, extractedDir], (err, _stdout, stderr) => {
         if (err) {
           console.error('[MacUpdater] ditto extract error:', stderr || err.message);
           return reject(err);
@@ -1224,13 +1223,9 @@ async function downloadMacUpdateInBackground(version: string, cfg: LauncherConfi
       });
     });
 
-    // Strip Gatekeeper quarantine recursively so it never triggers 'damaged' dialog
-    await new Promise<void>((resolve) => {
-      exec(`/usr/bin/xattr -cr "${extractedAppPath}"`, (err) => {
-        if (err) console.warn('[MacUpdater] xattr -cr warning:', err.message);
-        resolve();
-      });
-    });
+    if (!await stagedAppMatchesVersion(extractedAppPath, version)) {
+      throw new Error('Downloaded launcher does not match the requested version or is incomplete');
+    }
 
     try { fs.unlinkSync(zipPath); } catch {}
 
@@ -1250,6 +1245,7 @@ async function downloadMacUpdateInBackground(version: string, cfg: LauncherConfi
     }
   } catch (err: any) {
     console.error('[MacUpdater] Background update failed:', err.message);
+    if (Notification.isSupported()) new Notification({ title: 'Launcher update could not be prepared', body: err.message }).show();
   } finally {
     isMacUpdateDownloading = false;
   }
@@ -1370,29 +1366,13 @@ ipcMain.handle('launcher:restart-and-install-update', () => {
     if (macPendingUpdate && fs.existsSync(macPendingUpdate.extractedAppPath)) {
       console.log(`[MacUpdater] Executing in-place swap for: ${macPendingUpdate.targetAppBundle}`);
       const scriptPath = path.join(os.tmpdir(), `inaayah_mac_updater_${Date.now()}.sh`);
-      const scriptContent = `#!/bin/bash
-OLD_PID=${process.pid}
-NEW_APP="${macPendingUpdate.extractedAppPath}"
-TARGET_APP="${macPendingUpdate.targetAppBundle}"
-
-# Wait for old launcher process to exit cleanly
-while kill -0 "$OLD_PID" 2>/dev/null; do
-  sleep 0.1
-done
-
-# Atomically swap the .app directory using ditto (preserves permissions & Mach-O metadata)
-rm -rf "$TARGET_APP"
-/usr/bin/ditto "$NEW_APP" "$TARGET_APP"
-
-# Strip quarantine so Gatekeeper permits instant launch
-/usr/bin/xattr -cr "$TARGET_APP"
-
-# Launch the freshly updated application
-open "$TARGET_APP"
-
-# Cleanup updater script
-rm -f "$0"
-`;
+      const scriptContent = macInstallScript({
+        pid: process.pid,
+        source: macPendingUpdate.extractedAppPath,
+        target: macPendingUpdate.targetAppBundle,
+        version: macPendingUpdate.version,
+        logPath: path.join(app.getPath('userData'), 'mac_update', 'install.log')
+      });
       fs.writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
 
       // Spawn detached background process

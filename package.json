@@ -1,6 +1,6 @@
 {
   "name": "inaayah-launcher",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Official Steam-style Desktop Game Launcher & Auto-Updater for Inaayah Studio Games",
   "main": "dist-electron/main.js",
   "author": "Inaayah Games",
@@ -20,7 +20,8 @@
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major",
     "test:worker": "node --test worker/test/*.test.mjs",
-    "refresh:releases": "python3 scripts/refresh_release_cache.py"
+    "refresh:releases": "python3 scripts/refresh_release_cache.py",
+    "test:updater": "node --test electron/test/*.test.mjs"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",

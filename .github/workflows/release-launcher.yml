@@ -107,6 +107,12 @@ jobs:
           TAG_VERSION=${TAG#v}
           npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
 
+      - name: Validate updater and release gateway
+        run: |
+          npm run lint
+          npm run test:updater
+          npm run test:worker
+
       - name: Compile Application
         run: npm run build
 
