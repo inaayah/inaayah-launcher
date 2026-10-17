@@ -28,14 +28,14 @@
       "16:9 Framing"
     ],
     "developer": "Inaayah Game Studio",
-    "icon": "https://inaayah.dev/images/vigilante-red-city-icon.png",
-    "coverArt": "https://inaayah.dev/images/vigilante-red-city-cover.jpg",
-    "heroBanner": "https://inaayah.dev/images/vigilante-red-city-banner.jpg",
+    "icon": "https://inaayah.dev/images/vigilante-red-city-icon.png?v=1.0.1",
+    "coverArt": "https://inaayah.dev/images/vigilante-red-city-cover.jpg?v=1.0.1",
+    "heroBanner": "https://inaayah.dev/images/vigilante-red-city-banner.jpg?v=1.0.1",
     "screenshots": [
-      "https://inaayah.dev/images/vigilante-red-city-shot1.jpg",
-      "https://inaayah.dev/images/vigilante-red-city-shot2.jpg",
-      "https://inaayah.dev/images/vigilante-red-city-shot3.jpg",
-      "https://inaayah.dev/images/vigilante-red-city-shot4.jpg"
+      "https://inaayah.dev/images/vigilante-red-city-shot1.jpg?v=1.0.1",
+      "https://inaayah.dev/images/vigilante-red-city-shot2.jpg?v=1.0.1",
+      "https://inaayah.dev/images/vigilante-red-city-shot3.jpg?v=1.0.1",
+      "https://inaayah.dev/images/vigilante-red-city-shot4.jpg?v=1.0.1"
     ],
     "sizeFormatted": "398 MB",
     "githubRepo": "inaayah/vigilante-red-city",

@@ -136,3 +136,14 @@ test('a signed link near its expiry is refreshed before the signature becomes in
   assert.equal((await download()).status, 302);
   assert.equal(signedReads, 2);
 });
+
+test('manual cache refresh also changes artwork URLs for existing launchers', async t => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json([{ id: 'kettle-court', gameType: 'web',
+    coverArt: 'https://inaayah.dev/images/kettle-court-cover.jpg', heroBanner: './images/kettle-court-banner.jpg',
+    screenshots: ['https://inaayah.dev/images/kettle-court-shot1.jpg'] }]));
+  const response = await worker.fetch(request('/api/games'), env, {});
+  const [game] = await response.json();
+  assert.equal(game.coverArt, 'https://inaayah.dev/images/kettle-court-cover.jpg?v=test-v1');
+  assert.equal(game.heroBanner, 'https://inaayah.dev/images/kettle-court-banner.jpg?v=test-v1');
+  assert.equal(game.screenshots[0], 'https://inaayah.dev/images/kettle-court-shot1.jpg?v=test-v1');
+});

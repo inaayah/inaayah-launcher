@@ -92,3 +92,7 @@ Store the token as the Cloudflare worker secret named `GITHUB_TOKEN`.
 ## Validation
 
 Run `npm run test:worker` and `npx tsc --noEmit -p worker/tsconfig.json`.
+
+Catalog artwork hosted on `inaayah.dev/images/` receives the same cache revision
+as a URL query. Refreshing a release also refreshes artwork in older launchers,
+including clients that cached the previous missing-image response.

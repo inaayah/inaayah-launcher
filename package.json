@@ -64,7 +64,8 @@
         "dmg",
         "zip"
       ],
-      "category": "public.app-category.games"
+      "category": "public.app-category.games",
+      "artifactName": "Inaayah-Launcher-${version}-${arch}-mac.${ext}"
     },
     "win": {
       "target": [

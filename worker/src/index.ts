@@ -297,6 +297,22 @@ async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: E
   return entry.url;
 }
 
+function catalogArtwork(item: any, env: Env): any {
+  const resolve = (value: any) => {
+    if (typeof value !== 'string' || !value) return value;
+    try {
+      const url = new URL(value, 'https://inaayah.dev/');
+      if (url.hostname === 'inaayah.dev' && url.pathname.startsWith('/images/')) {
+        url.searchParams.set('v', env.CACHE_REVISION || 'initial');
+        return url.toString();
+      }
+    } catch {}
+    return value;
+  };
+  return { ...item, icon: resolve(item.icon), coverArt: resolve(item.coverArt), heroBanner: resolve(item.heroBanner),
+    ...(Array.isArray(item.screenshots) ? { screenshots: item.screenshots.map(resolve) } : {}) };
+}
+
 async function getDynamicCatalog(env: Env): Promise<any[]> {
   const org = env.GITHUB_ORG || 'inaayah';
   try {
@@ -328,7 +344,7 @@ async function getDynamicCatalog(env: Env): Promise<any[]> {
         console.warn(`Release metadata unavailable for ${repo}; using catalog entry`);
       }
     }));
-    return data;
+    return data.map(item => catalogArtwork(item, env));
   } catch (error) {
     console.error('Failed to load game catalog; using registered games');
   }
