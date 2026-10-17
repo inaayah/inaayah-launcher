@@ -18,7 +18,9 @@
     "release": "node scripts/release.js patch",
     "release:patch": "node scripts/release.js patch",
     "release:minor": "node scripts/release.js minor",
-    "release:major": "node scripts/release.js major"
+    "release:major": "node scripts/release.js major",
+    "test:worker": "node --test worker/test/*.test.mjs",
+    "refresh:releases": "python3 scripts/refresh_release_cache.py"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
