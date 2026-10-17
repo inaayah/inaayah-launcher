@@ -29,7 +29,7 @@ export const App: React.FC = () => {
   });
 
   const [currentTab, setCurrentTab] = useState<NavTab>('library');
-  const [selectedGameId, setSelectedGameId] = useState<string>('aether-rush');
+  const [selectedGameId, setSelectedGameId] = useState<string>('vigilante-red-city');
   const [isViewingDetail, setIsViewingDetail] = useState(false);
   const [installedGames, setInstalledGames] = useState<Record<string, InstalledGame>>({});
   const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>({});
@@ -49,8 +49,8 @@ export const App: React.FC = () => {
       const saved = localStorage.getItem('inaayah_owned_games');
       if (saved) return JSON.parse(saved);
     } catch {}
-    // Default games in user library: AetherRush & Kettle Court
-    return ['aether-rush', 'kettle-court'];
+    // New profiles start with the released studio games.
+    return ['vigilante-red-city', 'aether-rush', 'kettle-court'];
   });
 
   const handleAddToLibrary = (gameId: string) => {

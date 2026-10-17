@@ -1,5 +1,108 @@
 [
   {
+    "id": "vigilante-red-city",
+    "slug": "vigilante-red-city",
+    "title": "Vigilante: Red City",
+    "subtitle": "Comic-Style 2.5D Family Beat ’Em Up",
+    "version": "1.0.0",
+    "releaseDate": "October 17, 2026",
+    "description": "Fight through neon streets, subway platforms, Black Tide Docks, Foundry Mile and Red Tower in a five-stage comic rescue campaign. Play as Murat, Zeynep or Emir Demir to rescue Inaayah from Viktor Vance, who is holding her to force the family to surrender Crossroads Garage. Supports two-player local shared-screen, local split-screen and direct online co-op.",
+    "genres": [
+      "Action",
+      "Beat 'em Up",
+      "Arcade",
+      "Retro",
+      "Comic",
+      "Co-Op"
+    ],
+    "tags": [
+      "Godot 4.7.2",
+      "Comic-Style 2D Art",
+      "Five-Stage Campaign",
+      "Gamepad Controls",
+      "Local Shared Screen",
+      "Local Split Screen",
+      "Direct Online Co-Op",
+      "Vocal Nasheed Soundtrack",
+      "Borderless Fullscreen",
+      "16:9 Framing"
+    ],
+    "developer": "Inaayah Game Studio",
+    "icon": "https://inaayah.dev/images/vigilante-red-city-icon.png",
+    "coverArt": "https://inaayah.dev/images/vigilante-red-city-cover.jpg",
+    "heroBanner": "https://inaayah.dev/images/vigilante-red-city-banner.jpg",
+    "screenshots": [
+      "https://inaayah.dev/images/vigilante-red-city-shot1.jpg",
+      "https://inaayah.dev/images/vigilante-red-city-shot2.jpg",
+      "https://inaayah.dev/images/vigilante-red-city-shot3.jpg",
+      "https://inaayah.dev/images/vigilante-red-city-shot4.jpg"
+    ],
+    "sizeFormatted": "398 MB",
+    "githubRepo": "inaayah/vigilante-red-city",
+    "gameType": "desktop",
+    "executableNames": {
+      "darwin": "VigilanteRedCity.app/Contents/MacOS/Vigilante- Red City",
+      "win32": "VigilanteRedCity.exe",
+      "linux": "VigilanteRedCity.x86_64"
+    },
+    "assetPatterns": {
+      "darwin": "vigilante-red-city-macos-universal.zip",
+      "win32": "vigilante-red-city-windows-x86_64.zip",
+      "linux": "vigilante-red-city-linux-x86_64.zip"
+    },
+    "features": [
+      "Permanent sketchbook drawings and hero memories, plus a 71-page in-game comic unlocked chapter by chapter",
+      "Five connected stages with boss introductions, aftermath comics and a complete family rescue ending",
+      "Three playable heroes with distinct power, speed and electric fighting styles",
+      "2.5D ground-lane movement, jump attacks, combos, Murat’s grabs/throws and protected knockdown/get-up recovery",
+      "Two-player shared-screen, split-screen and host-authoritative direct online co-op with larger, tougher encounters",
+      "User-supplied Suno vocal nasheed soundtrack, recorded impact sounds and human effort/hurt performances",
+      "Saved audio, difficulty and display settings; fullscreen by default with fixed 16:9 framing and black bars on ultrawide displays",
+      "Quick Brawl stages unlock through saved stage completion progress"
+    ],
+    "requirements": {
+      "os": "macOS 13+ Apple Silicon / macOS 11+ Intel / Windows 10+ x86_64 / Linux x86_64; native validation on Apple Silicon",
+      "cpu": "64-bit desktop CPU; Apple M1 Pro tested",
+      "gpu": "Godot 4.7.2 Forward+ compatible GPU (Metal on macOS; Vulkan on Windows/Linux)",
+      "ram": "4 GB recommended; minimum not benchmarked",
+      "storage": "1.5 GB available space (including installation)"
+    },
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2026-10-17",
+        "title": "First public release",
+        "changes": [
+          "Five connected stages, three heroes, five bosses and the complete family rescue story",
+          "Solo, shared-screen, split-screen and direct online co-op",
+          "Vocal nasheed soundtrack, recorded combat effects and human voices",
+          "Chapter rewards, hero memories and a complete 71-page in-game comic gift",
+          "Saved settings, stage unlocks, default fullscreen and ultrawide framing",
+          "macOS Universal, Windows x86_64 and Linux x86_64 release packages; native playtesting on Apple Silicon"
+        ]
+      }
+    ],
+    "isComingSoon": false,
+    "downloads": {
+      "darwin": {
+        "name": "vigilante-red-city-macos-universal.zip",
+        "sizeBytes": 416834518,
+        "sha256": "707f9c4e5dace9fa522e491d3debcc58e53b199d27106191b6e39a5895b6d9ea"
+      },
+      "win32": {
+        "name": "vigilante-red-city-windows-x86_64.zip",
+        "sizeBytes": 388060538,
+        "sha256": "fffa810329111aa9ebd0d37d2c342c2c8c3728ff7462bee134dd416df1d8422a"
+      },
+      "linux": {
+        "name": "vigilante-red-city-linux-x86_64.zip",
+        "sizeBytes": 378273961,
+        "sha256": "e5f30f1a3f82b7a58c5e0f0ae61362692d881d4c9541456cd0c5a4e359178e9a"
+      }
+    },
+    "sizeBytes": 416834518
+  },
+  {
     "id": "aether-rush",
     "slug": "aether-rush",
     "title": "AetherRush: Cyber Brawler 3D",

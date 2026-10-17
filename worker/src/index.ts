@@ -5,6 +5,11 @@ export interface Env {
 }
 
 const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'desktop' | 'web'; webUrl?: string; isComingSoon?: boolean }> = {
+  'vigilante-red-city': {
+    repo: 'vigilante-red-city',
+    branch: 'main',
+    type: 'desktop'
+  },
   'aether-rush': {
     repo: 'aether-rush',
     branch: 'main',
@@ -400,7 +405,7 @@ async function getDynamicCatalog(env: Env): Promise<any[]> {
     fallbackList.push({
       id,
       slug: id,
-      title: id === "aether-rush" ? "AetherRush: Cyber Brawler 3D" : id === "kettle-court" ? "Kettle Court: Court of Kettle" : "Cyber Tactics",
+      title: id === "vigilante-red-city" ? "Vigilante: Red City" : id === "aether-rush" ? "AetherRush: Cyber Brawler 3D" : id === "kettle-court" ? "Kettle Court: Court of Kettle" : "Cyber Tactics",
       gameType: game.type,
       webUrl: game.webUrl,
       githubRepo: `${org}/${game.repo}`,

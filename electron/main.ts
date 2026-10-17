@@ -887,7 +887,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
 
       sendProgress('EXTRACTING', 100, 0, receivedBytes, totalBytes, 0);
       const zip = new AdmZip(tempZipPath);
-      zip.extractAllTo(gameDir, true);
+      zip.extractAllTo(gameDir, true, process.platform !== 'win32');
       try { fs.unlinkSync(tempZipPath); } catch {}
 
       // Write manifest
@@ -907,7 +907,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
             const full = path.join(dir, f.name);
             if (f.isDirectory()) {
               grantExec(full);
-            } else if (f.name.endsWith('.sh') || f.name.endsWith('.app') || !f.name.includes('.')) {
+            } else if (f.name.endsWith('.sh') || f.name.endsWith('.app') || f.name.endsWith('.x86_64') || f.name.endsWith('.x86') || !f.name.includes('.')) {
               try { fs.chmodSync(full, 0o755); } catch (e) {}
             }
           }
