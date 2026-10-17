@@ -189,11 +189,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
   return (
     <div className="hero-container">
       {/* Banner Header */}
-      <div
-        className="hero-banner"
-        style={{ backgroundImage: `url(${getAssetUrl(game.heroBanner)})` }}
-      >
-        <div className="hero-overlay" />
+      <div className="hero-banner">
 
         {/* Top Header Bar for Navigation */}
         <div className="hero-top-bar">
@@ -208,6 +204,8 @@ export const GameHero: React.FC<GameHeroProps> = ({
             </button>
           ) : <div />}
         </div>
+
+        <img className="hero-artwork" src={getAssetUrl(game.heroBanner)} alt={`${game.title} artwork`} />
 
         <div className="hero-content">
           <div className="hero-info">

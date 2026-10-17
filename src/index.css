@@ -495,24 +495,19 @@ body {
 }
 
 .hero-banner {
-  min-height: 420px;
   position: relative;
-  background-size: cover;
-  background-position: center 20%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 28px 40px 36px 40px;
-  overflow: hidden;
-  box-sizing: border-box;
   width: 100%;
+  background: var(--bg-primary);
 }
 
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(10, 12, 19, 0.3) 0%, rgba(10, 12, 19, 0.85) 75%, var(--bg-primary) 100%);
-  pointer-events: none;
+.hero-artwork {
+  display: block;
+  width: 100%;
+  max-height: clamp(220px, 44vh, 520px);
+  object-fit: contain;
+  background: #080b12;
 }
 
 .hero-top-bar {
@@ -522,10 +517,12 @@ body {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 24px;
+  padding: 16px 40px;
+  box-sizing: border-box;
 }
 
 .hero-content {
+  padding: 28px 40px 36px;
   position: relative;
   z-index: 10;
   display: flex;
@@ -1010,8 +1007,10 @@ body {
 
 .card-banner {
   height: 180px;
-  background-size: cover;
+  background-size: contain;
+  background-repeat: no-repeat;
   background-position: center;
+  background-color: #080b12;
   position: relative;
 }
 
@@ -1235,9 +1234,8 @@ body {
 
 /* Responsive adjustments to prevent bleeding */
 @media (max-width: 1120px) {
-  .hero-banner {
-    padding: 24px 28px 28px 28px;
-  }
+  .hero-top-bar { padding: 16px 28px; }
+  .hero-content { padding: 24px 28px 28px; }
   .hero-content {
     gap: 20px;
   }

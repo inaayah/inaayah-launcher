@@ -38,7 +38,8 @@ All game builds and updates are distributed directly from **GitHub Releases** (p
   - Checks remote GitHub repository releases for newer semantic versions.
   - Delta/package downloads with smooth progress bars and restart workflows.
 - **🛠️ Godot Local Dev Auto-Runner:**
-  - When running in developer mode, the launcher automatically detects local working directories (e.g. `/Users/sazid/Repositories/aether-rush/godot`) and launches the game directly using the local Godot 4.x engine!
+  - Detects Godot projects in sibling repositories, `~/Repositories`, `~/Projects`, `~/Development`, and Antigravity scratch workspaces, including symbolic links. Newly added projects are discovered when the library refreshes.
+  - Uses the project's executable `scripts/godot.sh` runner when available, preserving its pinned engine version. Otherwise it uses the installed Godot engine from the project directory.
 - **🌐 Nakama Multiplayer Monitoring:**
   - Status indicator pinging the central Inaayah Nakama cluster (`94.130.227.190:7350`).
 - **🎨 Frameless Cyberpunk Aesthetics:**

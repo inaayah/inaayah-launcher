@@ -10,6 +10,7 @@ import { spawn, exec, execFile, ChildProcess } from 'child_process';
 import AdmZip from 'adm-zip';
 import { autoUpdater } from 'electron-updater';
 import { macUpdatePaths, stagedAppMatchesVersion, macInstallScript } from './mac-update-state';
+import { localDevRoots, findLocalGodotProject, discoverLocalGodotProjects, localDevLaunch } from './local-dev';
 
 interface LauncherConfig {
   libraryPath: string;
@@ -38,28 +39,13 @@ const activeDownloads = new Map<string, { abort: () => void }>();
 
 // --- Cached & Background Asynchronous Discovery Helpers ---
 
-const devProjectCache = new Map<string, string | null>();
+function devSearchRoots(): string[] {
+  return localDevRoots(app.getPath('home'), app.getAppPath(), process.cwd());
+}
+
 function findLocalDevGodotProject(gameId: string): string | null {
-  if (devProjectCache.has(gameId)) return devProjectCache.get(gameId)!;
-  const home = app.getPath('home');
-  const candidates = [
-    path.resolve(app.getAppPath(), `../${gameId}/godot/project.godot`),
-    path.resolve(process.cwd(), `../${gameId}/godot/project.godot`),
-    path.join(home, `Repositories/${gameId}/godot/project.godot`),
-    path.join(home, `Projects/${gameId}/godot/project.godot`),
-    path.join(home, `Development/${gameId}/godot/project.godot`)
-  ];
-  for (const c of candidates) {
-    try {
-      if (fs.existsSync(c)) {
-        const dir = path.dirname(c);
-        devProjectCache.set(gameId, dir);
-        return dir;
-      }
-    } catch {}
-  }
-  devProjectCache.set(gameId, null);
-  return null;
+  // Recheck on refresh: a repo can be linked, moved or removed while the launcher is open.
+  return findLocalGodotProject(gameId, devSearchRoots());
 }
 
 let cachedGodotBinary: string | null | undefined = undefined;
@@ -239,25 +225,11 @@ async function scanInstalledGames(libraryPath?: string): Promise<Record<string, 
 
     // 1. Auto-detect local development workspace for games asynchronously (unless explicitly uninstalled)
     const godotBin = await resolveGodotBinaryAsync();
-    const candidateGameIds = new Set<string>(['aether-rush', 'sundered-depths', 'cyber-tactics', 'kettle-court']);
+    const localProjects = await discoverLocalGodotProjects(devSearchRoots());
 
-    // Discover any additional game repos in ~/Repositories that contain godot/project.godot
-    try {
-      const reposDir = path.join(app.getPath('home'), 'Repositories');
-      if (fs.existsSync(reposDir)) {
-        const entries = await fs.promises.readdir(reposDir, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory() && fs.existsSync(path.join(reposDir, entry.name, 'godot', 'project.godot'))) {
-            candidateGameIds.add(entry.name);
-          }
-        }
-      }
-    } catch {}
-
-    for (const gId of candidateGameIds) {
+    for (const [gId, localDevRepo] of localProjects) {
       if (uninstalledDevGames.has(gId)) continue;
-      const localDevRepo = findLocalDevGodotProject(gId);
-      if (localDevRepo && godotBin) {
+      if (godotBin) {
         installed[gId] = {
           id: gId,
           version: '0.1.0 (Local Dev)',
@@ -950,14 +922,17 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   const isPlaceholderScript = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
   const hasRealBinary = execPath && fs.existsSync(execPath) && !isPlaceholderScript;
 
-  // Development Fallback: If running in dev mode and repository is present, use installed Godot runner if no compiled binary exists!
-  if (!hasRealBinary) {
+  // Launch the same local source advertised by the library, even if a release is also installed.
+  const isLocalDev = cachedInstalledGames[gameId]?.version.includes('Local Dev');
+  if (!hasRealBinary || isLocalDev) {
     if (!uninstalledDevGames.has(gameId)) {
       const localDevRepo = findLocalDevGodotProject(gameId);
       const godotBin = await resolveGodotBinaryAsync();
       if (localDevRepo && godotBin) {
         console.log(`[Launcher] Launching ${gameId} directly via local development Godot engine (${godotBin})...`);
-        const child = spawn(godotBin, ['--path', localDevRepo, ...customArgs], {
+        const command = localDevLaunch(localDevRepo, godotBin, customArgs);
+        const child = spawn(command.executable, command.args, {
+          cwd: command.cwd,
           detached: true,
           stdio: 'ignore'
         });

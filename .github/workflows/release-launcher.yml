@@ -111,6 +111,7 @@ jobs:
         run: |
           npm run lint
           npm run test:updater
+          npm run test:local-dev
           npm run test:worker
 
       - name: Compile Application
