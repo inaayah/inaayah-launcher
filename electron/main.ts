@@ -786,7 +786,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     if (archive && (received !== archive.sizeBytes || checksum !== archive.sha256)) throw new Error('Downloaded game verification failed. Your existing installation is unchanged.');
     signal.throwIfAborted();
     const zip = new AdmZip(zipPath);
-    if (!zip.test()) throw new Error('Downloaded game archive is damaged');
+    // extractAllTo validates each entry's CRC; AdmZip 0.5.16's test() helper rejects valid archives.
     for (const entry of zip.getEntries()) {
       const name = entry.entryName.replace(/\/$/, '');
       if (!name || name.startsWith('/') || /[\\:\x00-\x1f]/.test(name) || name.split('/').some(p => !p || p === '.' || p === '..')) throw new Error('Invalid game archive path');

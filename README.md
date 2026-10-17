@@ -144,7 +144,7 @@ Installers are generated inside the `release/` folder.
 **Proprietary & Source-Available:** Copyright © 2026 Inaayah Studio. All rights reserved. Free for personal use to play official Inaayah Studio games. Commercial redistribution, rebranding, or reverse engineering of studio assets is strictly prohibited.
 
 
-## Incremental game updates (launcher 0.2.12+)
+## Incremental game updates (launcher 0.2.13+)
 
 Games may publish an `incremental` record per platform in their release manifest.
 Vigilante's `scripts/package_chunks.py` builds this data automatically from each
