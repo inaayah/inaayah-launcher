@@ -8,6 +8,8 @@ import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { spawn, exec, execFile, ChildProcess } from 'child_process';
 import AdmZip from 'adm-zip';
+import { createHash } from 'node:crypto';
+import { validateRecipe, installIncremental, commitInstall, recoverInterruptedInstalls } from './incremental-update';
 import { autoUpdater } from 'electron-updater';
 import { macUpdatePaths, stagedAppMatchesVersion, macInstallScript } from './mac-update-state';
 import { localDevRoots, findLocalGodotProject, discoverLocalGodotProjects, localDevLaunch } from './local-dev';
@@ -34,7 +36,7 @@ interface InstalledGameMeta {
 
 let mainWindow: BrowserWindow | null = null;
 const runningProcesses = new Map<string, { proc: ChildProcess; startTime: number }>();
-const activeDownloads = new Map<string, { abort: () => void }>();
+const activeDownloads = new Map<string, { abort: () => void; done: Promise<void> }>();
 
 
 // --- Cached & Background Asynchronous Discovery Helpers ---
@@ -222,6 +224,7 @@ async function scanInstalledGames(libraryPath?: string): Promise<Record<string, 
   try {
     const libPath = libraryPath || loadConfig().libraryPath;
     const installed: Record<string, InstalledGameMeta> = {};
+    await recoverInterruptedInstalls(libPath);
 
     // 1. Auto-detect local development workspace for games asynchronously (unless explicitly uninstalled)
     const godotBin = await resolveGodotBinaryAsync();
@@ -636,7 +639,6 @@ ipcMain.handle('launcher:cancel-download', async (_event, gameId: string) => {
   const active = activeDownloads.get(gameId);
   if (active) {
     active.abort();
-    activeDownloads.delete(gameId);
     return true;
   }
   return false;
@@ -644,6 +646,8 @@ ipcMain.handle('launcher:cancel-download', async (_event, gameId: string) => {
 
 ipcMain.handle('launcher:uninstall-game', async (_event, gameId: string) => {
   uninstalledDevGames.add(gameId);
+  const download = activeDownloads.get(gameId);
+  if (download) { download.abort(); await download.done; }
 
   if (runningProcesses.has(gameId)) {
     try {
@@ -694,220 +698,121 @@ ipcMain.handle('launcher:check-updates', async (_event, gameId: string, latestVe
 });
 
 ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVersion: string, downloadUrl?: string) => {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(gameId) || !/^\d+\.\d+\.\d+$/.test(targetVersion)) return false;
+  if (activeDownloads.has(gameId) || runningProcesses.has(gameId)) return false;
   const cfg = loadConfig();
   const gameDir = path.join(cfg.libraryPath, gameId);
-  fs.mkdirSync(gameDir, { recursive: true });
-
-  const tempZipPath = path.join(gameDir, `package_${Date.now()}.zip`);
-
-  const sendProgress = (phase: any, percentage: number, speed: number, received: number, total: number, eta: number, errorMsg?: string) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('download-progress', {
-        gameId,
-        bytesReceived: received,
-        totalBytes: total,
-        percentage,
-        speedBytesPerSec: speed,
-        etaSeconds: eta,
-        phase,
-        errorMsg
-      });
-    }
+  const controller = new AbortController();
+  const signal = controller.signal;
+  let finishDownload!: () => void;
+  const done = new Promise<void>(resolve => { finishDownload = resolve; });
+  activeDownloads.set(gameId, { abort: () => controller.abort(), done });
+  let progressPhase = '', phaseStarted = Date.now();
+  const sendProgress = (phase: string, received = 0, total = 0, errorMsg?: string) => {
+    if (phase !== progressPhase) { progressPhase = phase; phaseStarted = Date.now(); }
+    const speed = phase === 'DOWNLOADING' ? received / Math.max((Date.now() - phaseStarted) / 1000, 0.1) : 0;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.send('download-progress', { gameId, phase, bytesReceived: received, totalBytes: total,
+      percentage: total ? Math.round(received / total * 100) : 0, speedBytesPerSec: speed, etaSeconds: speed && total ? Math.max(0, (total - received) / speed) : 0, errorMsg });
   };
-
-  // If no downloadUrl is supplied, query the releases gateway for the real platform release
-  if (!downloadUrl) {
-    const platform = process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux';
-    const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
-    const candidateUrl = `${gatewayUrl}/api/games/${gameId}/download/${platform}`;
-    try {
-      const headCheck = await fetch(candidateUrl, {
-        method: 'HEAD',
-        redirect: 'follow',
-        headers: { 'User-Agent': 'InaayahLauncher' },
-        signal: AbortSignal.timeout(5000)
-      });
-      if (headCheck.ok) {
-        downloadUrl = headCheck.url;
-      }
-    } catch (e) {
-      console.warn(`[Launcher] Gateway query failed for ${candidateUrl}:`, e);
-    }
-  }
-
-  // If no downloadUrl is supplied or URL is unreachable, generate a realistic game runtime package!
-  if (!downloadUrl || downloadUrl.startsWith('mock://') || !downloadUrl.startsWith('http')) {
-    return new Promise<boolean>((resolve) => {
-      let percent = 0;
-      const totalBytes = 89450000;
-      let receivedBytes = 0;
-      const startTime = Date.now();
-
-      const timer = setInterval(() => {
-        percent += 4;
-        receivedBytes = Math.min(totalBytes, Math.round((percent / 100) * totalBytes));
-        const elapsedSec = (Date.now() - startTime) / 1000;
-        const speed = elapsedSec > 0 ? receivedBytes / elapsedSec : 12500000;
-        const remainingBytes = totalBytes - receivedBytes;
-        const eta = speed > 0 ? Math.round(remainingBytes / speed) : 0;
-
-        if (percent >= 100) {
-          clearInterval(timer);
-          activeDownloads.delete(gameId);
-
-          sendProgress('VERIFYING', 100, 0, totalBytes, totalBytes, 0);
-          setTimeout(() => {
-            sendProgress('EXTRACTING', 100, 0, totalBytes, totalBytes, 0);
-
-            const manifestData = {
-              id: gameId,
-              version: targetVersion || '1.2.0',
-              installedAt: Date.now(),
-              totalPlaytimeMinutes: 0,
-              lastPlayedAt: null
-            };
-            fs.writeFileSync(path.join(gameDir, 'manifest.json'), JSON.stringify(manifestData, null, 2));
-
-            const runScript = process.platform === 'win32'
-              ? `@echo off\necho Launching ${gameId}...\nstart "" cmd.exe /c "echo Running ${gameId} in sandbox mode... & timeout /t 3"\n`
-              : `#!/usr/bin/env bash\necho "Starting ${gameId}..."\n`;
-            const runFileName = process.platform === 'win32' ? 'launch.bat' : 'launch.sh';
-            const runFilePath = path.join(gameDir, runFileName);
-            fs.writeFileSync(runFilePath, runScript);
-            if (process.platform !== 'win32') {
-              try { fs.chmodSync(runFilePath, 0o755); } catch (e) {}
+  const gateway = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
+  const platform = process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux';
+  const assetUrl = (name: string) => `${gateway}/api/games/${gameId}/assets/${targetVersion}/${encodeURIComponent(name)}`;
+  let temporary: string | undefined;
+  try {
+    await fs.promises.mkdir(cfg.libraryPath, { recursive: true });
+    sendProgress('CONNECTING');
+    const res = await fetch(`${gateway}/api/games/${gameId}/manifest`, { signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]) });
+    if (!res.ok) throw new Error('Game release information is unavailable. Please retry.');
+    const release = await res.json();
+    if (release.id !== gameId || release.version !== targetVersion) throw new Error('The available release changed. Refresh the library and retry.');
+    const archive = release.downloads?.[platform];
+    let previous: Record<string, any> = {};
+    try { previous = JSON.parse(await fs.promises.readFile(path.join(gameDir, 'manifest.json'), 'utf8')); } catch {}
+    const metadata = { ...previous, id: gameId, version: targetVersion, installedAt: previous.installedAt || Date.now(),
+      totalPlaytimeMinutes: previous.totalPlaytimeMinutes || 0, lastPlayedAt: previous.lastPlayedAt || null };
+    const incremental = release.incremental?.[platform];
+    if (!downloadUrl && incremental && archive?.sizeBytes && fs.existsSync(gameDir)) {
+      try {
+        if (!/^[a-f0-9]{64}$/.test(incremental.sha256) || incremental.sizeBytes > 16 * 1024 ** 2) throw new Error('Invalid patch metadata');
+        const response = await fetch(assetUrl(incremental.manifest), { signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]) });
+        if (!response.ok) throw new Error('Patch metadata unavailable');
+        const bytes = Buffer.from(await response.arrayBuffer());
+        if (bytes.length !== incremental.sizeBytes || createHash('sha256').update(bytes).digest('hex') !== incremental.sha256) throw new Error('Patch manifest verification failed');
+        const recipe = validateRecipe(JSON.parse(bytes.toString('utf8')), gameId, targetVersion, platform);
+        if (recipe.dataAsset !== incremental.data || recipe.dataSize !== incremental.dataSize) throw new Error('Patch payload does not match release');
+        const result = await installIncremental({ recipe, gameDir, fullSize: archive.sizeBytes, signal, metadata,
+          progress: (phase, received, total) => sendProgress(phase, received, total),
+          range: async (start, end, total) => {
+            const response = await fetch(assetUrl(recipe.dataAsset), { headers: { Range: `bytes=${start}-${end}`, 'Accept-Encoding': 'identity' }, signal: AbortSignal.any([signal, AbortSignal.timeout(60000)]) });
+            if (response.status !== 206 || response.headers.get('content-range') !== `bytes ${start}-${end}/${total}`) {
+              await response.body?.cancel();
+              throw new Error('Server does not support patch ranges');
             }
-
-            setTimeout(async () => {
-              uninstalledDevGames.delete(gameId);
-              await scanInstalledGames();
-              sendProgress('COMPLETED', 100, 0, totalBytes, totalBytes, 0);
-              resolve(true);
-            }, 600);
-          }, 600);
-        } else {
-          sendProgress('DOWNLOADING', percent, speed, receivedBytes, totalBytes, eta);
-        }
-      }, 100);
-
-      activeDownloads.set(gameId, {
-        abort: () => {
-          clearInterval(timer);
-          activeDownloads.delete(gameId);
-          sendProgress('ERROR', 0, 0, 0, totalBytes, 0, 'Download cancelled');
-          resolve(false);
-        }
-      });
-    });
-  }
-
-  // Real HTTP / HTTPS Download Implementation using native fetch + stream pipeline
-  return new Promise<boolean>(async (resolve) => {
-    const abortController = new AbortController();
-    activeDownloads.set(gameId, {
-      abort: () => {
-        abortController.abort();
-        if (fs.existsSync(tempZipPath)) {
-          try { fs.unlinkSync(tempZipPath); } catch {}
-        }
-        activeDownloads.delete(gameId);
-        sendProgress('ERROR', 0, 0, 0, 0, 0, 'Cancelled');
-        resolve(false);
-      }
-    });
-
-    try {
-      sendProgress('CONNECTING', 0, 0, 0, 0, 0);
-      const res = await fetch(downloadUrl, {
-        redirect: 'follow',
-        headers: { 'User-Agent': 'InaayahLauncher' },
-        signal: abortController.signal
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
-      const totalBytes = parseInt(res.headers.get('content-length') || '0', 10);
-      let receivedBytes = 0;
-      let startTime = Date.now();
-      let lastReport = Date.now();
-
-      const fileStream = fs.createWriteStream(tempZipPath);
-      const webStream = res.body;
-      if (!webStream) throw new Error('Response stream body is null');
-
-      const nodeStream = Readable.fromWeb(webStream as any);
-
-      nodeStream.on('data', (chunk: Buffer) => {
-        receivedBytes += chunk.length;
-        const now = Date.now();
-        if (now - lastReport > 200) {
-          lastReport = now;
-          const elapsed = (now - startTime) / 1000;
-          const speed = elapsed > 0 ? receivedBytes / elapsed : 0;
-          const pct = totalBytes > 0 ? Math.round((receivedBytes / totalBytes) * 100) : 0;
-          const eta = speed > 0 && totalBytes > 0 ? Math.round((totalBytes - receivedBytes) / speed) : 0;
-          sendProgress('DOWNLOADING', pct, speed, receivedBytes, totalBytes, eta);
-        }
-      });
-
-      await pipeline(nodeStream, fileStream);
-
-      activeDownloads.delete(gameId);
-
-      sendProgress('VERIFYING', 100, 0, receivedBytes, totalBytes, 0);
-
-      sendProgress('EXTRACTING', 100, 0, receivedBytes, totalBytes, 0);
-      const zip = new AdmZip(tempZipPath);
-      zip.extractAllTo(gameDir, true, process.platform !== 'win32');
-      try { fs.unlinkSync(tempZipPath); } catch {}
-
-      // Write manifest
-      const manifestData = {
-        id: gameId,
-        version: targetVersion,
-        installedAt: Date.now(),
-        totalPlaytimeMinutes: 0,
-        lastPlayedAt: null
-      };
-      fs.writeFileSync(path.join(gameDir, 'manifest.json'), JSON.stringify(manifestData, null, 2));
-
-      // Mark all shell scripts and binaries as executable on Unix
-      if (process.platform !== 'win32') {
-        const grantExec = (dir: string) => {
-          for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
-            const full = path.join(dir, f.name);
-            if (f.isDirectory()) {
-              grantExec(full);
-            } else if (f.name.endsWith('.sh') || f.name.endsWith('.app') || f.name.endsWith('.x86_64') || f.name.endsWith('.x86') || !f.name.includes('.')) {
-              try { fs.chmodSync(full, 0o755); } catch (e) {}
-            }
+            return Buffer.from(await response.arrayBuffer());
           }
-        };
-        grantExec(gameDir);
+        });
+        if (result) {
+          console.log(`[Updater] ${gameId}: downloaded ${result.downloadedBytes} patch bytes; reused ${result.reusedBytes} installed bytes`);
+          uninstalledDevGames.delete(gameId);
+          await scanInstalledGames();
+          sendProgress('COMPLETED', result.downloadedBytes, result.downloadedBytes);
+          return true;
+        }
+      } catch (error: any) {
+        signal.throwIfAborted();
+        console.warn(`[Updater] Incremental update unavailable; using full package: ${error.message}`);
       }
-
-      uninstalledDevGames.delete(gameId);
-      await scanInstalledGames();
-      sendProgress('COMPLETED', 100, 0, receivedBytes, totalBytes, 0);
-      resolve(true);
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        return;
-      }
-      console.error('Download/Extraction failed:', err);
-      if (fs.existsSync(tempZipPath)) {
-        try { fs.unlinkSync(tempZipPath); } catch {}
-      }
-      activeDownloads.delete(gameId);
-      sendProgress('ERROR', 0, 0, 0, 0, 0, err.message);
-      resolve(false);
     }
-  });
+    signal.throwIfAborted();
+    temporary = await fs.promises.mkdtemp(path.join(cfg.libraryPath, '.inaayah-download-'));
+    const zipPath = path.join(temporary, 'package.zip');
+    const stage = path.join(temporary, 'content');
+    // Older games can continue using their normal platform download endpoint.
+    const url = downloadUrl || (archive?.name ? assetUrl(archive.name) : `${gateway}/api/games/${gameId}/download/${platform}`);
+    const response = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'InaayahLauncher' }, signal });
+    if (!response.ok || !response.body) throw new Error(`Game download failed (HTTP ${response.status})`);
+    const total = archive?.sizeBytes || Number(response.headers.get('content-length')) || 0;
+    const digest = createHash('sha256');
+    let received = 0, lastReport = 0;
+    const stream = Readable.fromWeb(response.body as any);
+    stream.on('data', (chunk: Buffer) => {
+      received += chunk.length; digest.update(chunk);
+      if (Date.now() - lastReport > 200) { lastReport = Date.now(); sendProgress('DOWNLOADING', received, total); }
+    });
+    await pipeline(stream, fs.createWriteStream(zipPath), { signal });
+    sendProgress('VERIFYING', received, total);
+    const checksum = digest.digest('hex');
+    if (archive && (received !== archive.sizeBytes || checksum !== archive.sha256)) throw new Error('Downloaded game verification failed. Your existing installation is unchanged.');
+    signal.throwIfAborted();
+    const zip = new AdmZip(zipPath);
+    if (!zip.test()) throw new Error('Downloaded game archive is damaged');
+    for (const entry of zip.getEntries()) {
+      const name = entry.entryName.replace(/\/$/, '');
+      if (!name || name.startsWith('/') || /[\\:\x00-\x1f]/.test(name) || name.split('/').some(p => !p || p === '.' || p === '..')) throw new Error('Invalid game archive path');
+    }
+    sendProgress('EXTRACTING', received, total);
+    await fs.promises.mkdir(stage);
+    zip.extractAllTo(stage, true, process.platform !== 'win32');
+    if (!await findGameExecutable(stage)) throw new Error('Game package has no executable');
+    await fs.promises.writeFile(path.join(stage, 'manifest.json'), JSON.stringify(metadata, null, 2));
+    await commitInstall(stage, gameDir, signal);
+    uninstalledDevGames.delete(gameId);
+    await scanInstalledGames();
+    sendProgress('COMPLETED', received, total);
+    return true;
+  } catch (error: any) {
+    sendProgress('ERROR', 0, 0, signal.aborted ? 'Download cancelled' : error.message);
+    return false;
+  } finally {
+    activeDownloads.delete(gameId);
+    if (temporary) await fs.promises.rm(temporary, { recursive: true, force: true }).catch(() => {});
+    finishDownload();
+  }
 });
 
 ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs: string[] = []) => {
+  if (activeDownloads.has(gameId)) return false;
   const cfg = loadConfig();
   const gameDir = path.join(cfg.libraryPath, gameId);
 

@@ -39,7 +39,7 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range'
 };
 
 export default {
@@ -119,6 +119,23 @@ export default {
           status: 500,
           headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
         });
+      }
+    }
+
+    // Immutable release assets support byte ranges after the secure CDN redirect.
+    const assetMatch = pathname.match(/^\/api\/games\/([a-z0-9-]+)\/assets\/(\d+\.\d+\.\d+)\/([a-zA-Z0-9._-]+)$/);
+    if (assetMatch) {
+      const [, gameId, version, name] = assetMatch;
+      const repo = REGISTERED_GAMES[gameId]?.repo;
+      if (!repo) return new Response('Game not found', { status: 404, headers: CORS_HEADERS });
+      try {
+        const release = await fetchTaggedRelease(repo, version, env);
+        const asset = release.assets.find((a: any) => a.name === name);
+        if (!asset) return new Response('Asset not found', { status: 404, headers: CORS_HEADERS });
+        const location = await assetDownloadUrl(repo, asset.id, env);
+        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: location, 'Cache-Control': 'no-store' } });
+      } catch {
+        return new Response('Release asset unavailable', { status: 503, headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' } });
       }
     }
 
@@ -231,6 +248,24 @@ async function fetchLatestRelease(repo: string, env: Env): Promise<any> {
   });
 }
 
+async function fetchTaggedRelease(repo: string, version: string, env: Env): Promise<any> {
+  return cachedJSON(`releases/${repo}/tags/v${version}`, env, async () => {
+    const org = env.GITHUB_ORG || 'inaayah';
+    const response = await fetch(`https://api.github.com/repos/${org}/${repo}/releases/tags/v${version}`, { headers: githubHeaders(env), cache: 'no-store' });
+    if (!response.ok) throw new Error('Release not found');
+    const data: any = await response.json();
+    if (data.tag_name !== `v${version}` || !Array.isArray(data.assets)) throw new Error('Invalid tagged release');
+    return { version: data.tag_name, assets: data.assets.map((a: any) => ({ name: a.name, size: a.size, id: a.id })) };
+  });
+}
+
+async function assetDownloadUrl(repo: string, id: number, env: Env): Promise<string> {
+  const entry = await cachedJSON(`signed/${repo}/${id}`, env, async () => ({
+    url: signedRedirect(await githubAsset(repo, id, env))
+  }), 60, entry => signedLinkTTL(entry.url));
+  return entry.url;
+}
+
 async function githubAsset(repo: string, id: number, env: Env): Promise<Response> {
   const org = env.GITHUB_ORG || 'inaayah';
   return fetch(`https://api.github.com/repos/${org}/${repo}/releases/assets/${id}`, {
@@ -291,10 +326,7 @@ async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: E
   if (!asset) throw new Error(`No matching release asset found for platform '${platform}' in ${release.version}`);
 
   // Signed links expire independently of metadata. Reuse them for only one minute.
-  const entry = await cachedJSON(`signed/${repo}/${asset.id}`, env, async () => ({
-    url: signedRedirect(await githubAsset(repo, asset.id, env))
-  }), 60, entry => signedLinkTTL(entry.url));
-  return entry.url;
+  return assetDownloadUrl(repo, asset.id, env);
 }
 
 function catalogArtwork(item: any, env: Env): any {

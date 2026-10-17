@@ -92,7 +92,7 @@ inaayah-launcher/
 ## 🛠️ Development & Running Locally
 
 ### 1. Prerequisites
-- **Node.js**: v18.0.0 or higher
+- **Node.js**: v20.0.0 or higher
 - **npm**: v9.0.0 or higher
 
 ### 2. Install Dependencies
@@ -135,9 +135,40 @@ Installers are generated inside the `release/` folder.
      git push origin v1.2.0
      ```
    - The GitHub Actions workflow (`.github/workflows/release.yml`) builds the release and uploads the `.zip` packages automatically.
-3. The launcher automatically queries the manifest and alerts all players with an **"UPDATE AVAILABLE"** one-click install button!
+3. Refresh the release cache with `npm run refresh:releases -- GAME-vVERSION` after the release is published. This keeps seven-day edge caching while making the release available immediately.
+4. The launcher automatically queries the manifest and alerts all players with an **"UPDATE AVAILABLE"** one-click install button!
 
 ---
 
 ## 📄 License
 **Proprietary & Source-Available:** Copyright © 2026 Inaayah Studio. All rights reserved. Free for personal use to play official Inaayah Studio games. Commercial redistribution, rebranding, or reverse engineering of studio assets is strictly prohibited.
+
+
+## Incremental game updates (launcher 0.2.12+)
+
+Games may publish an `incremental` record per platform in their release manifest.
+Vigilante's `scripts/package_chunks.py` builds this data automatically from each
+runtime ZIP in release CI. The JSON recipe lists exact runtime paths, modes,
+SHA-256 hashes and content-defined chunks; one `.bin` asset stores independently
+compressed chunks. No source art, tests or documentation is added to game installs.
+
+The launcher hashes the existing runtime, reuses matching chunks and requests
+only changed ranges from the version-pinned release asset. Nearby ranges are
+combined to reduce requests. This works across skipped versions, without keeping
+old download archives or generating a separate patch for every version pair.
+If the patch would cost at least 80% of the ZIP, or ranges/verification fail, the
+launcher downloads the normal package instead. Whole ZIP downloads also verify
+published size and SHA-256 when the game provides them.
+
+Both paths assemble a separate installation, retain playtime metadata, and replace
+the game only after verification. Failed/cancelled updates leave the previous
+installation intact. Startup restores an interrupted folder replacement from its
+backup. User saves remain in Godot's separate user-data directory. A running game
+cannot be updated. Initial installs continue to use the normal runtime ZIP.
+
+Release/tag metadata stays in the seven-day edge cache. Signed asset redirects
+are reused for at most one minute, so patch ranges do not each require a GitHub
+API call. The worker never forwards the private token to the download CDN.
+
+Run `npm run test:incremental` for compatibility, corruption, cancellation,
+rollback, interrupted-install recovery and path-validation checks.

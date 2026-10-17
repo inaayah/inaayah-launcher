@@ -147,3 +147,31 @@ test('manual cache refresh also changes artwork URLs for existing launchers', as
   assert.equal(game.heroBanner, 'https://inaayah.dev/images/kettle-court-banner.jpg?v=test-v1');
   assert.equal(game.screenshots[0], 'https://inaayah.dev/images/kettle-court-shot1.jpg?v=test-v1');
 });
+
+
+test('version-pinned patch assets reuse metadata and short-lived redirects without forwarding credentials', async t => {
+  let releaseReads = 0, signedReads = 0;
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    if (url.endsWith('/releases/tags/v1.0.2')) {
+      releaseReads++;
+      return Response.json({ tag_name: 'v1.0.2', assets: [{ id: 901, name: 'vigilante-red-city-darwin-chunks.bin' }] });
+    }
+    if (url.endsWith('/releases/assets/901')) {
+      signedReads++;
+      assert.equal(init.redirect, 'manual');
+      return new Response(null, { status: 302, headers: { Location: 'https://example.test/chunks.bin' } });
+    }
+    throw new Error('Unexpected request');
+  });
+  const asset = '/api/games/vigilante-red-city/assets/1.0.2/vigilante-red-city-darwin-chunks.bin';
+  for (let i = 0; i < 3; i++) {
+    const response = await worker.fetch(request(asset), env, {});
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get('Location'), 'https://example.test/chunks.bin');
+    assert.equal(response.headers.get('Authorization'), null);
+  }
+  assert.equal(releaseReads, 1);
+  assert.equal(signedReads, 1);
+  assert.equal((await worker.fetch(request(asset.replace('chunks.bin', 'absent.bin')), env, {})).status, 404);
+  assert.equal((await worker.fetch(request(asset.replace('vigilante-red-city/assets', 'unregistered/assets')), env, {})).status, 404);
+});

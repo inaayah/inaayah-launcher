@@ -16,4 +16,4 @@ routes = [
 [vars]
 GITHUB_ORG = "inaayah"
 CACHE_TTL_SECONDS = 604800
-CACHE_REVISION = "launcher-v0.2.11"
+CACHE_REVISION = "vigilante-v1.0.2"

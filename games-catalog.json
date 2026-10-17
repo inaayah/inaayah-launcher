@@ -4,7 +4,7 @@
     "slug": "vigilante-red-city",
     "title": "Vigilante: Red City",
     "subtitle": "Comic-Style 2.5D Family Beat ’Em Up",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "releaseDate": "October 17, 2026",
     "description": "Fight through neon streets, subway platforms, Black Tide Docks, Foundry Mile and Red Tower in a five-stage comic rescue campaign. Play as Murat, Zeynep or Emir Demir to rescue Inaayah from Viktor Vance, who is holding her to force the family to surrender Crossroads Garage. Supports two-player local shared-screen, local split-screen and direct online co-op.",
     "genres": [
@@ -28,14 +28,14 @@
       "16:9 Framing"
     ],
     "developer": "Inaayah Game Studio",
-    "icon": "https://inaayah.dev/images/vigilante-red-city-icon.png?v=1.0.1",
-    "coverArt": "https://inaayah.dev/images/vigilante-red-city-cover.jpg?v=1.0.1",
-    "heroBanner": "https://inaayah.dev/images/vigilante-red-city-banner.jpg?v=1.0.1",
+    "icon": "https://inaayah.dev/images/vigilante-red-city-icon.png",
+    "coverArt": "https://inaayah.dev/images/vigilante-red-city-cover.jpg",
+    "heroBanner": "https://inaayah.dev/images/vigilante-red-city-banner.jpg",
     "screenshots": [
-      "https://inaayah.dev/images/vigilante-red-city-shot1.jpg?v=1.0.1",
-      "https://inaayah.dev/images/vigilante-red-city-shot2.jpg?v=1.0.1",
-      "https://inaayah.dev/images/vigilante-red-city-shot3.jpg?v=1.0.1",
-      "https://inaayah.dev/images/vigilante-red-city-shot4.jpg?v=1.0.1"
+      "https://inaayah.dev/images/vigilante-red-city-shot1.jpg",
+      "https://inaayah.dev/images/vigilante-red-city-shot2.jpg",
+      "https://inaayah.dev/images/vigilante-red-city-shot3.jpg",
+      "https://inaayah.dev/images/vigilante-red-city-shot4.jpg"
     ],
     "sizeFormatted": "398 MB",
     "githubRepo": "inaayah/vigilante-red-city",
@@ -69,6 +69,16 @@
     },
     "changelog": [
       {
+        "version": "1.0.2",
+        "date": "2026-10-17",
+        "title": "Street enemy poses and finale continuity",
+        "changes": [
+          "Street enemies wait in grounded standing poses instead of sitting in midair.",
+          "Waiting bikers no longer repeatedly draw and put away their pipes.",
+          "All five Vance finale panels match his final combat outfit, with one Vance in the final group attack."
+        ]
+      },
+      {
         "version": "1.0.1",
         "date": "2026-10-17",
         "title": "Inaayah’s scream balloon correction",
@@ -95,21 +105,44 @@
     "downloads": {
       "darwin": {
         "name": "vigilante-red-city-macos-universal.zip",
-        "sizeBytes": 416825470,
-        "sha256": "fe44ab30be2cbc4659afe0d6bb255927f91bfeb26f1322b46263b751c2a069d0"
+        "sizeBytes": 416853169,
+        "sha256": "50c3d4b5d45f9bdd65357ae399e3761c111dbdfe399526bef2acf36071ff8b5c"
       },
       "win32": {
         "name": "vigilante-red-city-windows-x86_64.zip",
-        "sizeBytes": 388051883,
-        "sha256": "f60c170d65a08ec2d5457b159ca8bb809e76f391f58d48f9b26c6e9f3dd7f00d"
+        "sizeBytes": 388079413,
+        "sha256": "c814e558cf3690146071cb38cef360b7db1402fe84e6973a12b966608c1006b3"
       },
       "linux": {
         "name": "vigilante-red-city-linux-x86_64.zip",
-        "sizeBytes": 378265307,
-        "sha256": "df7dd7dd41f723b83d0951dc1dcedf502ae5e00c37de5e3c81ee6cc41c05e34e"
+        "sizeBytes": 378292833,
+        "sha256": "ec1bcd34c3cd080253be414fe86d5788f21ddcdeee58afaae3466e5b1f0bac63"
       }
     },
-    "sizeBytes": 416825470
+    "sizeBytes": 416853169,
+    "incremental": {
+      "darwin": {
+        "manifest": "vigilante-red-city-darwin-chunks.json",
+        "sha256": "51b3284c71a703767a18674d1e452904f031894eab3b48173f69fdcb94a5c623",
+        "sizeBytes": 302623,
+        "data": "vigilante-red-city-darwin-chunks.bin",
+        "dataSize": 414312619
+      },
+      "win32": {
+        "manifest": "vigilante-red-city-win32-chunks.json",
+        "sha256": "38ede47ceeb8655f104ce4872737fee39c44fad6fcdb1d7f30465ecba96d7b0d",
+        "sizeBytes": 263234,
+        "data": "vigilante-red-city-win32-chunks.bin",
+        "dataSize": 388327676
+      },
+      "linux": {
+        "manifest": "vigilante-red-city-linux-chunks.json",
+        "sha256": "e2eb724dcf24751e0e381f20fef3184596faba8304d7dd8943993322ae9672ca",
+        "sizeBytes": 250733,
+        "data": "vigilante-red-city-linux-chunks.bin",
+        "dataSize": 378463836
+      }
+    }
   },
   {
     "id": "aether-rush",
