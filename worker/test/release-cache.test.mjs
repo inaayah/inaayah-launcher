@@ -1,8 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import test, { beforeEach } from 'node:test';
 import { build } from 'esbuild';
 
-const { outputFiles } = await build({ entryPoints: [new URL('../src/index.ts', import.meta.url).pathname], bundle: true, write: false, platform: 'browser', format: 'esm', target: 'es2022' });
+const { outputFiles } = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))], bundle: true, write: false, platform: 'browser', format: 'esm', target: 'es2022' });
 const { default: worker } = await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text).toString('base64')}`);
 const env = { GITHUB_ORG: 'inaayah', GITHUB_TOKEN: 'test-read-token', CACHE_TTL_SECONDS: 604800, CACHE_REVISION: 'test-v1' };
 const release = { tag_name: 'v1.0.1', name: 'Vigilante: Red City v1.0.1', assets: [

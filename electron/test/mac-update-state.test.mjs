@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
@@ -6,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const { outputFiles } = await build({ entryPoints: [new URL('../mac-update-state.ts', import.meta.url).pathname], bundle: true, write: false, platform: 'node', format: 'esm', target: 'es2022' });
+const { outputFiles } = await build({ entryPoints: [fileURLToPath(new URL('../mac-update-state.ts', import.meta.url))], bundle: true, write: false, platform: 'node', format: 'esm', target: 'es2022' });
 const { macUpdatePaths, stagedAppMatchesVersion, macInstallScript } = await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text).toString('base64')}`);
 
 test('updates use separate version folders and reject path traversal', () => {
