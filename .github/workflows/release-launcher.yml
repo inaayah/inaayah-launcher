@@ -164,7 +164,7 @@ jobs:
       - name: Refresh Cloudflare Worker Release Cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || '107b188591986cb056d372e944a133d0' }}
         run: |
           if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
             echo "::warning::CLOUDFLARE_API_TOKEN not set; skipping automatic worker cache refresh."
