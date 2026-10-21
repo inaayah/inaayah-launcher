@@ -187,7 +187,7 @@ export const StudioAnalytics: React.FC<StudioAnalyticsProps> = ({ currentUser, g
         <div className="analytics-panel">
           <div className="analytics-panel-header">
             <BarChart3 size={16} color="var(--accent-cyan)" />
-            <h3>Game Downloads Breakdown</h3>
+            <h3>Game Downloads & Web Sessions</h3>
           </div>
           <div className="analytics-table-wrap">
             <table className="analytics-table">
@@ -195,19 +195,45 @@ export const StudioAnalytics: React.FC<StudioAnalyticsProps> = ({ currentUser, g
                 <tr>
                   <th>Game Title</th>
                   <th>Latest Release</th>
-                  <th>GitHub CDN</th>
-                  <th>Launcher Direct</th>
+                  <th>CDN / Web Plays</th>
+                  <th>Launcher Plays</th>
                   <th>Total</th>
                 </tr>
               </thead>
               <tbody>
                 {(data?.gameMetrics || []).map((g) => (
                   <tr key={g.gameId}>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{g.title}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>{g.title}</span>
+                        {g.gameType === 'web' && (
+                          <span
+                            className="role-pill admin"
+                            style={{ fontSize: 9, padding: '1px 6px' }}
+                            title="Browser-based Web Game"
+                          >
+                            WEB
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td>
                       <span className="studio-badge">v{g.version}</span>
                     </td>
-                    <td className="mono">{g.githubDownloads.toLocaleString()}</td>
+                    <td className="mono">
+                      {g.githubDownloads.toLocaleString()}
+                      {typeof g.onlinePlayers === 'number' && g.onlinePlayers > 0 && (
+                        <span
+                          style={{
+                            marginLeft: 6,
+                            fontSize: 10,
+                            color: 'var(--accent-green)'
+                          }}
+                        >
+                          ({g.onlinePlayers} online)
+                        </span>
+                      )}
+                    </td>
                     <td className="mono">{g.trackedDownloads.toLocaleString()}</td>
                     <td className="mono" style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
                       {g.totalDownloads.toLocaleString()}

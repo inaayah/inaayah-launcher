@@ -223,7 +223,14 @@ export default {
 
 async function getGithubReleaseStats(env: Env): Promise<{
   launcherDownloads: number;
-  games: Array<{ gameId: string; title: string; version: string; githubDownloads: number }>;
+  games: Array<{
+    gameId: string;
+    title: string;
+    version: string;
+    gameType?: 'desktop' | 'web';
+    githubDownloads: number;
+    onlinePlayers?: number;
+  }>;
 }> {
   let launcherDownloads = 0;
   try {
@@ -236,20 +243,44 @@ async function getGithubReleaseStats(env: Env): Promise<{
     }
   } catch {}
 
-  const desktopGames = Object.entries(REGISTERED_GAMES).filter(
-    ([, cfg]) => cfg.type === 'desktop' && !cfg.isComingSoon
-  );
+  const releasedGames = Object.entries(REGISTERED_GAMES).filter(([, cfg]) => !cfg.isComingSoon);
 
   const games = await Promise.all(
-    desktopGames.map(async ([gameId, cfg]) => {
+    releasedGames.map(async ([gameId, cfg]) => {
       let version = '1.0.0';
       let githubDownloads = 0;
+      let onlinePlayers: number | undefined = undefined;
       const title =
         gameId === 'vigilante-red-city'
           ? 'Vigilante: Red City'
           : gameId === 'aether-rush'
           ? 'AetherRush: Cyber Brawler 3D'
+          : gameId === 'kettle-court'
+          ? 'Kettle Court: Court of Kettle'
           : gameId;
+
+      if (cfg.type === 'web' && cfg.webUrl) {
+        try {
+          const statsUrl = `${cfg.webUrl.replace(/\/$/, '')}/api/stats`;
+          const res = await fetch(statsUrl, {
+            headers: { 'User-Agent': 'Inaayah-Releases-Worker' },
+            cache: 'no-store'
+          });
+          if (res.ok) {
+            const webStats: any = await res.json();
+            if (typeof webStats.version === 'string') {
+              version = webStats.version.replace(/^v/, '');
+            }
+            githubDownloads =
+              Number(webStats.totalPlays ?? webStats.totalSessions ?? webStats.uniquePlayers) || 0;
+            if (typeof webStats.onlineNow === 'number' || typeof webStats.activePlayers === 'number') {
+              onlinePlayers = Number(webStats.onlineNow ?? webStats.activePlayers) || 0;
+            }
+          }
+        } catch {}
+        return { gameId, title, version, gameType: 'web' as const, githubDownloads, onlinePlayers };
+      }
+
       try {
         const rel = await fetchLatestRelease(cfg.repo, env);
         version = (rel?.version || '1.0.0').replace(/^v/, '');
@@ -260,7 +291,7 @@ async function getGithubReleaseStats(env: Env): Promise<{
           );
         }
       } catch {}
-      return { gameId, title, version, githubDownloads };
+      return { gameId, title, version, gameType: 'desktop' as const, githubDownloads };
     })
   );
 

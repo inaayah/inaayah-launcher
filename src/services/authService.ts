@@ -604,7 +604,7 @@ export const authService = {
     const appVersion = await launcherBridge.getAppVersion().catch(() => APP_VERSION);
     const platform = detectPlatform();
 
-    if (eventType === 'game_download' && extra?.gameId) {
+    if ((eventType === 'game_download' || eventType === 'game_launch') && extra?.gameId) {
       try {
         const raw = localStorage.getItem(STORAGE_LOCAL_DOWNLOADS_KEY);
         const map: Record<string, number> = raw ? JSON.parse(raw) : {};
@@ -682,9 +682,20 @@ export const authService = {
       }
     } catch {}
 
-    const gameTargets = [
-      { gameId: 'vigilante-red-city', title: 'Vigilante: Red City' },
-      { gameId: 'aether-rush', title: 'AetherRush: Cyber Brawler 3D' }
+    const gameTargets: Array<{
+      gameId: string;
+      title: string;
+      gameType: 'desktop' | 'web';
+      webUrl?: string;
+    }> = [
+      { gameId: 'vigilante-red-city', title: 'Vigilante: Red City', gameType: 'desktop' },
+      { gameId: 'aether-rush', title: 'AetherRush: Cyber Brawler 3D', gameType: 'desktop' },
+      {
+        gameId: 'kettle-court',
+        title: 'Kettle Court: Court of Kettle',
+        gameType: 'web',
+        webUrl: 'https://kettle-court.inaayah.dev'
+      }
     ];
 
     let localDownloadsMap: Record<string, number> = {};
@@ -697,29 +708,48 @@ export const authService = {
       gameTargets.map(async (g) => {
         let version = '1.0.0';
         let githubDownloads = 0;
-        try {
-          const r = await fetch(`${base}/api/games/${g.gameId}/releases/latest`, {
-            signal: AbortSignal.timeout(4000)
-          });
-          if (r.ok) {
-            const d = await r.json();
-            version = (d?.version || '1.0.0').replace(/^v/, '');
-            if (Array.isArray(d?.assets)) {
-              githubDownloads = d.assets.reduce(
-                (sum: number, a: any) => sum + (Number(a.downloadCount) || 0),
-                0
-              );
+        let onlinePlayers: number | undefined = undefined;
+        if (g.gameType === 'web' && g.webUrl) {
+          try {
+            const r = await fetch(`${g.webUrl}/api/stats`, {
+              signal: AbortSignal.timeout(3000)
+            });
+            if (r.ok) {
+              const d = await r.json();
+              if (typeof d?.version === 'string') version = d.version.replace(/^v/, '');
+              githubDownloads = Number(d?.totalPlays ?? d?.totalSessions ?? d?.uniquePlayers) || 0;
+              if (typeof d?.onlineNow === 'number' || typeof d?.activePlayers === 'number') {
+                onlinePlayers = Number(d?.onlineNow ?? d?.activePlayers) || 0;
+              }
             }
-          }
-        } catch {}
+          } catch {}
+        } else {
+          try {
+            const r = await fetch(`${base}/api/games/${g.gameId}/releases/latest`, {
+              signal: AbortSignal.timeout(4000)
+            });
+            if (r.ok) {
+              const d = await r.json();
+              version = (d?.version || '1.0.0').replace(/^v/, '');
+              if (Array.isArray(d?.assets)) {
+                githubDownloads = d.assets.reduce(
+                  (sum: number, a: any) => sum + (Number(a.downloadCount) || 0),
+                  0
+                );
+              }
+            }
+          } catch {}
+        }
         const trackedDownloads = localDownloadsMap[g.gameId] || 0;
         return {
           gameId: g.gameId,
           title: g.title,
           version,
+          gameType: g.gameType,
           githubDownloads,
           trackedDownloads,
-          totalDownloads: githubDownloads + trackedDownloads
+          totalDownloads: githubDownloads + trackedDownloads,
+          ...(typeof onlinePlayers === 'number' ? { onlinePlayers } : {})
         };
       })
     );

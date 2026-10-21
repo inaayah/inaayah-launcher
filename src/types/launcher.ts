@@ -133,9 +133,11 @@ export interface StudioAnalyticsOverview {
     gameId: string;
     title: string;
     version: string;
+    gameType?: 'desktop' | 'web';
     githubDownloads: number;
     trackedDownloads: number;
     totalDownloads: number;
+    onlinePlayers?: number;
   }>;
   recentUsers: Array<{
     id: string;

@@ -749,7 +749,14 @@ export async function handleAuthAndAnalyticsRequest(
   corsHeaders: Record<string, string>,
   getGithubReleaseStats: () => Promise<{
     launcherDownloads: number;
-    games: Array<{ gameId: string; title: string; version: string; githubDownloads: number }>;
+    games: Array<{
+      gameId: string;
+      title: string;
+      version: string;
+      gameType?: 'desktop' | 'web';
+      githubDownloads: number;
+      onlinePlayers?: number;
+    }>;
   }>
 ): Promise<Response | null> {
   const jsonResponse = (data: unknown, status = 200) =>
@@ -1170,7 +1177,10 @@ export async function handleAuthAndAnalyticsRequest(
         );
       }
 
-      if (eventType === 'game_download' && typeof body.gameId === 'string') {
+      if (
+        (eventType === 'game_download' || eventType === 'game_launch') &&
+        typeof body.gameId === 'string'
+      ) {
         await recordDownloadEvent(
           {
             targetType: 'game',
@@ -1295,9 +1305,11 @@ export async function handleAuthAndAnalyticsRequest(
           gameId: g.gameId,
           title: g.title,
           version: g.version,
+          gameType: g.gameType || 'desktop',
           githubDownloads: g.githubDownloads,
           trackedDownloads: tracked,
-          totalDownloads: g.githubDownloads + tracked
+          totalDownloads: g.githubDownloads + tracked,
+          ...(typeof g.onlinePlayers === 'number' ? { onlinePlayers: g.onlinePlayers } : {})
         };
       });
 

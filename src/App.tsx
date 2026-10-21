@@ -344,6 +344,9 @@ export const App: React.FC = () => {
     if (!game) return;
 
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'RUNNING' }));
+    authService
+      .sendHeartbeat('game_launch', { gameId, gameVersion: game.version })
+      .catch(() => {});
     try {
       let ok = false;
       if (game.gameType === 'web' && game.webUrl) {

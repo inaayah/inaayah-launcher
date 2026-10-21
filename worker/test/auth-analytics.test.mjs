@@ -139,6 +139,13 @@ test('admin email in ADMIN_EMAILS receives admin role and can view detailed stud
         ]
       });
     }
+    if (String(url).includes('kettle-court.inaayah.dev/api/stats')) {
+      return Response.json({
+        version: '1.0.4',
+        totalPlays: 215,
+        onlineNow: 6
+      });
+    }
     if (String(url).includes('/releases/latest')) {
       return Response.json({
         tag_name: 'v1.2.0',
@@ -210,6 +217,11 @@ test('admin email in ADMIN_EMAILS receives admin role and can view detailed stud
   assert.ok(stats.platformBreakdown.win32 >= 1);
   assert.ok(Array.isArray(stats.recentUsers));
   assert.ok(stats.recentUsers.some((u) => u.email === 'sazid@inaayah.dev' && u.role === 'admin'));
+  const kettleMetrics = stats.gameMetrics.find((g) => g.gameId === 'kettle-court');
+  assert.ok(kettleMetrics);
+  assert.equal(kettleMetrics.gameType, 'web');
+  assert.equal(kettleMetrics.githubDownloads, 215);
+  assert.equal(kettleMetrics.onlinePlayers, 6);
 });
 
 test('production worker never leaks devOtpCode when ALLOW_DEV_OTP_PREVIEW is not enabled and locks out brute-force logins', async () => {
