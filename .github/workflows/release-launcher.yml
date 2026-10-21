@@ -129,9 +129,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-        run: |
-          node scripts/build-mac-patch.mjs
-          gh release upload "${{ steps.target.outputs.tag }}" release/*-mac-patch.zip --clobber --repo "${{ github.repository }}"
+          TARGET_TAG: ${{ steps.target.outputs.tag }}
+        run: node scripts/build-mac-patch.mjs
 
   publish:
     name: Finalize & Publish Live Release
