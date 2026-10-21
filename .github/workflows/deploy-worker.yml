@@ -1,0 +1,67 @@
+name: Deploy Cloudflare Worker (inaayah-api)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'worker/**'
+      - 'games-catalog.json'
+      - 'scripts/refresh_release_cache.py'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+    inputs:
+      cache_revision:
+        description: 'Optional cache revision override (leave blank to auto-generate timestamp)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  deploy-worker:
+    name: Test & Deploy inaayah-api Worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Worker Tests & Typecheck
+        run: |
+          npm run test:worker
+          npx tsc --noEmit -p worker/tsconfig.json
+
+      - name: Apply D1 Schema & Deploy Worker to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::error::Missing CLOUDFLARE_API_TOKEN secret in GitHub repository settings (Settings -> Secrets and variables -> Actions)."
+            exit 1
+          fi
+
+          echo "Applying idempotent D1 schema to inaayah-launcher-db..."
+          npm run d1:init:remote
+
+          REVISION="${{ inputs.cache_revision }}"
+          if [ -z "${REVISION}" ]; then
+            REVISION="gh-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA::7}"
+          fi
+
+          echo "Deploying inaayah-api with cache revision ${REVISION}..."
+          python3 scripts/refresh_release_cache.py "${REVISION}"

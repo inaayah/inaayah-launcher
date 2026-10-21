@@ -259,26 +259,8 @@ async function getGithubReleaseStats(env: Env): Promise<{
           ? 'Kettle Court: Court of Kettle'
           : gameId;
 
-      if (cfg.type === 'web' && cfg.webUrl) {
-        try {
-          const statsUrl = `${cfg.webUrl.replace(/\/$/, '')}/api/stats`;
-          const res = await fetch(statsUrl, {
-            headers: { 'User-Agent': 'Inaayah-Releases-Worker' },
-            cache: 'no-store'
-          });
-          if (res.ok) {
-            const webStats: any = await res.json();
-            if (typeof webStats.version === 'string') {
-              version = webStats.version.replace(/^v/, '');
-            }
-            githubDownloads =
-              Number(webStats.totalPlays ?? webStats.totalSessions ?? webStats.uniquePlayers) || 0;
-            if (typeof webStats.onlineNow === 'number' || typeof webStats.activePlayers === 'number') {
-              onlinePlayers = Number(webStats.onlineNow ?? webStats.activePlayers) || 0;
-            }
-          }
-        } catch {}
-        return { gameId, title, version, gameType: 'web' as const, githubDownloads, onlinePlayers };
+      if (cfg.type === 'web') {
+        return { gameId, title, version, gameType: 'web' as const, githubDownloads: 0 };
       }
 
       try {

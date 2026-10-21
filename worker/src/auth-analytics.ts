@@ -1163,7 +1163,11 @@ export async function handleAuthAndAnalyticsRequest(
       const appVersion = typeof body.appVersion === 'string' ? body.appVersion : '0.0.0';
       const eventType = typeof body.eventType === 'string' ? body.eventType : 'heartbeat';
 
-      if (deviceId) {
+      const isStandaloneWebGameEvent =
+        platform.toLowerCase() === 'web' &&
+        (eventType === 'game_launch' || eventType === 'game_download');
+
+      if (deviceId && !isStandaloneWebGameEvent) {
         await recordInstallHeartbeat(
           {
             deviceId,
@@ -1293,23 +1297,47 @@ export async function handleAuthAndAnalyticsRequest(
         .sort((a, b) => b.count - a.count);
 
       const gameDownloadsById = new Map<string, number>();
+      const gameOnlinePlayersById = new Map<string, Set<string>>();
+      const gameLatestVersionById = new Map<string, string>();
       for (const dl of allDownloads) {
         if (dl.target_type === 'game') {
           gameDownloadsById.set(dl.target_id, (gameDownloadsById.get(dl.target_id) || 0) + 1);
+          if (dl.version && !gameLatestVersionById.has(dl.target_id)) {
+            gameLatestVersionById.set(dl.target_id, dl.version);
+          }
+          if (dl.created_at >= onlineCutoff) {
+            let activeSet = gameOnlinePlayersById.get(dl.target_id);
+            if (!activeSet) {
+              activeSet = new Set<string>();
+              gameOnlinePlayersById.set(dl.target_id, activeSet);
+            }
+            activeSet.add(dl.device_id || dl.user_id || dl.id);
+          }
         }
       }
 
       const gameMetrics = ghStats.games.map((g) => {
         const tracked = gameDownloadsById.get(g.gameId) || 0;
+        const pushedOnline = gameOnlinePlayersById.get(g.gameId)?.size;
+        const onlinePlayers =
+          typeof g.onlinePlayers === 'number'
+            ? g.onlinePlayers
+            : g.gameType === 'web' || (pushedOnline && pushedOnline > 0)
+            ? pushedOnline || 0
+            : undefined;
+        const version =
+          g.gameType === 'web'
+            ? gameLatestVersionById.get(g.gameId) || g.version
+            : g.version;
         return {
           gameId: g.gameId,
           title: g.title,
-          version: g.version,
+          version,
           gameType: g.gameType || 'desktop',
           githubDownloads: g.githubDownloads,
           trackedDownloads: tracked,
           totalDownloads: g.githubDownloads + tracked,
-          ...(typeof g.onlinePlayers === 'number' ? { onlinePlayers: g.onlinePlayers } : {})
+          ...(typeof onlinePlayers === 'number' ? { onlinePlayers } : {})
         };
       });
 

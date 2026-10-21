@@ -139,13 +139,6 @@ test('admin email in ADMIN_EMAILS receives admin role and can view detailed stud
         ]
       });
     }
-    if (String(url).includes('kettle-court.inaayah.dev/api/stats')) {
-      return Response.json({
-        version: '1.0.4',
-        totalPlays: 215,
-        onlineNow: 6
-      });
-    }
     if (String(url).includes('/releases/latest')) {
       return Response.json({
         tag_name: 'v1.2.0',
@@ -200,6 +193,19 @@ test('admin email in ADMIN_EMAILS receives admin role and can view detailed stud
     {}
   );
 
+  // Record a push telemetry event from Kettle Court web browser (no polling needed)
+  await worker.fetch(
+    jsonReq('/api/telemetry/heartbeat', 'POST', {
+      deviceId: 'kc-browser-player-1',
+      platform: 'web',
+      eventType: 'game_launch',
+      gameId: 'kettle-court',
+      gameVersion: '1.0.4'
+    }),
+    baseEnv,
+    {}
+  );
+
   // Admin fetches /api/analytics/overview
   const analyticsRes = await worker.fetch(
     jsonReq('/api/analytics/overview', 'GET', undefined, token),
@@ -215,13 +221,17 @@ test('admin email in ADMIN_EMAILS receives admin role and can view detailed stud
   assert.ok(stats.summary.onlineNow >= 2);
   assert.ok(stats.platformBreakdown.darwin >= 1);
   assert.ok(stats.platformBreakdown.win32 >= 1);
+  // Standalone web game event must NOT inflate launcher_installs web count
+  assert.equal(stats.platformBreakdown.web, 0);
   assert.ok(Array.isArray(stats.recentUsers));
   assert.ok(stats.recentUsers.some((u) => u.email === 'sazid@inaayah.dev' && u.role === 'admin'));
   const kettleMetrics = stats.gameMetrics.find((g) => g.gameId === 'kettle-court');
   assert.ok(kettleMetrics);
   assert.equal(kettleMetrics.gameType, 'web');
-  assert.equal(kettleMetrics.githubDownloads, 215);
-  assert.equal(kettleMetrics.onlinePlayers, 6);
+  assert.equal(kettleMetrics.version, '1.0.4');
+  assert.equal(kettleMetrics.trackedDownloads, 1);
+  assert.equal(kettleMetrics.totalDownloads, 1);
+  assert.equal(kettleMetrics.onlinePlayers, 1);
 });
 
 test('production worker never leaks devOtpCode when ALLOW_DEV_OTP_PREVIEW is not enabled and locks out brute-force logins', async () => {
