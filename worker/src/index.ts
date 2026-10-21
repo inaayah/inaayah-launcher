@@ -193,9 +193,10 @@ export default {
     if (launcherDlMatch) {
       const platform = launcherDlMatch[1];
       const format = url.searchParams.get('format');
+      const version = url.searchParams.get('version');
       try {
-        const downloadUrl = await getReleaseAssetDownloadUrl('inaayah-launcher', platform, env, format);
-        await recordDownloadEvent({ targetType: 'launcher', targetId: 'inaayah-launcher', platform }, env).catch(() => {});
+        const downloadUrl = await getReleaseAssetDownloadUrl('inaayah-launcher', platform, env, format, version);
+        await recordDownloadEvent({ targetType: 'launcher', targetId: 'inaayah-launcher', platform, version }, env).catch(() => {});
         return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl, 'Cache-Control': 'no-store' } });
       } catch (err: any) {
         return new Response(JSON.stringify({ error: err.message }), {
@@ -387,8 +388,18 @@ function signedLinkTTL(location: string): number {
   return Number.isFinite(expires) ? Math.max(0, Math.min(60, Math.floor((expires - Date.now() - 5000) / 1000))) : 60;
 }
 
-async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: Env, format?: string | null): Promise<string> {
-  const release = await fetchLatestRelease(repo, env);
+async function getReleaseAssetDownloadUrl(
+  repo: string,
+  platform: string,
+  env: Env,
+  format?: string | null,
+  version?: string | null
+): Promise<string> {
+  const cleanVersion = version ? version.replace(/^v/, '') : null;
+  const release =
+    cleanVersion && /^\d+\.\d+\.\d+$/.test(cleanVersion)
+      ? await fetchTaggedRelease(repo, cleanVersion, env)
+      : await fetchLatestRelease(repo, env);
   const matchesPlatform = (name: string) => {
     if (['darwin', 'mac', 'macos'].includes(platform)) return name.includes('mac') || name.includes('darwin') || name.endsWith('.dmg');
     if (['win32', 'windows', 'win'].includes(platform)) return name.includes('win') || name.endsWith('.exe');
@@ -399,9 +410,16 @@ async function getReleaseAssetDownloadUrl(repo: string, platform: string, env: E
     const name = asset.name.toLowerCase();
     return matchesPlatform(name) && !name.endsWith('.blockmap') && !name.endsWith('.yml');
   });
-  let asset = format === 'zip' ? assets.find((item: any) => item.name.toLowerCase().endsWith('.zip')) : null;
-  asset ||= assets.find((item: any) => /\.(dmg|exe|appimage)$/i.test(item.name));
-  asset ||= assets.find((item: any) => /\.(zip|tar\.gz)$/i.test(item.name));
+  let asset =
+    format === 'patch'
+      ? assets.find((item: any) => item.name.toLowerCase().endsWith('-patch.zip'))
+      : null;
+  if (format !== 'patch') {
+    const fullAssets = assets.filter((item: any) => !item.name.toLowerCase().endsWith('-patch.zip'));
+    asset = format === 'zip' ? fullAssets.find((item: any) => item.name.toLowerCase().endsWith('.zip')) : null;
+    asset ||= fullAssets.find((item: any) => /\.(dmg|exe|appimage)$/i.test(item.name));
+    asset ||= fullAssets.find((item: any) => /\.(zip|tar\.gz)$/i.test(item.name));
+  }
   if (!asset) throw new Error(`No matching release asset found for platform '${platform}' in ${release.version}`);
 
   // Signed links expire independently of metadata. Reuse them for only one minute.

@@ -29,6 +29,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [appVersion, setAppVersion] = useState(APP_VERSION);
 
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [applyingUpdate, setApplyingUpdate] = useState(false);
+  const [readyVersion, setReadyVersion] = useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = useState<{
     checked: boolean;
     available: boolean;
@@ -42,6 +44,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     launcherBridge.getAppVersion().then((v) => {
       if (v) setAppVersion(v);
     });
+    const unsubReady = launcherBridge.onLauncherUpdateReady((version) => {
+      setReadyVersion(version);
+    });
+    return () => {
+      unsubReady();
+    };
   }, []);
 
   if (!isOpen) return null;
@@ -236,14 +244,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     className="btn-primary-action play"
                     style={{ height: 28, padding: '0 12px', fontSize: 11, gap: 6 }}
-                    onClick={() =>
-                      launcherBridge.openExternalUrl(
-                        updateStatus.releaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest'
-                      )
-                    }
+                    disabled={applyingUpdate}
+                    onClick={async () => {
+                      setApplyingUpdate(true);
+                      try {
+                        await launcherBridge.restartAndInstallUpdate();
+                      } finally {
+                        setApplyingUpdate(false);
+                      }
+                    }}
                   >
-                    <Download size={12} />
-                    <span>Download v{updateStatus.version}</span>
+                    {applyingUpdate ? (
+                      <RefreshCw size={12} className="spin-fast" />
+                    ) : (
+                      <Download size={12} />
+                    )}
+                    <span>
+                      {applyingUpdate
+                        ? `Updating to v${updateStatus.version}...`
+                        : readyVersion === updateStatus.version
+                        ? `Restart & Update v${updateStatus.version}`
+                        : `Update Now v${updateStatus.version}`}
+                    </span>
                   </button>
                 )}
               </div>

@@ -96,18 +96,22 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         ) : updateAvailableVersion ? (
           <button
             className="update-pill-btn available"
-            title="A new launcher release is available on GitHub. Click to view installer"
-            onClick={handleOpenReleasePage}
+            title="Click to download and install this launcher update automatically"
+            disabled={isRestarting}
+            onClick={() => {
+              setIsRestarting(true);
+              onRestartUpdate?.();
+            }}
           >
-            <Download size={12} />
-            <span>v{updateAvailableVersion} Available</span>
+            {isRestarting ? <RotateCcw size={12} className="spin-fast" /> : <Download size={12} />}
+            <span>{isRestarting ? `Updating v${updateAvailableVersion}...` : `Update v${updateAvailableVersion}`}</span>
           </button>
         ) : null}
 
         <button
           className={`titlebar-icon-btn ${hasUpdate ? 'active-update' : ''}`}
-          title={hasUpdate ? (updateReadyVersion ? `Update v${updateReadyVersion} ready to install` : `New version v${updateAvailableVersion} available`) : 'Notifications'}
-          onClick={hasUpdate ? (updateReadyVersion ? onRestartUpdate : handleOpenReleasePage) : onOpenSettings}
+          title={hasUpdate ? (updateReadyVersion ? `Update v${updateReadyVersion} ready to install` : `Update to v${updateAvailableVersion}`) : 'Notifications'}
+          onClick={hasUpdate ? () => { setIsRestarting(true); onRestartUpdate?.(); } : onOpenSettings}
         >
           <Bell size={14} />
           {hasUpdate && <span className="bell-badge-pulse" />}

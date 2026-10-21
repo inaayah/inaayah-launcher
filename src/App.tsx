@@ -485,14 +485,22 @@ export const App: React.FC = () => {
                   <button
                     className="btn-primary-action play"
                     style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
-                    onClick={() =>
-                      launcherBridge.openExternalUrl(
-                        updateAvailableInfo?.releaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest'
-                      )
-                    }
+                    disabled={isRestartingLauncher}
+                    onClick={() => {
+                      setIsRestartingLauncher(true);
+                      launcherBridge.restartAndInstallUpdate();
+                    }}
                   >
-                    <Download size={12} />
-                    <span>Download v{updateAvailableInfo?.version}</span>
+                    {isRestartingLauncher ? (
+                      <RotateCcw size={12} className="spin-fast" />
+                    ) : (
+                      <Download size={12} />
+                    )}
+                    <span>
+                      {isRestartingLauncher
+                        ? `Updating to v${updateAvailableInfo?.version}...`
+                        : `Update Now (v${updateAvailableInfo?.version})`}
+                    </span>
                   </button>
                 )}
                 <button

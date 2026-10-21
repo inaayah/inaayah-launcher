@@ -11,7 +11,7 @@ import AdmZip from 'adm-zip';
 import { createHash } from 'node:crypto';
 import { validateRecipe, installIncremental, commitInstall, recoverInterruptedInstalls } from './incremental-update';
 import { autoUpdater } from 'electron-updater';
-import { macUpdatePaths, stagedAppMatchesVersion, macInstallScript } from './mac-update-state';
+import { macUpdatePaths, stagedAppMatchesVersion, macInstallScript, applyMacPatchToStagedBundle } from './mac-update-state';
 import { localDevRoots, findLocalGodotProject, discoverLocalGodotProjects, localDevLaunch } from './local-dev';
 
 interface LauncherConfig {
@@ -1043,9 +1043,92 @@ interface MacPendingUpdate {
 
 let macPendingUpdate: MacPendingUpdate | null = null;
 let isMacUpdateDownloading = false;
+let macUpdatePromise: Promise<void> | null = null;
+let latestKnownLauncherVersion: string | null = null;
+
+async function downloadAndExtractMacZip(url: string, zipPath: string, extractedDir: string, extractedAppPath: string, version: string): Promise<boolean> {
+  console.log(`[MacUpdater] Fetching macOS update archive from ${url}...`);
+  const res = await fetch(url, {
+    redirect: 'follow',
+    headers: { 'User-Agent': `InaayahLauncher/${app.getVersion()}` }
+  });
+  if (!res.ok || !res.body) {
+    throw new Error(`Failed to fetch macOS update zip from ${url}: HTTP ${res.status}`);
+  }
+  const fileStream = fs.createWriteStream(zipPath);
+  // @ts-ignore
+  await pipeline(Readable.fromWeb(res.body), fileStream);
+
+  console.log(`[MacUpdater] Download complete. Extracting via ditto to ${extractedDir}...`);
+  if (fs.existsSync(extractedAppPath)) {
+    fs.rmSync(extractedAppPath, { recursive: true, force: true });
+  }
+  await new Promise<void>((resolve, reject) => {
+    execFile('/usr/bin/ditto', ['-xk', zipPath, extractedDir], (err, _stdout, stderr) => {
+      if (err) {
+        console.error('[MacUpdater] ditto extract error:', stderr || err.message);
+        return reject(err);
+      }
+      resolve();
+    });
+  });
+
+  return stagedAppMatchesVersion(extractedAppPath, version);
+}
+
+async function tryDownloadAndApplyMacPatch(
+  url: string,
+  patchZipPath: string,
+  patchDir: string,
+  targetAppBundle: string,
+  extractedAppPath: string,
+  version: string
+): Promise<boolean> {
+  console.log(`[MacUpdater] Checking lightweight macOS patch archive from ${url}...`);
+  const res = await fetch(url, {
+    redirect: 'follow',
+    headers: { 'User-Agent': `InaayahLauncher/${app.getVersion()}` }
+  });
+  if (!res.ok || !res.body) {
+    return false;
+  }
+
+  fs.mkdirSync(path.dirname(patchZipPath), { recursive: true });
+  const fileStream = fs.createWriteStream(patchZipPath);
+  // @ts-ignore
+  await pipeline(Readable.fromWeb(res.body), fileStream);
+
+  if (fs.existsSync(patchDir)) {
+    fs.rmSync(patchDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(patchDir, { recursive: true });
+
+  await new Promise<void>((resolve, reject) => {
+    execFile('/usr/bin/ditto', ['-xk', patchZipPath, patchDir], (err) => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+
+  const patched = await applyMacPatchToStagedBundle({
+    installedBundle: targetAppBundle,
+    patchExtractDir: patchDir,
+    stagedBundle: extractedAppPath,
+    expectedVersion: version,
+    expectedElectronVersion: process.versions.electron,
+    expectedArch: process.arch
+  });
+
+  try { fs.unlinkSync(patchZipPath); } catch {}
+  try { fs.rmSync(patchDir, { recursive: true, force: true }); } catch {}
+
+  return patched;
+}
 
 async function downloadMacUpdateInBackground(version: string, cfg: LauncherConfig): Promise<void> {
-  if (isMacUpdateDownloading) return;
+  if (macUpdatePromise) {
+    return macUpdatePromise;
+  }
   if (macPendingUpdate && macPendingUpdate.version === version && await stagedAppMatchesVersion(macPendingUpdate.extractedAppPath, version)) {
     mainWindow?.webContents.send('launcher-update-ready', version);
     return;
@@ -1054,81 +1137,92 @@ async function downloadMacUpdateInBackground(version: string, cfg: LauncherConfi
   isMacUpdateDownloading = true;
   console.log(`[MacUpdater] Initiating background download for v${version}...`);
 
-  const updateDir = path.join(app.getPath('userData'), 'mac_update');
-  const { zipPath, extractedDir, extractedAppPath } = macUpdatePaths(updateDir, version);
-  const targetAppBundle = path.resolve(process.execPath, '../../../');
+  macUpdatePromise = (async () => {
+    const updateDir = path.join(app.getPath('userData'), 'mac_update');
+    const { zipPath, patchZipPath, patchDir, extractedDir, extractedAppPath } = macUpdatePaths(updateDir, version);
+    const targetAppBundle = path.resolve(process.execPath, '../../../');
 
-  try {
-    fs.mkdirSync(extractedDir, { recursive: true });
+    try {
+      fs.mkdirSync(extractedDir, { recursive: true });
 
-    // Check if previously downloaded, extracted, and verified
-    if (await stagedAppMatchesVersion(extractedAppPath, version)) {
-      console.log(`[MacUpdater] Update v${version} already downloaded and staged.`);
-      macPendingUpdate = { version, extractedAppPath, targetAppBundle };
-      mainWindow?.webContents.send('launcher-update-ready', version);
-      isMacUpdateDownloading = false;
-      return;
-    }
+      // Check if previously downloaded, extracted, and verified
+      if (await stagedAppMatchesVersion(extractedAppPath, version)) {
+        console.log(`[MacUpdater] Update v${version} already downloaded and staged.`);
+        macPendingUpdate = { version, extractedAppPath, targetAppBundle };
+        mainWindow?.webContents.send('launcher-update-ready', version);
+        return;
+      }
 
-    const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
-    const downloadZipUrl = `${gatewayUrl}/api/launcher/download/mac?format=zip`;
+      const gatewayUrl = (cfg.releaseGatewayUrl || 'https://api.inaayah.dev').replace(/\/$/, '');
+      let stagedOk = false;
+      let lastErr: Error | null = null;
 
-    console.log(`[MacUpdater] Fetching macOS update archive from ${downloadZipUrl}...`);
-    const res = await fetch(downloadZipUrl, {
-      redirect: 'follow',
-      headers: { 'User-Agent': `InaayahLauncher/${app.getVersion()}` }
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch macOS update zip: HTTP ${res.status}`);
-    }
-
-    const fileStream = fs.createWriteStream(zipPath);
-    if (!res.body) throw new Error('Response body is null');
-    // @ts-ignore
-    await pipeline(Readable.fromWeb(res.body), fileStream);
-
-    console.log(`[MacUpdater] Download complete. Extracting via ditto to ${extractedDir}...`);
-    if (fs.existsSync(extractedAppPath)) {
-      fs.rmSync(extractedAppPath, { recursive: true, force: true });
-    }
-
-    await new Promise<void>((resolve, reject) => {
-      execFile('/usr/bin/ditto', ['-xk', zipPath, extractedDir], (err, _stdout, stderr) => {
-        if (err) {
-          console.error('[MacUpdater] ditto extract error:', stderr || err.message);
-          return reject(err);
+      // 1. Try fast ~1.5 MB ASAR + Info.plist delta patch first (if targetAppBundle exists locally)
+      if (targetAppBundle.endsWith('.app') && fs.existsSync(targetAppBundle)) {
+        const patchUrls = [
+          `${gatewayUrl}/api/launcher/download/mac?format=patch&version=${encodeURIComponent(version)}`,
+          `https://github.com/inaayah/inaayah-launcher/releases/download/v${version}/Inaayah-Launcher-${version}-${process.arch}-mac-patch.zip`
+        ];
+        for (const patchUrl of patchUrls) {
+          try {
+            if (await tryDownloadAndApplyMacPatch(patchUrl, patchZipPath, patchDir, targetAppBundle, extractedAppPath, version)) {
+              console.log(`[MacUpdater] Fast ~1.5MB patch update v${version} staged successfully!`);
+              stagedOk = true;
+              break;
+            }
+          } catch {}
         }
-        resolve();
-      });
-    });
+      }
 
-    if (!await stagedAppMatchesVersion(extractedAppPath, version)) {
-      throw new Error('Downloaded launcher does not match the requested version or is incomplete');
+      // 2. Fallback to full macOS .zip bundle if patch is unavailable or Electron runtime version changed
+      if (!stagedOk) {
+        const candidateUrls = [
+          `${gatewayUrl}/api/launcher/download/mac?format=zip&version=${encodeURIComponent(version)}`,
+          `https://github.com/inaayah/inaayah-launcher/releases/download/v${version}/Inaayah-Launcher-${version}-${process.arch}-mac.zip`
+        ];
+        for (const candidateUrl of candidateUrls) {
+          try {
+            if (await downloadAndExtractMacZip(candidateUrl, zipPath, extractedDir, extractedAppPath, version)) {
+              stagedOk = true;
+              break;
+            }
+            lastErr = new Error('Downloaded launcher does not match the requested version or is incomplete');
+          } catch (e: any) {
+            lastErr = e;
+          }
+        }
+      }
+
+      if (!stagedOk) {
+        throw lastErr || new Error('Downloaded launcher does not match the requested version or is incomplete');
+      }
+
+      try { fs.unlinkSync(zipPath); } catch {}
+
+      macPendingUpdate = {
+        version,
+        extractedAppPath,
+        targetAppBundle
+      };
+
+      console.log(`[MacUpdater] Update v${version} staged and ready!`);
+      mainWindow?.webContents.send('launcher-update-ready', version);
+      if (Notification.isSupported()) {
+        new Notification({
+          title: 'Inaayah Launcher Update Ready',
+          body: `Version v${version} downloaded. Click Restart to apply!`
+        }).show();
+      }
+    } catch (err: any) {
+      console.error('[MacUpdater] Background update failed:', err.message);
+      if (Notification.isSupported()) new Notification({ title: 'Launcher update could not be prepared', body: err.message }).show();
+    } finally {
+      isMacUpdateDownloading = false;
+      macUpdatePromise = null;
     }
+  })();
 
-    try { fs.unlinkSync(zipPath); } catch {}
-
-    macPendingUpdate = {
-      version,
-      extractedAppPath,
-      targetAppBundle
-    };
-
-    console.log(`[MacUpdater] Update v${version} staged and ready!`);
-    mainWindow?.webContents.send('launcher-update-ready', version);
-    if (Notification.isSupported()) {
-      new Notification({
-        title: 'Inaayah Launcher Update Ready',
-        body: `Version v${version} downloaded. Click Restart to apply!`
-      }).show();
-    }
-  } catch (err: any) {
-    console.error('[MacUpdater] Background update failed:', err.message);
-    if (Notification.isSupported()) new Notification({ title: 'Launcher update could not be prepared', body: err.message }).show();
-  } finally {
-    isMacUpdateDownloading = false;
-  }
+  return macUpdatePromise;
 }
 
 async function fetchLatestLauncherRelease() {
@@ -1205,6 +1299,9 @@ async function fetchLatestLauncherRelease() {
 ipcMain.handle('launcher:check-for-updates', async () => {
   try {
     const info = await fetchLatestLauncherRelease();
+    if (info.isNewer) {
+      latestKnownLauncherVersion = info.latestTag;
+    }
     if (info.isNewer && app.isPackaged) {
       if (process.platform === 'darwin') {
         downloadMacUpdateInBackground(info.latestTag, loadConfig()).catch(() => {});
@@ -1231,7 +1328,7 @@ ipcMain.handle('launcher:check-for-updates', async () => {
   }
 });
 
-ipcMain.handle('launcher:restart-and-install-update', () => {
+ipcMain.handle('launcher:restart-and-install-update', async () => {
   console.log('[AutoUpdater] restart-and-install-update triggered');
 
   // Development mode: restart immediately
@@ -1243,6 +1340,19 @@ ipcMain.handle('launcher:restart-and-install-update', () => {
 
   // 1. Custom macOS Background Updater in-place swap
   if (process.platform === 'darwin') {
+    if (!macPendingUpdate || !fs.existsSync(macPendingUpdate.extractedAppPath)) {
+      let targetVersion = latestKnownLauncherVersion;
+      if (!targetVersion) {
+        const info = await fetchLatestLauncherRelease().catch(() => null);
+        if (info?.isNewer) {
+          targetVersion = info.latestTag;
+        }
+      }
+      if (targetVersion) {
+        await downloadMacUpdateInBackground(targetVersion, loadConfig());
+      }
+    }
+
     if (macPendingUpdate && fs.existsSync(macPendingUpdate.extractedAppPath)) {
       console.log(`[MacUpdater] Executing in-place swap for: ${macPendingUpdate.targetAppBundle}`);
       const scriptPath = path.join(os.tmpdir(), `inaayah_mac_updater_${Date.now()}.sh`);
@@ -1270,20 +1380,6 @@ ipcMain.handle('launcher:restart-and-install-update', () => {
       app.exit(0);
       return;
     }
-
-    // Fallback if update archive not yet fully staged: open direct download
-    const cfg = loadConfig();
-    const gatewayUrl = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
-    const macDownloadUrl = `${gatewayUrl}/api/launcher/download/mac`;
-    shell.openExternal(macDownloadUrl);
-
-    setTimeout(() => {
-      app.removeAllListeners('window-all-closed');
-      try {
-        BrowserWindow.getAllWindows().forEach((w) => w.destroy());
-      } catch {}
-      app.quit();
-    }, 500);
     return;
   }
 

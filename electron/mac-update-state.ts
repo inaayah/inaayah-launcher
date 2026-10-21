@@ -1,16 +1,90 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 const quote = (value: string) => "'" + value.replace(/'/g, "'\\''") + "'";
 
+function sha256File(filePath: string): string {
+  return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+export interface MacPatchMetadata {
+  version: string;
+  electronVersion: string;
+  arch: string;
+  appAsarSha256: string;
+  infoPlistSha256: string;
+}
+
 export function macUpdatePaths(updateDir: string, version: string) {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('Invalid launcher update version');
   const versionDir = path.join(updateDir, version);
   const extractedDir = path.join(versionDir, 'extracted');
-  return { zipPath: path.join(versionDir, 'launcher.zip'), extractedDir, extractedAppPath: path.join(extractedDir, 'Inaayah Launcher.app') };
+  const patchDir = path.join(versionDir, 'patch_payload');
+  return {
+    zipPath: path.join(versionDir, 'launcher.zip'),
+    patchZipPath: path.join(versionDir, 'launcher-patch.zip'),
+    patchDir,
+    extractedDir,
+    extractedAppPath: path.join(extractedDir, 'Inaayah Launcher.app')
+  };
+}
+
+export async function applyMacPatchToStagedBundle(options: {
+  installedBundle: string;
+  patchExtractDir: string;
+  stagedBundle: string;
+  expectedVersion: string;
+  expectedElectronVersion: string;
+  expectedArch: string;
+  resign?: boolean;
+}): Promise<boolean> {
+  try {
+    if (!fs.existsSync(options.installedBundle)) return false;
+    const metaPath = path.join(options.patchExtractDir, 'patch-meta.json');
+    const patchAsar = path.join(options.patchExtractDir, 'Contents', 'Resources', 'app.asar');
+    const patchPlist = path.join(options.patchExtractDir, 'Contents', 'Info.plist');
+    if (!fs.existsSync(metaPath) || !fs.existsSync(patchAsar) || !fs.existsSync(patchPlist)) {
+      return false;
+    }
+
+    const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as MacPatchMetadata;
+    if (
+      meta.version !== options.expectedVersion ||
+      meta.electronVersion !== options.expectedElectronVersion ||
+      meta.arch !== options.expectedArch
+    ) {
+      return false;
+    }
+
+    if (
+      sha256File(patchAsar) !== meta.appAsarSha256 ||
+      sha256File(patchPlist) !== meta.infoPlistSha256
+    ) {
+      return false;
+    }
+
+    if (fs.existsSync(options.stagedBundle)) {
+      fs.rmSync(options.stagedBundle, { recursive: true, force: true });
+    }
+    fs.mkdirSync(path.dirname(options.stagedBundle), { recursive: true });
+
+    await execFileAsync('/usr/bin/ditto', [options.installedBundle, options.stagedBundle]);
+    fs.mkdirSync(path.join(options.stagedBundle, 'Contents', 'Resources'), { recursive: true });
+    fs.copyFileSync(patchAsar, path.join(options.stagedBundle, 'Contents', 'Resources', 'app.asar'));
+    fs.copyFileSync(patchPlist, path.join(options.stagedBundle, 'Contents', 'Info.plist'));
+
+    if (options.resign !== false) {
+      await execFileAsync('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', options.stagedBundle]);
+    }
+
+    return await stagedAppMatchesVersion(options.stagedBundle, options.expectedVersion);
+  } catch {
+    return false;
+  }
 }
 
 export async function stagedAppMatchesVersion(bundle: string, version: string): Promise<boolean> {
