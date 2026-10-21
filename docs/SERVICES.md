@@ -9,7 +9,8 @@ This document serves as the single source of truth for all network endpoints, re
 | Service Name | Type | URL / Host | Ports / Protocol | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
 | **Inaayah Multiplayer Relay** | Dedicated Server | `94.130.227.190` | `7350` (HTTP/WS)<br>`7349` (gRPC)<br>`7351` (Console) | Nakama multiplayer server for real-time match state, device guest auth, cloud accounts, leaderboards. |
-| **Release Edge Gateway** | Cloudflare Worker | `https://releases.inaayah.dev`<br>*(or worker URL)* | `443` (HTTPS) | Free edge caching proxy for `game-manifest.json` and GitHub Releases. Masks private GitHub tokens. |
+| **Studio API & Auth Gateway** | Cloudflare Worker + D1 | `https://api.inaayah.dev` | `443` (HTTPS) | Accounts, 6-digit email OTP verification (`noreply@inaayah.dev`), session tokens, and admin studio analytics. |
+| **Release Edge Gateway** | Cloudflare Worker | `https://releases.inaayah.dev`<br>*(same Worker)* | `443` (HTTPS) | Free edge caching proxy for `game-manifest.json` and GitHub Releases. Masks private GitHub tokens. |
 | **Kettle Court Web Game** | Edge Web App | `https://kettle-court.inaayah.dev/` | `443` (HTTPS/WSS) | Browser-based instant RTS arena running with Edge Durable Objects for peer synchronization. |
 | **GitHub Releases CDN** | Static Storage | `github.com/inaayah/*` | `443` (HTTPS) | Free global CDN hosting up to 2 GiB per game build archive without bandwidth fees. |
 

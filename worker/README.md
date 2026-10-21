@@ -1,7 +1,7 @@
-# Inaayah Game Releases Edge Gateway (Cloudflare Worker)
+# Inaayah Studio API & Releases Gateway (`inaayah-api`)
 
 <p align="center">
-  <strong>100% Free Edge Proxy & CDN Caching Gateway for Inaayah Studio Games</strong>
+  <strong>100% Free Edge API, Account Auth, Telemetry & Release Caching Gateway for Inaayah Studio</strong>
 </p>
 
 ---
@@ -36,7 +36,7 @@ npx wrangler deploy
 ```
 
 Your worker will instantly be live at:
-`https://inaayah-releases.<your-subdomain>.workers.dev` (or route it to `releases.inaayah.dev`!).
+`https://inaayah-api.<your-subdomain>.workers.dev` (and routed to `api.inaayah.dev` + `releases.inaayah.dev`!).
 
 ---
 

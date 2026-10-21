@@ -60,7 +60,7 @@ export default {
     // 1. Health check
     if (pathname === '/' || pathname === '/health') {
       return new Response(
-        JSON.stringify({ status: 'ok', service: 'inaayah-releases-gateway', time: new Date().toISOString() }),
+        JSON.stringify({ status: 'ok', service: 'inaayah-api', time: new Date().toISOString() }),
         { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
       );
     }

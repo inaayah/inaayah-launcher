@@ -9,7 +9,8 @@ const STORAGE_LOCAL_USERS_KEY = 'inaayah_local_users_v1';
 const STORAGE_LOCAL_OTPS_KEY = 'inaayah_local_otps_v1';
 const STORAGE_LOCAL_DOWNLOADS_KEY = 'inaayah_local_downloads_v1';
 
-const DEFAULT_GATEWAY = 'https://releases.inaayah.dev';
+const DEFAULT_GATEWAY = 'https://api.inaayah.dev';
+const FALLBACK_GATEWAY = 'https://releases.inaayah.dev';
 const DEFAULT_ADMIN_EMAILS = ['sazid@inaayah.dev', 'admin@inaayah.dev'];
 const DEFAULT_SENDER = 'Inaayah Studio <noreply@inaayah.dev>';
 
@@ -96,14 +97,30 @@ export function clearAuthSession(): void {
 }
 
 async function resolveGatewayUrl(override?: string): Promise<string> {
-  if (override) return override.replace(/\/+$/, '');
+  if (override && override !== FALLBACK_GATEWAY) return override.replace(/\/+$/, '');
   try {
     const cfg = await launcherBridge.getConfig();
-    if (cfg.releaseGatewayUrl) {
+    if (cfg.releaseGatewayUrl && cfg.releaseGatewayUrl !== FALLBACK_GATEWAY) {
       return cfg.releaseGatewayUrl.replace(/\/+$/, '');
     }
   } catch {}
   return DEFAULT_GATEWAY;
+}
+
+async function fetchGateway(
+  path: string,
+  init?: RequestInit,
+  override?: string
+): Promise<Response> {
+  const primary = await resolveGatewayUrl(override);
+  try {
+    return await fetch(`${primary}${path}`, init);
+  } catch (err) {
+    if (primary === DEFAULT_GATEWAY) {
+      return await fetch(`${FALLBACK_GATEWAY}${path}`, init);
+    }
+    throw err;
+  }
 }
 
 async function sha256Client(input: string): Promise<string> {
@@ -165,18 +182,22 @@ export const authService = {
     const platform = detectPlatform();
 
     try {
-      const res = await fetch(`${base}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          displayName,
-          deviceId: getDeviceId(),
-          platform,
-          appVersion
-        })
-      });
+      const res = await fetchGateway(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            displayName,
+            deviceId: getDeviceId(),
+            platform,
+            appVersion
+          })
+        },
+        gatewayUrl
+      );
 
       if (res.status !== 404) {
         const data = await res.json().catch(() => ({}));
@@ -238,17 +259,21 @@ export const authService = {
     const platform = detectPlatform();
 
     try {
-      const res = await fetch(`${base}/api/auth/verify-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          code,
-          deviceId: getDeviceId(),
-          platform,
-          appVersion
-        })
-      });
+      const res = await fetchGateway(
+        '/api/auth/verify-email',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            code,
+            deviceId: getDeviceId(),
+            platform,
+            appVersion
+          })
+        },
+        gatewayUrl
+      );
 
       if (res.status !== 404) {
         const data = await res.json().catch(() => ({}));
@@ -319,11 +344,15 @@ export const authService = {
     const base = await resolveGatewayUrl(gatewayUrl);
 
     try {
-      const res = await fetch(`${base}/api/auth/resend-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, purpose })
-      });
+      const res = await fetchGateway(
+        '/api/auth/resend-code',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, purpose })
+        },
+        gatewayUrl
+      );
       if (res.status !== 404) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Could not resend verification code.');
@@ -355,17 +384,21 @@ export const authService = {
     const platform = detectPlatform();
 
     try {
-      const res = await fetch(`${base}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          deviceId: getDeviceId(),
-          platform,
-          appVersion
-        })
-      });
+      const res = await fetchGateway(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            deviceId: getDeviceId(),
+            platform,
+            appVersion
+          })
+        },
+        gatewayUrl
+      );
 
       if (res.status !== 404) {
         const data = await res.json().catch(() => ({}));
@@ -445,11 +478,15 @@ export const authService = {
     const base = await resolveGatewayUrl(gatewayUrl);
 
     try {
-      const res = await fetch(`${base}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
+      const res = await fetchGateway(
+        '/api/auth/forgot-password',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        },
+        gatewayUrl
+      );
       if (res.status !== 404) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Could not request password reset.');
@@ -491,11 +528,15 @@ export const authService = {
     const base = await resolveGatewayUrl(gatewayUrl);
 
     try {
-      const res = await fetch(`${base}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, newPassword })
-      });
+      const res = await fetchGateway(
+        '/api/auth/reset-password',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code, newPassword })
+        },
+        gatewayUrl
+      );
       if (res.status !== 404) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Could not reset password.');
@@ -556,10 +597,14 @@ export const authService = {
 
     const base = await resolveGatewayUrl(gatewayUrl);
     try {
-      const res = await fetch(`${base}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(5000)
-      });
+      const res = await fetchGateway(
+        '/api/auth/me',
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(5000)
+        },
+        gatewayUrl
+      );
       if (res.status === 200) {
         const data = await res.json();
         if (data?.user && data.user.emailVerified) {
@@ -587,10 +632,14 @@ export const authService = {
     if (!token) return;
     const base = await resolveGatewayUrl(gatewayUrl);
     try {
-      await fetch(`${base}/api/auth/logout`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await fetchGateway(
+        '/api/auth/logout',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        },
+        gatewayUrl
+      );
     } catch {}
   },
 
@@ -614,21 +663,25 @@ export const authService = {
     }
 
     try {
-      await fetch(`${base}/api/telemetry/heartbeat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+      await fetchGateway(
+        '/api/telemetry/heartbeat',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            deviceId: getDeviceId(),
+            platform,
+            appVersion,
+            eventType,
+            ...(extra || {})
+          }),
+          signal: AbortSignal.timeout(4000)
         },
-        body: JSON.stringify({
-          deviceId: getDeviceId(),
-          platform,
-          appVersion,
-          eventType,
-          ...(extra || {})
-        }),
-        signal: AbortSignal.timeout(4000)
-      });
+        gatewayUrl
+      );
     } catch {}
   },
 
@@ -644,10 +697,14 @@ export const authService = {
 
     const base = await resolveGatewayUrl(gatewayUrl);
     try {
-      const res = await fetch(`${base}/api/analytics/overview`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(6000)
-      });
+      const res = await fetchGateway(
+        '/api/analytics/overview',
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(6000)
+        },
+        gatewayUrl
+      );
       if (res.status !== 404) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {

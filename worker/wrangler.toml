@@ -1,4 +1,4 @@
-name = "inaayah-releases"
+name = "inaayah-api"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["cache_option_enabled"]
@@ -6,6 +6,7 @@ workers_dev = true
 preview_urls = true
 
 routes = [
+  { pattern = "api.inaayah.dev", zone_name = "inaayah.dev", custom_domain = true },
   { pattern = "releases.inaayah.dev", zone_name = "inaayah.dev", custom_domain = true }
 ]
 
