@@ -94,6 +94,64 @@ export interface UpdateCheckResult {
   error?: string;
 }
 
+export interface LauncherUser {
+  id: string;
+  email: string;
+  displayName: string;
+  role: 'admin' | 'player';
+  emailVerified: boolean;
+  createdAt: string;
+  verifiedAt: string | null;
+  lastSeenAt: string | null;
+}
+
+export interface StudioAnalyticsOverview {
+  generatedAt: string;
+  senderEmail: string;
+  isLocalFallback?: boolean;
+  summary: {
+    totalLauncherDownloads: number;
+    githubReleaseDownloads: number;
+    trackedLauncherDownloads: number;
+    uniqueDevices: number;
+    registeredUsers: number;
+    verifiedUsers: number;
+    unverifiedUsers: number;
+    onlineNow: number;
+    dau: number;
+    mau: number;
+    totalGameDownloads: number;
+  };
+  platformBreakdown: {
+    darwin: number;
+    win32: number;
+    linux: number;
+    web: number;
+  };
+  versionBreakdown: Array<{ version: string; count: number }>;
+  gameMetrics: Array<{
+    gameId: string;
+    title: string;
+    version: string;
+    githubDownloads: number;
+    trackedDownloads: number;
+    totalDownloads: number;
+  }>;
+  recentUsers: Array<{
+    id: string;
+    email: string;
+    displayName: string;
+    role: 'admin' | 'player';
+    emailVerified: boolean;
+    createdAt: string;
+    verifiedAt: string | null;
+    lastSeenAt: string | null;
+    platform: string | null;
+    appVersion: string | null;
+    isOnline: boolean;
+  }>;
+}
+
 export interface InaayahLauncherAPI {
   isElectron: boolean;
   getConfig: () => Promise<LauncherConfig>;

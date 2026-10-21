@@ -5,12 +5,21 @@ import {
   Download,
   Settings,
   HardDrive,
-  RotateCw
+  RotateCw,
+  BarChart3,
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
-import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
+import type {
+  GameCatalogItem,
+  InstalledGame,
+  DownloadProgress,
+  GameStatus,
+  LauncherUser
+} from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
 
-export type NavTab = 'store' | 'library' | 'downloads';
+export type NavTab = 'store' | 'library' | 'downloads' | 'analytics';
 
 interface SidebarProps {
   currentTab: NavTab;
@@ -26,6 +35,8 @@ interface SidebarProps {
   libraryPath: string;
   isRefreshing?: boolean;
   onRefresh?: () => void;
+  currentUser?: LauncherUser | null;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -41,7 +52,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSettings,
   libraryPath,
   isRefreshing = false,
-  onRefresh
+  onRefresh,
+  currentUser,
+  onLogout
 }) => {
   const activeDownloadsCount = Object.keys(activeDownloads).length;
   const installedCount = Object.keys(installedGames).length;
@@ -86,6 +99,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </span>
           )}
         </button>
+
+        {currentUser?.role === 'admin' && (
+          <button
+            className={`nav-item ${currentTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => onSelectTab('analytics')}
+          >
+            <div className="nav-item-left">
+              <BarChart3 size={18} />
+              <span>Studio Analytics</span>
+            </div>
+            <span
+              className="nav-badge"
+              style={{
+                background: 'rgba(0, 255, 136, 0.18)',
+                color: 'var(--accent-green)',
+                fontSize: 9,
+                letterSpacing: '0.06em'
+              }}
+            >
+              ADMIN
+            </span>
+          </button>
+        )}
       </div>
 
       <div className="nav-section" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -173,6 +209,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="nav-section" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
+        {currentUser && (
+          <div className="sidebar-account-card">
+            <div className="sidebar-account-avatar">
+              {currentUser.displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="sidebar-account-info">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span className="sidebar-account-name" title={currentUser.displayName}>
+                  {currentUser.displayName}
+                </span>
+                <span title="Verified Account" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <ShieldCheck size={12} color="var(--accent-green)" />
+                </span>
+              </div>
+              <span className="sidebar-account-email" title={currentUser.email}>
+                {currentUser.email}
+              </span>
+            </div>
+            {onLogout && (
+              <button
+                type="button"
+                className="sidebar-logout-btn"
+                onClick={onLogout}
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut size={14} />
+              </button>
+            )}
+          </div>
+        )}
+
         <button className="nav-item" onClick={onOpenSettings}>
           <div className="nav-item-left">
             <Settings size={18} />

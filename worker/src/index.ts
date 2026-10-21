@@ -1,4 +1,10 @@
-export interface Env {
+import {
+  AuthAnalyticsEnv,
+  handleAuthAndAnalyticsRequest,
+  recordDownloadEvent
+} from './auth-analytics';
+
+export interface Env extends AuthAnalyticsEnv {
   GITHUB_TOKEN?: string;
   GITHUB_ORG: string;
   CACHE_TTL_SECONDS: number;
@@ -38,7 +44,7 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, HEAD, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range'
 };
 
@@ -152,6 +158,7 @@ export default {
 
       try {
         const downloadUrl = await getReleaseAssetDownloadUrl(repo, platform, env);
+        await recordDownloadEvent({ targetType: 'game', targetId: gameId, platform }, env).catch(() => {});
         // Redirect directly to the signed AWS S3 CDN asset download
         return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl, 'Cache-Control': 'no-store' } });
       } catch (err: any) {
@@ -188,6 +195,7 @@ export default {
       const format = url.searchParams.get('format');
       try {
         const downloadUrl = await getReleaseAssetDownloadUrl('inaayah-launcher', platform, env, format);
+        await recordDownloadEvent({ targetType: 'launcher', targetId: 'inaayah-launcher', platform }, env).catch(() => {});
         return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl, 'Cache-Control': 'no-store' } });
       } catch (err: any) {
         return new Response(JSON.stringify({ error: err.message }), {
@@ -197,9 +205,67 @@ export default {
       }
     }
 
-        return new Response('Endpoint not found', { status: 404, headers: CORS_HEADERS });
+    // 8. Accounts, Email OTP Verification, Heartbeat Telemetry & Admin Analytics
+    if (
+      pathname.startsWith('/api/auth/') ||
+      pathname.startsWith('/api/telemetry/') ||
+      pathname.startsWith('/api/analytics/')
+    ) {
+      const authRes = await handleAuthAndAnalyticsRequest(request, pathname, env, CORS_HEADERS, () =>
+        getGithubReleaseStats(env)
+      );
+      if (authRes) return authRes;
+    }
+
+    return new Response('Endpoint not found', { status: 404, headers: CORS_HEADERS });
   }
 };
+
+async function getGithubReleaseStats(env: Env): Promise<{
+  launcherDownloads: number;
+  games: Array<{ gameId: string; title: string; version: string; githubDownloads: number }>;
+}> {
+  let launcherDownloads = 0;
+  try {
+    const launcherRel = await fetchLatestRelease('inaayah-launcher', env);
+    if (Array.isArray(launcherRel?.assets)) {
+      launcherDownloads = launcherRel.assets.reduce(
+        (sum: number, a: any) => sum + (Number(a.downloadCount) || 0),
+        0
+      );
+    }
+  } catch {}
+
+  const desktopGames = Object.entries(REGISTERED_GAMES).filter(
+    ([, cfg]) => cfg.type === 'desktop' && !cfg.isComingSoon
+  );
+
+  const games = await Promise.all(
+    desktopGames.map(async ([gameId, cfg]) => {
+      let version = '1.0.0';
+      let githubDownloads = 0;
+      const title =
+        gameId === 'vigilante-red-city'
+          ? 'Vigilante: Red City'
+          : gameId === 'aether-rush'
+          ? 'AetherRush: Cyber Brawler 3D'
+          : gameId;
+      try {
+        const rel = await fetchLatestRelease(cfg.repo, env);
+        version = (rel?.version || '1.0.0').replace(/^v/, '');
+        if (Array.isArray(rel?.assets)) {
+          githubDownloads = rel.assets.reduce(
+            (sum: number, a: any) => sum + (Number(a.downloadCount) || 0),
+            0
+          );
+        }
+      } catch {}
+      return { gameId, title, version, githubDownloads };
+    })
+  );
+
+  return { launcherDownloads, games };
+}
 
 function githubHeaders(env: Env, accept = 'application/vnd.github+json'): Record<string, string> {
   return {

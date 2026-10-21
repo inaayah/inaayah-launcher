@@ -7,14 +7,18 @@ import { LibraryGrid } from './components/LibraryGrid';
 import { StoreCatalog } from './components/StoreCatalog';
 import { DownloadsQueue } from './components/DownloadsQueue';
 import { SettingsModal } from './components/SettingsModal';
+import { AuthGate } from './components/AuthGate';
+import { StudioAnalytics } from './components/StudioAnalytics';
 import { catalogData } from './data/catalog';
 import { launcherBridge } from './services/electronBridge';
+import { authService, getStoredUser } from './services/authService';
 import type {
   LauncherConfig,
   InstalledGame,
   DownloadProgress,
   GameStatus,
-  GameCatalogItem
+  GameCatalogItem,
+  LauncherUser
 } from './types/launcher';
 import { getAssetUrl } from './utils/assets';
 
@@ -36,6 +40,8 @@ export const App: React.FC = () => {
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatus>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [catalog, setCatalog] = useState<GameCatalogItem[]>(catalogData);
+  const [currentUser, setCurrentUser] = useState<LauncherUser | null>(() => getStoredUser());
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
 
   // Update notifications
   const [updateReadyVersion, setUpdateReadyVersion] = useState<string | null>(null);
@@ -127,6 +133,9 @@ export const App: React.FC = () => {
     if (!background) {
       setCurrentTab('downloads');
     }
+    authService
+      .sendHeartbeat('game_download', { gameId, gameVersion: game.version })
+      .catch(() => {});
     try {
       await launcherBridge.downloadGame(gameId, game.version);
     } catch (err) {
@@ -225,10 +234,32 @@ export const App: React.FC = () => {
     return refreshGames(true);
   }, [refreshGames]);
 
-  // 1. Initial load
+  // 1. Initial load & session verification
   useEffect(() => {
-    refreshGames(true);
+    let active = true;
+    const minSplashDelay = new Promise((resolve) => setTimeout(resolve, 450));
+    Promise.all([
+      authService.verifySession().catch(() => null),
+      refreshGames(true).catch(() => {}),
+      minSplashDelay
+    ]).then(([verified]) => {
+      if (!active) return;
+      setCurrentUser(verified);
+      setAuthChecking(false);
+    });
+    authService.sendHeartbeat('app_launch').catch(() => {});
+    return () => {
+      active = false;
+    };
   }, [refreshGames]);
+
+  // 1b. Periodic active player heartbeat (every 2 minutes)
+  useEffect(() => {
+    const hbTimer = setInterval(() => {
+      authService.sendHeartbeat('heartbeat').catch(() => {});
+    }, 120000);
+    return () => clearInterval(hbTimer);
+  }, []);
 
   // 2. Real-time background auto-refresh every 30s so new releases appear without restart!
   useEffect(() => {
@@ -372,6 +403,14 @@ export const App: React.FC = () => {
     setConfig(updated);
   };
 
+  const handleLogout = async () => {
+    await authService.logout(config.releaseGatewayUrl);
+    setCurrentUser(null);
+    if (currentTab === 'analytics') {
+      setCurrentTab('library');
+    }
+  };
+
   return (
     <div className="app-container">
       <TitleBar
@@ -383,154 +422,192 @@ export const App: React.FC = () => {
         onRestartUpdate={() => launcherBridge.restartAndInstallUpdate()}
       />
 
-      {/* In-App Update Alert Banner */}
-      {!bannerDismissed && (updateReadyVersion || updateAvailableInfo) && (
-        <div className="update-alert-banner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="bell-badge-pulse" style={{ position: 'relative', display: 'inline-block' }} />
-            {updateReadyVersion ? (
-              <span style={{ fontSize: 13 }}>
-                <strong>Inaayah Launcher v{updateReadyVersion}</strong> has been downloaded and is ready to install!
-              </span>
-            ) : (
-              <span style={{ fontSize: 13 }}>
-                <strong>Inaayah Launcher v{updateAvailableInfo?.version}</strong> is available with official bug fixes and improvements.
-              </span>
-            )}
+      {authChecking ? (
+        <div className="launcher-splash-screen" role="status" aria-live="polite">
+          <div className="splash-logo-ring">
+            <img
+              src={getAssetUrl('icon.png')}
+              alt="Inaayah Studio"
+              style={{ width: 52, height: 52, borderRadius: 12 }}
+            />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {updateReadyVersion ? (
-              <button
-                className="btn-primary-action play"
-                style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
-                disabled={isRestartingLauncher}
-                onClick={() => {
-                  setIsRestartingLauncher(true);
-                  launcherBridge.restartAndInstallUpdate();
-                }}
-              >
-                <RotateCcw size={12} className={isRestartingLauncher ? 'spin-fast' : 'spin-slow'} />
-                <span>{isRestartingLauncher ? 'Applying Update...' : 'Restart Now'}</span>
-              </button>
-            ) : (
-              <button
-                className="btn-primary-action play"
-                style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
-                onClick={() =>
-                  launcherBridge.openExternalUrl(
-                    updateAvailableInfo?.releaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest'
-                  )
-                }
-              >
-                <Download size={12} />
-                <span>Download v{updateAvailableInfo?.version}</span>
-              </button>
-            )}
-            <button
-              className="window-btn"
-              style={{ width: 26, height: 26 }}
-              title="Dismiss"
-              onClick={() => setBannerDismissed(true)}
-            >
-              <X size={14} />
-            </button>
+          <div className="splash-text-group">
+            <div className="splash-kicker">INAAYAH STUDIO NETWORK</div>
+            <h2 className="splash-title">Verifying Account Session...</h2>
+          </div>
+          <div className="splash-progress-track">
+            <div className="splash-progress-bar" />
           </div>
         </div>
-      )}
-
-      <div className="main-body">
-        <Sidebar
-          currentTab={currentTab}
-          onSelectTab={(tab) => {
-            setCurrentTab(tab);
-            if (tab === 'library') {
-              setIsViewingDetail(false);
-            }
+      ) : !currentUser ? (
+        <AuthGate
+          gatewayUrl={config.releaseGatewayUrl}
+          onAuthenticated={(user) => {
+            setCurrentUser(user);
+            authService.sendHeartbeat('app_launch', undefined, config.releaseGatewayUrl).catch(() => {});
           }}
-          catalog={libraryGames}
-          installedGames={installedGames}
-          selectedGameId={selectedGameId}
-          isViewingDetail={isViewingDetail}
-          onSelectGame={(id) => {
-            setSelectedGameId(id);
-            setCurrentTab('library');
-            setIsViewingDetail(true);
-          }}
-          activeDownloads={downloads}
-          gameStatuses={gameStatuses}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          libraryPath={config.libraryPath}
-          isRefreshing={isRefreshing}
-          onRefresh={() => refreshGames(false)}
         />
+      ) : (
+        <>
+          {/* In-App Update Alert Banner */}
+          {!bannerDismissed && (updateReadyVersion || updateAvailableInfo) && (
+            <div className="update-alert-banner">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="bell-badge-pulse" style={{ position: 'relative', display: 'inline-block' }} />
+                {updateReadyVersion ? (
+                  <span style={{ fontSize: 13 }}>
+                    <strong>Inaayah Launcher v{updateReadyVersion}</strong> has been downloaded and is ready to install!
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 13 }}>
+                    <strong>Inaayah Launcher v{updateAvailableInfo?.version}</strong> is available with official bug fixes and improvements.
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {updateReadyVersion ? (
+                  <button
+                    className="btn-primary-action play"
+                    style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
+                    disabled={isRestartingLauncher}
+                    onClick={() => {
+                      setIsRestartingLauncher(true);
+                      launcherBridge.restartAndInstallUpdate();
+                    }}
+                  >
+                    <RotateCcw size={12} className={isRestartingLauncher ? 'spin-fast' : 'spin-slow'} />
+                    <span>{isRestartingLauncher ? 'Applying Update...' : 'Restart Now'}</span>
+                  </button>
+                ) : (
+                  <button
+                    className="btn-primary-action play"
+                    style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
+                    onClick={() =>
+                      launcherBridge.openExternalUrl(
+                        updateAvailableInfo?.releaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest'
+                      )
+                    }
+                  >
+                    <Download size={12} />
+                    <span>Download v{updateAvailableInfo?.version}</span>
+                  </button>
+                )}
+                <button
+                  className="window-btn"
+                  style={{ width: 26, height: 26 }}
+                  title="Dismiss"
+                  onClick={() => setBannerDismissed(true)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
 
-        <main className="content-area">
-          {currentTab === 'store' && (
-            <StoreCatalog
-              catalog={catalog}
+          <div className="main-body">
+            <Sidebar
+              currentTab={currentTab}
+              onSelectTab={(tab) => {
+                setCurrentTab(tab);
+                if (tab === 'library') {
+                  setIsViewingDetail(false);
+                }
+              }}
+              catalog={libraryGames}
               installedGames={installedGames}
-              gameStatuses={gameStatuses}
-              ownedGameIds={ownedGameIds}
+              selectedGameId={selectedGameId}
+              isViewingDetail={isViewingDetail}
               onSelectGame={(id) => {
                 setSelectedGameId(id);
                 setCurrentTab('library');
                 setIsViewingDetail(true);
               }}
-              onLaunch={handleLaunch}
-              onInstall={handleInstall}
-              onAddToLibrary={handleAddToLibrary}
+              activeDownloads={downloads}
+              gameStatuses={gameStatuses}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              libraryPath={config.libraryPath}
               isRefreshing={isRefreshing}
               onRefresh={() => refreshGames(false)}
+              currentUser={currentUser}
+              onLogout={handleLogout}
             />
-          )}
 
-          {currentTab === 'library' && (
-            isViewingDetail ? (
-              <GameHero
-                game={selectedGame}
-                installed={installedGames[selectedGame.id]}
-                downloadProgress={downloads[selectedGame.id]}
-                status={gameStatuses[selectedGame.id] || 'NOT_INSTALLED'}
-                onBackToLibrary={() => setIsViewingDetail(false)}
-                onInstall={handleInstall}
-                onCancelDownload={handleCancelDownload}
-                onLaunch={handleLaunch}
-                onUninstall={handleUninstall}
-                onCheckUpdates={handleCheckUpdates}
-              />
-            ) : (
-              <LibraryGrid
-                catalog={libraryGames}
-                installedGames={installedGames}
-                gameStatuses={gameStatuses}
-                activeDownloads={downloads}
-                onSelectGame={(id) => {
-                  setSelectedGameId(id);
-                  setIsViewingDetail(true);
-                }}
-                onLaunch={handleLaunch}
-                onInstall={handleInstall}
-                onOpenStore={() => setCurrentTab('store')}
-                isRefreshing={isRefreshing}
-                onRefresh={() => refreshGames(false)}
-              />
-            )
-          )}
+            <main className="content-area">
+              {currentTab === 'store' && (
+                <StoreCatalog
+                  catalog={catalog}
+                  installedGames={installedGames}
+                  gameStatuses={gameStatuses}
+                  ownedGameIds={ownedGameIds}
+                  onSelectGame={(id) => {
+                    setSelectedGameId(id);
+                    setCurrentTab('library');
+                    setIsViewingDetail(true);
+                  }}
+                  onLaunch={handleLaunch}
+                  onInstall={handleInstall}
+                  onAddToLibrary={handleAddToLibrary}
+                  isRefreshing={isRefreshing}
+                  onRefresh={() => refreshGames(false)}
+                />
+              )}
 
-          {currentTab === 'downloads' && (
-            <DownloadsQueue
-              catalog={catalog}
-              downloads={downloads}
-              onCancel={handleCancelDownload}
-              onSelectGame={(id) => {
-                setSelectedGameId(id);
-                setCurrentTab('library');
-                setIsViewingDetail(true);
-              }}
-            />
-          )}
-        </main>
-      </div>
+              {currentTab === 'library' && (
+                isViewingDetail ? (
+                  <GameHero
+                    game={selectedGame}
+                    installed={installedGames[selectedGame.id]}
+                    downloadProgress={downloads[selectedGame.id]}
+                    status={gameStatuses[selectedGame.id] || 'NOT_INSTALLED'}
+                    onBackToLibrary={() => setIsViewingDetail(false)}
+                    onInstall={handleInstall}
+                    onCancelDownload={handleCancelDownload}
+                    onLaunch={handleLaunch}
+                    onUninstall={handleUninstall}
+                    onCheckUpdates={handleCheckUpdates}
+                  />
+                ) : (
+                  <LibraryGrid
+                    catalog={libraryGames}
+                    installedGames={installedGames}
+                    gameStatuses={gameStatuses}
+                    activeDownloads={downloads}
+                    onSelectGame={(id) => {
+                      setSelectedGameId(id);
+                      setIsViewingDetail(true);
+                    }}
+                    onLaunch={handleLaunch}
+                    onInstall={handleInstall}
+                    onOpenStore={() => setCurrentTab('store')}
+                    isRefreshing={isRefreshing}
+                    onRefresh={() => refreshGames(false)}
+                  />
+                )
+              )}
+
+              {currentTab === 'downloads' && (
+                <DownloadsQueue
+                  catalog={catalog}
+                  downloads={downloads}
+                  onCancel={handleCancelDownload}
+                  onSelectGame={(id) => {
+                    setSelectedGameId(id);
+                    setCurrentTab('library');
+                    setIsViewingDetail(true);
+                  }}
+                />
+              )}
+
+              {currentTab === 'analytics' && currentUser?.role === 'admin' && (
+                <StudioAnalytics
+                  currentUser={currentUser}
+                  gatewayUrl={config.releaseGatewayUrl}
+                />
+              )}
+            </main>
+          </div>
+        </>
+      )}
 
       <SettingsModal
         config={config}

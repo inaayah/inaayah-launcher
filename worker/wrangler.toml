@@ -17,3 +17,17 @@ routes = [
 GITHUB_ORG = "inaayah"
 CACHE_TTL_SECONDS = 604800
 CACHE_REVISION = "launcher-v0.2.13"
+EMAIL_FROM = "Inaayah Studio <noreply@inaayah.dev>"
+EMAIL_REPLY_TO = "sazid@inaayah.dev"
+ADMIN_EMAILS = "sazid@inaayah.dev,admin@inaayah.dev"
+
+# Cloudflare D1 Database (Free Tier: 5 GB storage, 5M reads/day, 100k writes/day)
+# Provision with:
+#   cd worker && npx wrangler d1 create inaayah-launcher-db
+# Then paste the generated database_id below and apply schema.sql:
+#   npx wrangler d1 execute inaayah-launcher-db --remote --file=./schema.sql
+
+[[d1_databases]]
+binding = "DB"
+database_name = "inaayah-launcher-db"
+database_id = "f979366a-81f8-4eec-913e-99f817e4f405"
