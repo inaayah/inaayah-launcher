@@ -30,7 +30,7 @@ beforeEach(t => {
 const request = path => new Request(`https://example.test${path}`);
 const latest = '/api/games/vigilante-red-city/releases/latest';
 
-test('warm metadata requests make only one GitHub read during the seven-day TTL', async t => {
+test('warm latest-release requests reuse metadata for at most two minutes', async t => {
   const fetch = t.mock.method(globalThis, 'fetch', async () => Response.json(release));
   for (let index = 0; index < 3; index++) {
     const response = await worker.fetch(request(latest), env, {});
@@ -40,7 +40,7 @@ test('warm metadata requests make only one GitHub read during the seven-day TTL'
   }
   assert.equal(fetch.mock.callCount(), 1);
   assert.equal(fetch.mock.calls[0].arguments[1].cache, 'no-store');
-  assert.equal([...caches.default.entries.values()][0].response.headers.get('Cache-Control'), 'public, max-age=604800');
+  assert.equal([...caches.default.entries.values()][0].response.headers.get('Cache-Control'), 'public, max-age=120');
 });
 
 test('permission failures are not cached, allowing a corrected token to work immediately', async t => {
@@ -63,7 +63,7 @@ test('changing the release cache revision exposes a new release without waiting 
   assert.equal(count, 2);
 });
 
-test('download redirects reuse metadata for seven days but refresh their signed URL after a minute', async t => {
+test('download redirects reuse metadata briefly but refresh their signed URL after a minute', async t => {
   let now = Date.now();
   t.mock.method(Date, 'now', () => now);
   let metadataReads = 0, signedReads = 0;

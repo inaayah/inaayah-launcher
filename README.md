@@ -172,3 +172,7 @@ API call. The worker never forwards the private token to the download CDN.
 
 Run `npm run test:incremental` for compatibility, corruption, cancellation,
 rollback, interrupted-install recovery and path-validation checks.
+
+Release publication is verified by the shared action in `.github/actions/publish-release/`.
+See `worker/README.md` for gateway authentication and recovery. Renderer state
+regressions run with `npm run test:renderer` (including real install event order).

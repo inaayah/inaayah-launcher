@@ -1,3 +1,4 @@
+import { synchronizeRelease, withPublishedRevision } from './release-sync';
 import {
   AuthAnalyticsEnv,
   handleAuthAndAnalyticsRequest,
@@ -63,6 +64,12 @@ export default {
         JSON.stringify({ status: 'ok', service: 'inaayah-api', time: new Date().toISOString() }),
         { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (pathname === '/api/releases/sync') return synchronizeRelease(request, env, REGISTERED_GAMES);
+    if (pathname.startsWith('/api/games') || pathname.startsWith('/api/launcher/')) {
+      try { env = await withPublishedRevision(env); }
+      catch { return Response.json({ error: 'Release state unavailable' }, { status: 503, headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' } }); }
     }
 
     // 2. GET /api/games -> list registered catalog dynamically from games-catalog.json
@@ -160,7 +167,7 @@ export default {
         const downloadUrl = await getReleaseAssetDownloadUrl(repo, platform, env);
         await recordDownloadEvent({ targetType: 'game', targetId: gameId, platform }, env).catch(() => {});
         // Redirect directly to the signed AWS S3 CDN asset download
-        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl, 'Cache-Control': 'no-store' } });
+        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl.url, 'X-Release-Version': downloadUrl.version, 'Cache-Control': 'no-store' } });
       } catch (err: any) {
         return new Response(JSON.stringify({ error: err.message }), {
           status: 500,
@@ -197,7 +204,7 @@ export default {
       try {
         const downloadUrl = await getReleaseAssetDownloadUrl('inaayah-launcher', platform, env, format, version);
         await recordDownloadEvent({ targetType: 'launcher', targetId: 'inaayah-launcher', platform, version }, env).catch(() => {});
-        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl, 'Cache-Control': 'no-store' } });
+        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl.url, 'X-Release-Version': downloadUrl.version, 'Cache-Control': 'no-store' } });
       } catch (err: any) {
         return new Response(JSON.stringify({ error: err.message }), {
           status: 500,
@@ -325,7 +332,7 @@ async function fetchLatestRelease(repo: string, env: Env): Promise<any> {
         name: asset.name, size: asset.size, downloadCount: asset.download_count, id: asset.id
       }))
     };
-  });
+  }, Math.min(Number(env.CACHE_TTL_SECONDS) || 120, 120));
 }
 
 async function fetchTaggedRelease(repo: string, version: string, env: Env): Promise<any> {
@@ -394,7 +401,7 @@ async function getReleaseAssetDownloadUrl(
   env: Env,
   format?: string | null,
   version?: string | null
-): Promise<string> {
+): Promise<{ url: string; version: string }> {
   const cleanVersion = version ? version.replace(/^v/, '') : null;
   const release =
     cleanVersion && /^\d+\.\d+\.\d+$/.test(cleanVersion)
@@ -402,7 +409,7 @@ async function getReleaseAssetDownloadUrl(
       : await fetchLatestRelease(repo, env);
   const matchesPlatform = (name: string) => {
     if (['darwin', 'mac', 'macos'].includes(platform)) return name.includes('mac') || name.includes('darwin') || name.endsWith('.dmg');
-    if (['win32', 'windows', 'win'].includes(platform)) return name.includes('win') || name.endsWith('.exe');
+    if (['win32', 'windows', 'win'].includes(platform)) return (name.includes('win') && !name.includes('darwin')) || name.endsWith('.exe');
     if (platform === 'linux') return name.includes('linux') || name.endsWith('.appimage') || name.endsWith('.tar.gz');
     return false;
   };
@@ -423,7 +430,7 @@ async function getReleaseAssetDownloadUrl(
   if (!asset) throw new Error(`No matching release asset found for platform '${platform}' in ${release.version}`);
 
   // Signed links expire independently of metadata. Reuse them for only one minute.
-  return assetDownloadUrl(repo, asset.id, env);
+  return { url: await assetDownloadUrl(repo, asset.id, env), version: release.version };
 }
 
 function catalogArtwork(item: any, env: Env): any {

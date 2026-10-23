@@ -1,0 +1,23 @@
+name: Publish release to Inaayah distribution
+description: Verify complete published assets, refresh the global release cache and check public channels
+inputs:
+  game-id:
+    description: Registered game ID, or launcher
+    required: true
+  version:
+    description: Published stable version or tag
+    required: true
+  gateway-url:
+    description: Release gateway
+    default: https://releases.inaayah.dev
+runs:
+  using: composite
+  steps:
+    - name: Synchronize and verify public release channels
+      shell: bash
+      env:
+        INAAYAH_RELEASE_ID: ${{ inputs.game-id }}
+        INAAYAH_RELEASE_VERSION: ${{ inputs.version }}
+        INAAYAH_RELEASE_GATEWAY: ${{ inputs.gateway-url }}
+        INAAYAH_RELEASE_ACTION_PATH: ${{ github.action_path }}
+      run: python3 "$INAAYAH_RELEASE_ACTION_PATH/publish.py"

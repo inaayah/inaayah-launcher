@@ -72,3 +72,9 @@ CREATE TABLE IF NOT EXISTS download_events (
 
 CREATE INDEX IF NOT EXISTS idx_downloads_target ON download_events(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_downloads_created_at ON download_events(created_at);
+
+-- Globally shared revision changes all edge cache namespaces after publication.
+CREATE TABLE IF NOT EXISTS release_cache_state (id TEXT PRIMARY KEY, revision TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS release_publications (
+  game_id TEXT PRIMARY KEY, version TEXT NOT NULL, fingerprint TEXT NOT NULL, published_at TEXT NOT NULL
+);

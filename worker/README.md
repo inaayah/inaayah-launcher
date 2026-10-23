@@ -9,7 +9,7 @@
 ## ⚡ Architecture & Free Tier Benefits
 
 - **100,000 Free Requests / Day:** Built on Cloudflare Workers Free Tier.
-- **Minimizes GitHub API Usage:** Caches release metadata, catalog source and published manifests for seven days per edge location; warm requests do not contact GitHub.
+- **Minimizes GitHub API Usage:** Caches immutable manifests and catalog sources for seven days; latest-release pointers expire after two minutes and switch immediately after an authenticated publication.
 - **Zero Token Leakage:** The GitHub Personal Access Token is stored safely as a Cloudflare Secret (`GITHUB_TOKEN`), completely hidden from the desktop client.
 - **Fast Global Downloads:** Redirects package downloads to GitHub’s release CDN, with a short cache for signed URLs.
 
@@ -50,37 +50,50 @@ Your worker will instantly be live at:
 
 ## Release gateway caching
 
-`inaayah-releases` keeps successful release metadata, catalog source and published
-game manifests in Cloudflare's edge Cache API for **seven days**. A warm request
-does not contact GitHub. Cold caches and evictions can require fresh GitHub reads
-at each Cloudflare location; this is not a single global cache.
+Immutable manifests and catalog sources use a seven-day edge cache. Latest-release
+pointers have a two-minute fallback TTL. Signed asset redirects expire after at most
+60 seconds. Failed GitHub reads are never cached; credentials never reach the CDN.
 
-Signed asset redirects have a separate **60-second** cache because GitHub's signed
-URLs expire. Package bytes travel directly from GitHub's download CDN. Failed
-GitHub requests are never cached, and credentials are never stored in cached
-responses or forwarded to the download host. Public metadata responses require
-browser revalidation, which reads the edge cache rather than calling GitHub.
+## Automatic release publication
 
-## Refresh after each release
+After all GitHub release assets are published, call the shared composite action:
 
-1. Wait for the game or launcher GitHub release and all its assets to finish publishing.
-2. From the launcher repository run `npm run refresh:releases -- v1.0.1` (choose a
-   new revision each time). This updates `CACHE_REVISION` and deploys the worker,
-   retaining the existing Cloudflare `GITHUB_TOKEN` secret.
-3. Open `https://releases.inaayah.dev/api/games` and the latest-release endpoint
-   to warm the cache, then verify each platform download. Commit the changed
-   `worker/wrangler.toml` so later deployments keep the current revision.
+```yaml
+permissions:
+  contents: write
+  id-token: write
+# Last step, including when an existing complete release skips its build:
+- uses: inaayah/inaayah-launcher/.github/actions/publish-release@main
+  with:
+    game-id: vigilante-red-city
+    version: ${{ github.ref_name }}
+```
 
-The revision is part of every internal cache key. Deploying a new revision makes
-all locations stop using the old namespace without a zone-wide purge or an
-extra cache-purge secret. Old entries expire normally. A unique timestamp is
-used when no revision is supplied. `--prepare-only` updates configuration without
-deploying; this is useful when checking changes before a release.
+Pin the action to a reviewed commit in consuming repositories. The action obtains
+a short-lived GitHub OIDC identity with audience `https://releases.inaayah.dev`;
+no additional repository secret is required. The gateway verifies its signature,
+issuer, audience, repository, main/release-tag ref and exact release workflow path.
+Only `.github/workflows/release.yml` for games and `release-launcher.yml` for the
+launcher can synchronize. Forks, pull requests and feature branches are rejected.
 
-Use the same refresh command after rotating the GitHub token or changing catalog
-metadata. Do not reuse an old revision, since its cached snapshots can still exist.
-If a release has a `game-manifest.json` asset, its measured sizes, executable paths
-and SHA-256 values replace the catalog's older values automatically on refresh.
+`POST /api/releases/sync` validates the latest stable release, desktop assets,
+measured manifest and incremental packages before atomically changing a shared D1
+revision. Every edge location reads this revision, so warm caches switch together.
+Retrying the same publication is idempotent. An older or partial release cannot
+replace the published channel.
+
+The action checks latest release, catalog, manifest, all three desktop redirects,
+archive byte ranges and incremental links. Failed verification fails the workflow;
+rerun publication to repair distribution without rebuilding the game. The studio
+website and launcher read these same endpoints.
+
+For a read-only check, set `INAAYAH_RELEASE_ID`, `INAAYAH_RELEASE_VERSION` and run
+`python3 .github/actions/publish-release/publish.py --verify-only`.
+
+The existing `npm run refresh:releases -- UNIQUE_REVISION` command remains an
+administrative fallback for token rotation or catalog changes; it is no longer a
+required manual step after each release. D1 schema migration must succeed before
+worker deployment. Old edge entries expire naturally.
 
 ## Token permissions
 

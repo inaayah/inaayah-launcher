@@ -56,7 +56,7 @@ jobs:
           fi
 
           echo "Applying idempotent D1 schema to inaayah-launcher-db..."
-          npm run d1:init:remote || echo "::warning::D1 schema sync skipped (ensure CLOUDFLARE_API_TOKEN has D1:Edit permission if schema.sql changes)."
+          npm run d1:init:remote
 
           REVISION="${{ inputs.cache_revision }}"
           if [ -z "${REVISION}" ]; then

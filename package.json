@@ -1,6 +1,6 @@
 {
   "name": "inaayah-launcher",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "description": "Official Steam-style Desktop Game Launcher & Auto-Updater for Inaayah Studio Games",
   "main": "dist-electron/main.js",
   "author": "Inaayah Games",
@@ -21,11 +21,12 @@
     "release:patch": "node scripts/release.js patch",
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major",
-    "test:worker": "node --test worker/test/cache-refresh.test.mjs worker/test/release-cache.test.mjs worker/test/auth-analytics.test.mjs",
+    "test:worker": "node --test worker/test/cache-refresh.test.mjs worker/test/release-cache.test.mjs worker/test/auth-analytics.test.mjs worker/test/release-sync.test.mjs",
     "refresh:releases": "python3 scripts/refresh_release_cache.py",
     "test:updater": "node --test electron/test/mac-update-state.test.mjs electron/test/incremental-update.test.mjs electron/test/full-download.test.mjs",
     "test:local-dev": "node --test electron/test/local-dev.test.mjs",
-    "test:incremental": "node --test electron/test/incremental-update.test.mjs"
+    "test:incremental": "node --test electron/test/incremental-update.test.mjs",
+    "test:renderer": "node --test src/test/*.test.mjs"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
@@ -43,6 +44,7 @@
     "electron": "^34.2.0",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.25.0",
+    "react-test-renderer": "^19.3.0",
     "typescript": "^5.7.0",
     "vite": "^6.2.0"
   },

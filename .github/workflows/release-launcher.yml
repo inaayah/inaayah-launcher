@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 defaults:
   run:
@@ -111,6 +112,7 @@ jobs:
         run: |
           npm run lint
           npm run test:updater
+          npm run test:renderer
           npm run test:local-dev
           npm run test:worker
 
@@ -158,27 +160,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
 
-      - name: Checkout Code for Worker Cache Refresh
+      - name: Checkout release verification action
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.target.outputs.tag }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Synchronize and verify distribution
+        uses: ./.github/actions/publish-release
         with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Refresh Cloudflare Worker Release Cache
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || '107b188591986cb056d372e944a133d0' }}
-        run: |
-          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
-            echo "::warning::CLOUDFLARE_API_TOKEN not set; skipping automatic worker cache refresh."
-            exit 0
-          fi
-          REVISION="${{ steps.target.outputs.tag }}-$(date -u +%Y%m%dT%H%M%SZ)"
-          python3 scripts/refresh_release_cache.py "${REVISION}"
-
-
+          game-id: launcher
+          version: ${{ steps.target.outputs.tag }}

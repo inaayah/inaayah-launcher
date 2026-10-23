@@ -757,6 +757,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
           uninstalledDevGames.delete(gameId);
           await scanInstalledGames();
           sendProgress('COMPLETED', result.downloadedBytes, result.downloadedBytes);
+          mainWindow?.webContents.send('launcher:game-status-changed', { gameId, status: 'INSTALLED' });
           return true;
         }
       } catch (error: any) {
@@ -800,6 +801,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     uninstalledDevGames.delete(gameId);
     await scanInstalledGames();
     sendProgress('COMPLETED', received, total);
+    mainWindow?.webContents.send('launcher:game-status-changed', { gameId, status: 'INSTALLED' });
     return true;
   } catch (error: any) {
     sendProgress('ERROR', 0, 0, signal.aborted ? 'Download cancelled' : error.message);

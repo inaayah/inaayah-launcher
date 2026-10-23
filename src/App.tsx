@@ -21,6 +21,7 @@ import type {
   LauncherUser
 } from './types/launcher';
 import { getAssetUrl } from './utils/assets';
+import { computeGameStatuses, settledGameStatus } from './utils/gameStatus';
 
 export const App: React.FC = () => {
   const [config, setConfig] = useState<LauncherConfig>({
@@ -85,40 +86,20 @@ export const App: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const catalogRef = React.useRef<GameCatalogItem[]>(catalog);
-  useEffect(() => {
-    catalogRef.current = catalog;
-  }, [catalog]);
+  const installedRef = React.useRef(installedGames);
+  const installedRevisionRef = React.useRef(0);
+  const refreshSequenceRef = React.useRef(0);
+  const pendingDownloadsRef = React.useRef(new Set<string>());
 
-  const computeGameStatuses = useCallback((
-    currentCatalog: GameCatalogItem[],
-    installed: Record<string, InstalledGame>,
-    existingStatuses: Record<string, GameStatus>
-  ): Record<string, GameStatus> => {
-    const next = { ...existingStatuses };
-    currentCatalog.forEach((game) => {
-      const curr = next[game.id];
-      if (curr === 'DOWNLOADING' || curr === 'EXTRACTING' || curr === 'RUNNING') {
-        return;
-      }
-      const isDev = Boolean(
-        installed[game.id]?.version?.includes('Local Dev') ||
-        installed[game.id]?.installPath?.includes('godot')
-      );
-      if (isDev) {
-        next[game.id] = 'INSTALLED';
-      } else if (game.isComingSoon) {
-        next[game.id] = 'NOT_INSTALLED';
-      } else if (game.gameType === 'web') {
-        next[game.id] = 'INSTALLED';
-      } else if (installed[game.id]) {
-        next[game.id] = (installed[game.id].version !== game.version)
-          ? 'UPDATE_AVAILABLE'
-          : 'INSTALLED';
-      } else {
-        next[game.id] = 'NOT_INSTALLED';
-      }
-    });
-    return next;
+  const acceptInstalledGames = useCallback((games: Record<string, InstalledGame>) => {
+    installedRevisionRef.current++;
+    installedRef.current = games;
+    setInstalledGames(games);
+  }, []);
+
+  const settleDownload = useCallback((gameId: string) => {
+    const game = catalogRef.current.find(g => g.id === gameId);
+    setGameStatuses(prev => ({ ...prev, [gameId]: settledGameStatus(game, installedRef.current[gameId]) }));
   }, []);
 
   const autoUpdateDismissedRef = React.useRef<Set<string>>(new Set());
@@ -126,7 +107,8 @@ export const App: React.FC = () => {
 
   const handleInstall = useCallback(async (gameId: string, background = false) => {
     const game = catalogRef.current.find((g) => g.id === gameId);
-    if (!game || game.isComingSoon) return;
+    if (!game || game.isComingSoon || pendingDownloadsRef.current.has(gameId)) return;
+    pendingDownloadsRef.current.add(gameId);
     handleAddToLibrary(gameId);
 
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'DOWNLOADING' }));
@@ -137,12 +119,18 @@ export const App: React.FC = () => {
       .sendHeartbeat('game_download', { gameId, gameVersion: game.version })
       .catch(() => {});
     try {
-      await launcherBridge.downloadGame(gameId, game.version);
+      const completed = await launcherBridge.downloadGame(gameId, game.version);
+      if (!completed) autoUpdateDismissedRef.current.add(`${gameId}_${game.version}`);
     } catch (err) {
       console.error('Download failed:', err);
-      setGameStatuses((prev) => ({ ...prev, [gameId]: 'NOT_INSTALLED' }));
+      autoUpdateDismissedRef.current.add(`${gameId}_${game.version}`);
+    } finally {
+      pendingDownloadsRef.current.delete(gameId);
+      const games = await launcherBridge.getInstalledGames().catch(() => installedRef.current);
+      acceptInstalledGames(games);
+      settleDownload(gameId);
     }
-  }, []);
+  }, [acceptInstalledGames, settleDownload]);
 
   const handleCancelDownload = useCallback(async (gameId: string) => {
     const game = catalogRef.current.find((g) => g.id === gameId);
@@ -155,13 +143,12 @@ export const App: React.FC = () => {
       delete next[gameId];
       return next;
     });
-    setGameStatuses((prev) => ({
-      ...prev,
-      [gameId]: installedGames[gameId] ? 'INSTALLED' : 'NOT_INSTALLED'
-    }));
-  }, [installedGames]);
+    settleDownload(gameId);
+  }, [settleDownload]);
 
   const refreshGames = useCallback(async (silent = false) => {
+    const sequence = ++refreshSequenceRef.current;
+    const installedRevision = installedRevisionRef.current;
     if (!silent) setIsRefreshing(true);
     try {
       const [cfg, installed, dyn] = await Promise.all([
@@ -170,8 +157,11 @@ export const App: React.FC = () => {
         launcherBridge.refreshCatalog().catch(() => null)
       ]);
 
+      if (sequence !== refreshSequenceRef.current) return;
       setConfig(cfg);
-      setInstalledGames(installed);
+      // An IPC installation snapshot received during this request is newer.
+      const currentInstalled = installedRevision === installedRevisionRef.current ? installed : installedRef.current;
+      if (installedRevision === installedRevisionRef.current) acceptInstalledGames(installed);
 
       let activeCatalog = catalogRef.current;
       if (Array.isArray(dyn) && dyn.length > 0) {
@@ -192,27 +182,11 @@ export const App: React.FC = () => {
           }
         });
         activeCatalog = Array.from(map.values());
+        catalogRef.current = activeCatalog;
         setCatalog(activeCatalog);
       }
 
-      setGameStatuses((prev) => {
-        const nextStatuses = computeGameStatuses(activeCatalog, installed, prev);
-
-        // Automatic Game Updates: If enabled in Settings, automatically download game updates in the background
-        if (cfg.autoUpdate) {
-          activeCatalog.forEach((game) => {
-            if (nextStatuses[game.id] === 'UPDATE_AVAILABLE') {
-              const currStatus = prev[game.id];
-              const isBusy = currStatus === 'DOWNLOADING' || currStatus === 'EXTRACTING' || currStatus === 'RUNNING';
-              if (!isBusy && !autoUpdateDismissedRef.current.has(`${game.id}_${game.version}`)) {
-                handleInstall(game.id, true /* background */);
-              }
-            }
-          });
-        }
-
-        return nextStatuses;
-      });
+      setGameStatuses(prev => computeGameStatuses(activeCatalog, currentInstalled, prev));
 
       // Quietly check for launcher self-updates at most once every 10 minutes (or on initial launch)
       const now = Date.now();
@@ -227,7 +201,17 @@ export const App: React.FC = () => {
         setTimeout(() => setIsRefreshing(false), 450);
       }
     }
-  }, [computeGameStatuses]);
+  }, [acceptInstalledGames]);
+
+  useEffect(() => {
+    if (!config.autoUpdate) return;
+    for (const game of catalog) {
+      if (gameStatuses[game.id] === 'UPDATE_AVAILABLE' &&
+          !autoUpdateDismissedRef.current.has(`${game.id}_${game.version}`)) {
+        void handleInstall(game.id, true);
+      }
+    }
+  }, [catalog, config.autoUpdate, gameStatuses, handleInstall]);
 
   // Backward-compatible alias for existing action handlers
   const refreshInstalled = useCallback(async () => {
@@ -290,30 +274,31 @@ export const App: React.FC = () => {
         return { ...prev, [prog.gameId]: prog };
       });
 
-      setGameStatuses((prev) => ({
-        ...prev,
-        [prog.gameId]: prog.phase === 'EXTRACTING' ? 'EXTRACTING' : 'DOWNLOADING'
-      }));
-
-      if (prog.phase === 'COMPLETED') {
-        refreshGames(true);
+      if (prog.phase === 'COMPLETED' || prog.phase === 'ERROR') {
+        if (prog.phase === 'ERROR') {
+          const game = catalogRef.current.find(g => g.id === prog.gameId);
+          if (game) autoUpdateDismissedRef.current.add(`${game.id}_${game.version}`);
+        }
+        settleDownload(prog.gameId);
+        void refreshGames(true);
+      } else {
+        setGameStatuses(prev => ({ ...prev,
+          [prog.gameId]: prog.phase === 'EXTRACTING' ? 'EXTRACTING' : 'DOWNLOADING'
+        }));
       }
     });
 
     const unsubInstalledGames = launcherBridge.onInstalledGamesUpdated?.((games) => {
-      setInstalledGames(games);
-      setGameStatuses((prev) => computeGameStatuses(catalogRef.current, games, prev));
+      acceptInstalledGames(games);
+      setGameStatuses(prev => computeGameStatuses(catalogRef.current, games, prev));
     });
 
     const unsubStatus = launcherBridge.onGameStatusChanged((data) => {
       setGameStatuses((prev) => ({ ...prev, [data.gameId]: data.status }));
       if (data.status === 'NOT_INSTALLED') {
-        setInstalledGames((prev) => {
-          if (!prev[data.gameId]) return prev;
-          const next = { ...prev };
-          delete next[data.gameId];
-          return next;
-        });
+        const next = { ...installedRef.current };
+        delete next[data.gameId];
+        acceptInstalledGames(next);
       }
       if (data.status === 'INSTALLED' || data.status === 'NOT_INSTALLED') {
         refreshGames(true);
@@ -337,7 +322,7 @@ export const App: React.FC = () => {
       unsubReady();
       unsubAvail();
     };
-  }, [computeGameStatuses, refreshGames]);
+  }, [acceptInstalledGames, refreshGames, settleDownload]);
 
   const handleLaunch = async (gameId: string) => {
     const game = catalog.find((g) => g.id === gameId);
@@ -357,7 +342,7 @@ export const App: React.FC = () => {
       if (!ok) {
         // If launch failed (e.g. game executable missing/deleted on disk), rescan library
         const updated = await launcherBridge.getInstalledGames();
-        setInstalledGames(updated);
+        acceptInstalledGames(updated);
         setGameStatuses((prev) => ({
           ...prev,
           [gameId]: updated[gameId] || game.gameType === 'web' ? 'INSTALLED' : 'NOT_INSTALLED'
@@ -366,7 +351,7 @@ export const App: React.FC = () => {
     } catch (err) {
       console.error('Launch failed:', err);
       const updated: Record<string, InstalledGame> = await launcherBridge.getInstalledGames().catch(() => ({}));
-      setInstalledGames(updated);
+      acceptInstalledGames(updated);
       setGameStatuses((prev) => ({
         ...prev,
         [gameId]: updated[gameId] || game.gameType === 'web' ? 'INSTALLED' : 'NOT_INSTALLED'
@@ -377,11 +362,9 @@ export const App: React.FC = () => {
   const handleUninstall = async (gameId: string) => {
     // Optimistically remove game from installed list and reset status immediately
     setGameStatuses((prev) => ({ ...prev, [gameId]: 'NOT_INSTALLED' }));
-    setInstalledGames((prev) => {
-      const next = { ...prev };
-      delete next[gameId];
-      return next;
-    });
+    const remaining = { ...installedRef.current };
+    delete remaining[gameId];
+    acceptInstalledGames(remaining);
 
     try {
       await launcherBridge.uninstallGame(gameId);
@@ -392,13 +375,8 @@ export const App: React.FC = () => {
   };
 
   const handleCheckUpdates = async (gameId: string) => {
-    const game = catalog.find((g) => g.id === gameId);
-    if (!game) return;
-    if (installedGames[gameId]?.version?.includes('Local Dev')) return;
-    const hasUpdate = await launcherBridge.checkUpdates(gameId, game.version);
-    if (hasUpdate) {
-      setGameStatuses((prev) => ({ ...prev, [gameId]: 'UPDATE_AVAILABLE' }));
-    }
+    // Ask the gateway first; the catalog captured when the page opened may be stale.
+    await refreshGames(true);
   };
 
   const handleSaveConfig = async (newCfg: Partial<LauncherConfig>) => {
