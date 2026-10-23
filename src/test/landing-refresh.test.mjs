@@ -88,3 +88,11 @@ test('landing page follows new releases, install completion, failures and late s
   assert.equal(get('GameHero').installed.version, '1.4.0');
   assert.equal(get('GameHero').status, 'INSTALLED');
 });
+
+const timeBundle = await build({ entryPoints: [fileURLToPath(new URL('../utils/downloadTime.ts', import.meta.url))], bundle: true, write: false, platform: 'node', format: 'cjs' });
+const { formatDownloadETA } = load(timeBundle.outputFiles[0].text);
+test('remaining download time uses whole seconds across minute boundaries', () => {
+  for (const [seconds, expected] of [[.12, '1s remaining'], [12.345, '13s remaining'], [59.99, '1m 0s remaining'], [61.1, '1m 2s remaining'], [0, 'Calculating...'], [Infinity, 'Calculating...']]) {
+    assert.equal(formatDownloadETA(seconds), expected);
+  }
+});

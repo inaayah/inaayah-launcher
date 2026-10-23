@@ -1,3 +1,4 @@
+import { assertNotOlderInstall, newerGameVersion, retainNewerCatalog, GameDowngradeError } from './game-version';
 import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification } from 'electron';
 import path from 'path';
 import fs from 'fs';
@@ -213,20 +214,28 @@ function saveConfig(cfg: Partial<LauncherConfig>): LauncherConfig {
 
 // Background asynchronous game library scanner & cache
 let cachedInstalledGames: Record<string, InstalledGameMeta> = {};
-let isScanInProgress = false;
+let installedScan: Promise<Record<string, InstalledGameMeta>> | null = null;
 let initialScanPromise: Promise<Record<string, InstalledGameMeta>> | null = null;
 const uninstalledDevGames = new Set<string>();
 
-async function scanInstalledGames(libraryPath?: string): Promise<Record<string, InstalledGameMeta>> {
-  if (isScanInProgress) return cachedInstalledGames;
-  isScanInProgress = true;
+async function scanInstalledGames(libraryPath?: string, forceFresh = false): Promise<Record<string, InstalledGameMeta>> {
+  if (installedScan) {
+    await installedScan;
+    return forceFresh ? scanInstalledGames(libraryPath, true) : cachedInstalledGames;
+  }
+  const pending = performInstalledScan(libraryPath);
+  installedScan = pending;
+  try { return await pending; }
+  finally { if (installedScan === pending) installedScan = null; }
+}
 
+async function performInstalledScan(libraryPath?: string): Promise<Record<string, InstalledGameMeta>> {
   try {
     const libPath = libraryPath || loadConfig().libraryPath;
     const installed: Record<string, InstalledGameMeta> = {};
     await recoverInterruptedInstalls(libPath);
 
-    // 1. Auto-detect local development workspace for games asynchronously (unless explicitly uninstalled)
+    // Local projects are fallbacks; a valid downloaded release below takes precedence.
     const godotBin = await resolveGodotBinaryAsync();
     const localProjects = await discoverLocalGodotProjects(devSearchRoots());
 
@@ -248,7 +257,6 @@ async function scanInstalledGames(libraryPath?: string): Promise<Record<string, 
       const entries = await fs.promises.readdir(libPath, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.isDirectory()) {
-          if (installed[entry.name]?.version?.includes('Local Dev')) continue;
           const gameDir = path.join(libPath, entry.name);
           const manifestPath = path.join(gameDir, 'manifest.json');
           if (!fs.existsSync(manifestPath)) continue;
@@ -325,8 +333,6 @@ async function scanInstalledGames(libraryPath?: string): Promise<Record<string, 
   } catch (err) {
     console.error('Background game scan error:', err);
     return cachedInstalledGames;
-  } finally {
-    isScanInProgress = false;
   }
 }
 
@@ -522,6 +528,12 @@ function sanitizeCatalog(data: any[]): any[] {
   });
 }
 
+function catalogWithKnownVersions(data: any[]): any[] {
+  let previous: any[] = [];
+  try { previous = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'catalog_cache.json'), 'utf8')); } catch {}
+  return retainNewerCatalog(sanitizeCatalog(data), Array.isArray(previous) ? previous : []);
+}
+
 ipcMain.handle('launcher:refresh-catalog', async () => {
   const cfg = loadConfig();
   const cacheFile = path.join(app.getPath('userData'), 'catalog_cache.json');
@@ -540,7 +552,7 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
         try {
           const raw = JSON.parse(fs.readFileSync(p, 'utf-8'));
           if (Array.isArray(raw) && raw.length > 0) {
-            const sanitized = sanitizeCatalog(raw);
+            const sanitized = catalogWithKnownVersions(raw);
             fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
             return sanitized;
           }
@@ -559,7 +571,7 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          const sanitized = sanitizeCatalog(data);
+          const sanitized = catalogWithKnownVersions(data);
           fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
           return sanitized;
         }
@@ -579,7 +591,7 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        const sanitized = sanitizeCatalog(data);
+        const sanitized = catalogWithKnownVersions(data);
         fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
         return sanitized;
       }
@@ -680,16 +692,13 @@ ipcMain.handle('launcher:uninstall-game', async (_event, gameId: string) => {
 });
 
 ipcMain.handle('launcher:check-updates', async (_event, gameId: string, latestVersion: string) => {
-  const localDev = findLocalDevGodotProject(gameId);
-  const gBin = await resolveGodotBinaryAsync();
-  if (localDev && gBin) return false;
   const cfg = loadConfig();
   const gameDir = path.join(cfg.libraryPath, gameId);
   const manifestPath = path.join(gameDir, 'manifest.json');
   if (fs.existsSync(manifestPath)) {
     try {
       const meta = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-      return meta.version !== latestVersion;
+      return newerGameVersion(latestVersion, meta.version);
     } catch (e) {
       return false;
     }
@@ -713,13 +722,14 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     const speed = phase === 'DOWNLOADING' ? received / Math.max((Date.now() - phaseStarted) / 1000, 0.1) : 0;
     if (!mainWindow || mainWindow.isDestroyed()) return;
     mainWindow.webContents.send('download-progress', { gameId, phase, bytesReceived: received, totalBytes: total,
-      percentage: total ? Math.round(received / total * 100) : 0, speedBytesPerSec: speed, etaSeconds: speed && total ? Math.max(0, (total - received) / speed) : 0, errorMsg });
+      percentage: total ? Math.round(received / total * 100) : 0, speedBytesPerSec: speed, etaSeconds: speed && total ? Math.max(0, Math.ceil((total - received) / speed)) : 0, errorMsg });
   };
   const gateway = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
   const platform = process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux';
   const assetUrl = (name: string) => `${gateway}/api/games/${gameId}/assets/${targetVersion}/${encodeURIComponent(name)}`;
   let temporary: string | undefined;
   try {
+    await assertNotOlderInstall(gameDir, targetVersion);
     await fs.promises.mkdir(cfg.libraryPath, { recursive: true });
     sendProgress('CONNECTING');
     const res = await fetch(`${gateway}/api/games/${gameId}/manifest`, { signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]) });
@@ -755,13 +765,14 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
         if (result) {
           console.log(`[Updater] ${gameId}: downloaded ${result.downloadedBytes} patch bytes; reused ${result.reusedBytes} installed bytes`);
           uninstalledDevGames.delete(gameId);
-          await scanInstalledGames();
+          await scanInstalledGames(undefined, true);
           sendProgress('COMPLETED', result.downloadedBytes, result.downloadedBytes);
           mainWindow?.webContents.send('launcher:game-status-changed', { gameId, status: 'INSTALLED' });
           return true;
         }
       } catch (error: any) {
         signal.throwIfAborted();
+        if (error instanceof GameDowngradeError) throw error;
         console.warn(`[Updater] Incremental update unavailable; using full package: ${error.message}`);
       }
     }
@@ -799,7 +810,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     await fs.promises.writeFile(path.join(stage, 'manifest.json'), JSON.stringify(metadata, null, 2));
     await commitInstall(stage, gameDir, signal);
     uninstalledDevGames.delete(gameId);
-    await scanInstalledGames();
+    await scanInstalledGames(undefined, true);
     sendProgress('COMPLETED', received, total);
     mainWindow?.webContents.send('launcher:game-status-changed', { gameId, status: 'INSTALLED' });
     return true;
@@ -829,9 +840,8 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   const isPlaceholderScript = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
   const hasRealBinary = execPath && fs.existsSync(execPath) && !isPlaceholderScript;
 
-  // Launch the same local source advertised by the library, even if a release is also installed.
-  const isLocalDev = cachedInstalledGames[gameId]?.version.includes('Local Dev');
-  if (!hasRealBinary || isLocalDev) {
+  // Never switch a downloaded game to a different development copy on rescan.
+  if (!hasRealBinary) {
     if (!uninstalledDevGames.has(gameId)) {
       const localDevRepo = findLocalDevGodotProject(gameId);
       const godotBin = await resolveGodotBinaryAsync();

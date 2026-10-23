@@ -1,3 +1,4 @@
+import { assertNotOlderInstall } from './game-version';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -99,6 +100,10 @@ export async function commitInstall(stage: string, destination: string, signal?:
   signal?.throwIfAborted();
   const backup = path.join(path.dirname(destination), `.inaayah-previous-${path.basename(destination)}`);
   await recoverInterruptedInstalls(path.dirname(destination));
+  // Check again at the rename boundary: another installation may have completed
+  // while this full or incremental package was downloading.
+  const staged = JSON.parse(await fs.readFile(path.join(stage, 'manifest.json'), 'utf8'));
+  await assertNotOlderInstall(destination, staged.version);
   activeInstalls.add(destination);
   let moved = false, committed = false;
   try {

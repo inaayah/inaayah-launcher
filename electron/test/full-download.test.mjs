@@ -23,8 +23,9 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
   const release = { id: 'fixture-game', version: '1.0.1', downloads: { [process.platform]: {
     name: 'fixture.zip', sizeBytes: data.length, sha256: createHash('sha256').update(data).digest('hex')
   } } };
-  let corrupt = false;
+  let corrupt = false, requests = 0;
   const server = http.createServer((request, response) => {
+    requests++;
     if (request.url.endsWith('/manifest')) { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(release)); }
     else {
       response.setHeader('Content-Length', data.length);
@@ -45,10 +46,24 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
     export const BrowserWindow=class{};export const dialog={};export const shell={};export const session={};export const Notification={};`;
   const { outputFiles } = await build({ entryPoints: [fileURLToPath(new URL('../main.ts', import.meta.url))], bundle: true, write: false, platform: 'node', format: 'cjs', target: 'es2022', plugins: [{
     name: 'mock-electron-shell', setup(b) {
+      b.onResolve({ filter: /^\.\/local-dev$/ }, () => ({ path: 'local-dev', namespace: 'local' }));
+      b.onLoad({ filter: /.*/, namespace: 'local' }, () => ({ loader: 'js', contents: `
+        export const localDevRoots=()=>[];
+        export const findLocalGodotProject=()=>${JSON.stringify(path.join(root, 'old-development-copy'))};
+        export const localDevLaunch=()=>{throw new Error('Downloaded game must not launch a different dev copy')};
+        export const discoverLocalGodotProjects=async()=>{if(globalThis[${JSON.stringify(key)}].scanDelay) await globalThis[${JSON.stringify(key)}].scanDelay;
+          return new Map([['fixture-game',${JSON.stringify(path.join(root, 'old-development-copy'))}]]);};` }));
+      b.onResolve({ filter: /^child_process$/ }, () => ({ path: 'child', namespace: 'child' }));
+      b.onLoad({ filter: /.*/, namespace: 'child' }, () => ({ loader: 'js', contents: `
+        export const spawn=(executable,args)=>{globalThis[${JSON.stringify(key)}].launched={executable,args};
+          return {unref(){},on(event,callback){if(event==='exit')globalThis[${JSON.stringify(key)}].exit=callback;}};};
+        export const exec=()=>{};export const execFile=()=>{};` }));
       b.onResolve({ filter: /^(electron|electron-updater)$/ }, a => ({ path: a.path, namespace: 'test' }));
       b.onLoad({ filter: /.*/, namespace: 'test' }, a => ({ contents: a.path === 'electron' ? electron : 'export const autoUpdater={};', loader: 'js' }));
     }
   }] });
+  await fs.mkdir(path.join(userData, '.local/bin'), { recursive: true });
+  await fs.writeFile(path.join(userData, '.local/bin/godot'), 'fixture engine');
   const bundled = path.join(root, 'main.cjs');
   await fs.writeFile(bundled, outputFiles[0].text);
   createRequire(import.meta.url)(bundled);
@@ -57,6 +72,38 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
   assert.equal(await download({}, 'fixture-game', '1.0.1'), true);
   assert.equal((await fs.readFile(path.join(game, executable))).toString(), 'runtime executable');
   assert.equal(JSON.parse(await fs.readFile(path.join(game, 'manifest.json'))).version, '1.0.1');
+  const installed = globalThis[key].get('launcher:get-installed-games');
+  for (let refresh = 0; refresh < 3; refresh++) {
+    const snapshot = await installed();
+    assert.equal(snapshot['fixture-game'].version, '1.0.1');
+    assert.equal(snapshot['fixture-game'].installPath, game);
+  }
+  const checkUpdates = globalThis[key].get('launcher:check-updates');
+  assert.equal(await checkUpdates({}, 'fixture-game', '1.0.0'), false);
+  assert.equal(await checkUpdates({}, 'fixture-game', 'v1.0.1'), false);
+  assert.equal(await checkUpdates({}, 'fixture-game', '1.0.2'), true);
+  const beforeStaleFeed = requests;
+  release.version = '1.0.0';
+  assert.equal(await download({}, 'fixture-game', '1.0.0'), false);
+  assert.equal(requests, beforeStaleFeed, 'An older update is rejected before any download');
+  assert.equal(JSON.parse(await fs.readFile(path.join(game, 'manifest.json'))).version, '1.0.1');
+  const launch = globalThis[key].get('launcher:launch-game');
+  assert.equal(await launch({}, 'fixture-game'), true);
+  const invoked = globalThis[key].launched;
+  assert.ok(invoked.executable === path.join(game, executable) || invoked.args.includes(path.join(game, 'Game.app')));
+  globalThis[key].exit(0);
+  // Scans join an in-flight scan instead of returning an older cached version.
+  let completeScan;
+  globalThis[key].scanDelay = new Promise(resolve => { completeScan = resolve; });
+  const firstScan = installed();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  let returned = false;
+  const joined = installed().then(value => { returned = true; return value; });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(returned, false);
+  completeScan();
+  assert.deepEqual(await joined, await firstScan);
+  delete globalThis[key].scanDelay;
   release.version = '1.0.2'; corrupt = true;
   assert.equal(await download({}, 'fixture-game', '1.0.2'), false);
   assert.equal(JSON.parse(await fs.readFile(path.join(game, 'manifest.json'))).version, '1.0.1');

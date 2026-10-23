@@ -1,3 +1,4 @@
+import { formatDownloadETA } from '../utils/downloadTime';
 import React from 'react';
 import { Download, XCircle, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
 import type { GameCatalogItem, DownloadProgress } from '../types/launcher';
@@ -25,13 +26,6 @@ export const DownloadsQueue: React.FC<DownloadsQueueProps> = ({
     return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`;
   };
 
-  const formatETA = (seconds: number) => {
-    if (!seconds || seconds <= 0) return '--';
-    if (seconds < 60) return `${seconds}s remaining`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s remaining`;
-  };
 
   const formatMB = (bytes: number) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -129,7 +123,7 @@ export const DownloadsQueue: React.FC<DownloadsQueueProps> = ({
                       </div>
                       {!isExtracting && !isCompleted && !isError && (
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                          {formatETA(p.etaSeconds)}
+                          {formatDownloadETA(p.etaSeconds)}
                         </div>
                       )}
                     </div>

@@ -268,7 +268,7 @@ export const launcherBridge: InaayahLauncherAPI = {
     if (window.inaayahLauncher) return window.inaayahLauncher.checkUpdates(gameId, latestVersion);
     const installed = getMockInstalled();
     const current = installed[gameId];
-    return current ? current.version !== latestVersion : false;
+    return current ? compareVersions(latestVersion, current.version) > 0 : false;
   },
 
   onInstalledGamesUpdated(callback: (games: Record<string, InstalledGame>) => void) {
