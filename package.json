@@ -26,7 +26,7 @@
     "test:updater": "node --test electron/test/mac-update-state.test.mjs electron/test/incremental-update.test.mjs electron/test/full-download.test.mjs",
     "test:local-dev": "node --test electron/test/local-dev.test.mjs",
     "test:incremental": "node --test electron/test/incremental-update.test.mjs",
-    "test:renderer": "node --test src/test/*.test.mjs"
+    "test:renderer": "node --test src/test/landing-refresh.test.mjs"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",

@@ -109,3 +109,8 @@ Run `npm run test:worker` and `npx tsc --noEmit -p worker/tsconfig.json`.
 Catalog artwork hosted on `inaayah.dev/images/` receives the same cache revision
 as a URL query. Refreshing a release also refreshes artwork in older launchers,
 including clients that cached the previous missing-image response.
+
+Launcher installer recovery: manually dispatch `Release Launcher Installers` on
+`main` with the existing `release_tag` and the failed `platform`. Successful
+platform assets are retained, the version tag is unchanged, and final publication
+still verifies all desktop installers and updater metadata before succeeding.

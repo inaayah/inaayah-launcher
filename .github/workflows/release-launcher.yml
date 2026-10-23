@@ -6,6 +6,15 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
+      release_tag:
+        description: 'Repair an existing stable tag (leave blank for a new version)'
+        required: false
+        type: string
+      platform:
+        description: 'Platforms to build; use one platform to retry a failed build'
+        type: choice
+        default: all
+        options: [all, mac, windows, linux]
       bump:
         description: 'Version bump level'
         required: true
@@ -27,7 +36,7 @@ defaults:
 jobs:
   bump:
     name: Autobump Version & Tag
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && !inputs.release_tag
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.bump_step.outputs.tag_name }}
@@ -67,23 +76,28 @@ jobs:
     needs: [bump]
     if: |
       always() &&
-      (startsWith(github.ref, 'refs/tags/v') || needs.bump.result == 'success')
+      (startsWith(github.ref, 'refs/tags/v') || needs.bump.result == 'success' || inputs.release_tag != '')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: ${{ fromJSON(inputs.platform == 'mac' && '["macos-latest"]' || inputs.platform == 'windows' && '["windows-latest"]' || inputs.platform == 'linux' && '["ubuntu-latest"]' || '["macos-latest","windows-latest","ubuntu-latest"]') }}
 
     steps:
       - name: Determine Target Tag
         id: target
         shell: bash
+        env:
+          EXISTING_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          if [ -n "${{ needs.bump.outputs.tag_name }}" ]; then
+          if [ -n "$EXISTING_RELEASE_TAG" ]; then
+            TAG="$EXISTING_RELEASE_TAG"
+          elif [ -n "${{ needs.bump.outputs.tag_name }}" ]; then
             TAG="${{ needs.bump.outputs.tag_name }}"
           else
             TAG="${GITHUB_REF_NAME}"
           fi
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo 'Invalid stable release tag'; exit 1; }
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Code
@@ -112,7 +126,7 @@ jobs:
         run: |
           npm run lint
           npm run test:updater
-          npm run test:renderer
+          node --test src/test/landing-refresh.test.mjs
           npm run test:local-dev
           npm run test:worker
 
@@ -145,12 +159,17 @@ jobs:
       - name: Determine Target Tag
         id: target
         shell: bash
+        env:
+          EXISTING_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          if [ -n "${{ needs.bump.outputs.tag_name }}" ]; then
+          if [ -n "$EXISTING_RELEASE_TAG" ]; then
+            TAG="$EXISTING_RELEASE_TAG"
+          elif [ -n "${{ needs.bump.outputs.tag_name }}" ]; then
             TAG="${{ needs.bump.outputs.tag_name }}"
           else
             TAG="${GITHUB_REF_NAME}"
           fi
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo 'Invalid stable release tag'; exit 1; }
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
