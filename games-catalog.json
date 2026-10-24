@@ -290,7 +290,8 @@
     "features": [
       "40-Step Village Square: Trade across 7 artisan districts including Bakery Row, Herb Row, and Harbor Row",
       "Weather Deck Mechanics: Draw Sun, Drizzle, Gust, and Downpour cards that alter district commerce and fees",
-      "No Player Elimination: Even with an empty coin pouch, merchants stay in the court and recover on kettle stipends",
+      "Debt Settlement & Insolvency: Liquidate assets via pawning, selling, and auctions, or seek Town Mercy when in debt",
+      "Grounded Village Aesthetics: Textured road shoulders, distinct foundation plinths, and multi-tier lighting and cast shadows",
       "Instant Web Play: Powered by Cloudflare Durable Objects for zero-download, low-latency multiplayer rooms"
     ],
     "requirements": {
@@ -316,7 +317,7 @@
         ]
       },
       {
-        "version": "v1.0.4",
+        "version": "1.0.4",
         "date": "Oct 6, 2026",
         "title": "Matchmaking Latency & Unit Balancing",
         "changes": [

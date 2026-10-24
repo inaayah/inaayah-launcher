@@ -1,3 +1,4 @@
+import { catalogData } from '../data/catalog';
 import type { LauncherUser, StudioAnalyticsOverview } from '../types/launcher';
 import { APP_VERSION } from '../utils/version';
 import { launcherBridge } from './electronBridge';
@@ -739,21 +740,15 @@ export const authService = {
       }
     } catch {}
 
-    const gameTargets: Array<{
-      gameId: string;
-      title: string;
-      gameType: 'desktop' | 'web';
-      webUrl?: string;
-    }> = [
-      { gameId: 'vigilante-red-city', title: 'Vigilante: Red City', gameType: 'desktop' },
-      { gameId: 'aether-rush', title: 'AetherRush: Cyber Brawler 3D', gameType: 'desktop' },
-      {
-        gameId: 'kettle-court',
-        title: 'Kettle Court: Court of Kettle',
-        gameType: 'web',
-        webUrl: 'https://kettle-court.inaayah.dev'
-      }
-    ];
+    const gameTargets = catalogData
+      .filter((item) => !item.isComingSoon)
+      .map((item) => ({
+        gameId: item.id,
+        title: item.title,
+        version: item.version || '1.0.0',
+        gameType: (item.gameType === 'web' ? 'web' : 'desktop') as 'desktop' | 'web',
+        webUrl: item.webUrl
+      }));
 
     let localDownloadsMap: Record<string, number> = {};
     try {
@@ -763,21 +758,19 @@ export const authService = {
 
     const gameMetrics = await Promise.all(
       gameTargets.map(async (g) => {
-        let version = '1.0.0';
+        let version = g.version.replace(/^v/, '');
+        let title = g.title;
         let githubDownloads = 0;
         let onlinePlayers: number | undefined = undefined;
-        if (g.gameType === 'web' && g.webUrl) {
+        if (g.gameType === 'web') {
           try {
-            const r = await fetch(`${g.webUrl}/api/stats`, {
+            const r = await fetch(`${base}/api/games/${g.gameId}/manifest`, {
               signal: AbortSignal.timeout(3000)
             });
             if (r.ok) {
               const d = await r.json();
               if (typeof d?.version === 'string') version = d.version.replace(/^v/, '');
-              githubDownloads = Number(d?.totalPlays ?? d?.totalSessions ?? d?.uniquePlayers) || 0;
-              if (typeof d?.onlineNow === 'number' || typeof d?.activePlayers === 'number') {
-                onlinePlayers = Number(d?.onlineNow ?? d?.activePlayers) || 0;
-              }
+              if (typeof d?.title === 'string') title = d.title;
             }
           } catch {}
         } else {
@@ -787,7 +780,7 @@ export const authService = {
             });
             if (r.ok) {
               const d = await r.json();
-              version = (d?.version || '1.0.0').replace(/^v/, '');
+              version = (d?.version || version).replace(/^v/, '');
               if (Array.isArray(d?.assets)) {
                 githubDownloads = d.assets.reduce(
                   (sum: number, a: any) => sum + (Number(a.downloadCount) || 0),
@@ -800,7 +793,7 @@ export const authService = {
         const trackedDownloads = localDownloadsMap[g.gameId] || 0;
         return {
           gameId: g.gameId,
-          title: g.title,
+          title,
           version,
           gameType: g.gameType,
           githubDownloads,

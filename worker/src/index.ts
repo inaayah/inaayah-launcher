@@ -1,9 +1,14 @@
+import rawCatalog from '../../games-catalog.json';
 import { synchronizeRelease, withPublishedRevision } from './release-sync';
 import {
   AuthAnalyticsEnv,
   handleAuthAndAnalyticsRequest,
   recordDownloadEvent
 } from './auth-analytics';
+
+const BASELINE_CATALOG_BY_ID = new Map<string, any>(
+  Array.isArray(rawCatalog) ? (rawCatalog as any[]).map((item) => [item.id, item]) : []
+);
 
 export interface Env extends AuthAnalyticsEnv {
   GITHUB_TOKEN?: string;
@@ -119,6 +124,31 @@ export default {
       }
 
       try {
+        if (gameConfig.type === 'web') {
+          const manifest = await fetchRepoManifest(gameConfig.repo, gameConfig.branch, env);
+          const fallback = BASELINE_CATALOG_BY_ID.get(gameId);
+          const version = String(manifest?.version || fallback?.version || '1.0.0').replace(/^v/, '');
+          const title = manifest?.title || fallback?.title || gameId;
+          return new Response(
+            JSON.stringify(
+              {
+                version: `v${version}`,
+                name: `${title} v${version}`,
+                publishedAt: manifest?.releaseDate || fallback?.releaseDate || null,
+                assets: []
+              },
+              null,
+              2
+            ),
+            {
+              headers: {
+                ...CORS_HEADERS,
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+              }
+            }
+          );
+        }
         const releaseData = await fetchLatestRelease(gameConfig.repo, env);
         return new Response(JSON.stringify(releaseData, null, 2), {
           headers: {
@@ -255,25 +285,31 @@ async function getGithubReleaseStats(env: Env): Promise<{
 
   const games = await Promise.all(
     releasedGames.map(async ([gameId, cfg]) => {
-      let version = '1.0.0';
+      const catalogEntry = BASELINE_CATALOG_BY_ID.get(gameId);
+      let version = String(catalogEntry?.version || '1.0.0').replace(/^v/, '');
       let githubDownloads = 0;
-      let onlinePlayers: number | undefined = undefined;
-      const title =
-        gameId === 'vigilante-red-city'
+      let title =
+        catalogEntry?.title ||
+        (gameId === 'vigilante-red-city'
           ? 'Vigilante: Red City'
           : gameId === 'aether-rush'
           ? 'AetherRush: Cyber Brawler 3D'
           : gameId === 'kettle-court'
-          ? 'Kettle Court: Court of Kettle'
-          : gameId;
+          ? 'Kettle Court'
+          : gameId);
 
       if (cfg.type === 'web') {
+        try {
+          const manifest = await fetchRepoManifest(cfg.repo, cfg.branch, env);
+          if (manifest?.version) version = String(manifest.version).replace(/^v/, '');
+          if (manifest?.title) title = manifest.title;
+        } catch {}
         return { gameId, title, version, gameType: 'web' as const, githubDownloads: 0 };
       }
 
       try {
         const rel = await fetchLatestRelease(cfg.repo, env);
-        version = (rel?.version || '1.0.0').replace(/^v/, '');
+        version = (rel?.version || version).replace(/^v/, '');
         if (Array.isArray(rel?.assets)) {
           githubDownloads = rel.assets.reduce(
             (sum: number, a: any) => sum + (Number(a.downloadCount) || 0),
@@ -384,6 +420,22 @@ async function fetchReleaseManifest(repo: string, release: any, env: Env): Promi
   });
 }
 
+async function fetchRepoManifest(repo: string, branch: string, env: Env): Promise<any | null> {
+  const org = env.GITHUB_ORG || 'inaayah';
+  return cachedJSON(`repo-manifests/${repo}/${branch}`, env, async () => {
+    const response = await fetch(`https://raw.githubusercontent.com/${org}/${repo}/${branch}/game-manifest.json`, {
+      headers: githubHeaders(env),
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error(`Could not fetch repo manifest for ${repo} (HTTP ${response.status})`);
+    const manifest: any = await response.json();
+    if (!manifest || Array.isArray(manifest) || typeof manifest.id !== 'string') {
+      throw new Error('Invalid repo manifest');
+    }
+    return manifest;
+  }, Math.min(Number(env.CACHE_TTL_SECONDS) || 120, 120));
+}
+
 function signedLinkTTL(location: string): number {
   const url = new URL(location);
   let expires = Date.parse(url.searchParams.get('se') || '');
@@ -462,9 +514,24 @@ async function getDynamicCatalog(env: Env): Promise<any[]> {
       return catalog;
     });
     await Promise.all(data.map(async (item: any) => {
-      if (item.gameType !== 'desktop' || item.isComingSoon) return;
-      const repo = REGISTERED_GAMES[item.id]?.repo || item.githubRepo?.replace(/^[^/]+\//, '');
+      if (item.isComingSoon) return;
+      const cfg = REGISTERED_GAMES[item.id];
+      const repo = cfg?.repo || item.githubRepo?.replace(/^[^/]+\//, '');
       if (!repo) return;
+      if (item.gameType === 'web') {
+        try {
+          const manifest = await fetchRepoManifest(repo, cfg?.branch || 'main', env);
+          if (manifest) {
+            if (manifest.id !== item.id) throw new Error('Published manifest game ID does not match catalog');
+            Object.assign(item, manifest);
+            if (typeof item.version === 'string') item.version = item.version.replace(/^v/, '');
+          }
+        } catch (error) {
+          console.warn(`Repo manifest unavailable for ${repo}; using catalog entry`);
+        }
+        return;
+      }
+      if (item.gameType !== 'desktop') return;
       try {
         const release = await fetchLatestRelease(repo, env);
         const manifest = await fetchReleaseManifest(repo, release, env);
@@ -484,9 +551,29 @@ async function getDynamicCatalog(env: Env): Promise<any[]> {
   } catch (error) {
     console.error('Failed to load game catalog; using registered games');
   }
-  return Object.entries(REGISTERED_GAMES).map(([id, game]) => ({
-    id, slug: id,
-    title: id === 'vigilante-red-city' ? 'Vigilante: Red City' : id === 'aether-rush' ? 'AetherRush: Cyber Brawler 3D' : id === 'kettle-court' ? 'Kettle Court: Court of Kettle' : 'Cyber Tactics',
-    gameType: game.type, webUrl: game.webUrl, githubRepo: `${org}/${game.repo}`, isComingSoon: game.isComingSoon
-  }));
+  return Object.entries(REGISTERED_GAMES).map(([id, game]) => {
+    const baseline = BASELINE_CATALOG_BY_ID.get(id);
+    return catalogArtwork(
+      {
+        ...(baseline || {}),
+        id,
+        slug: id,
+        title:
+          baseline?.title ||
+          (id === 'vigilante-red-city'
+            ? 'Vigilante: Red City'
+            : id === 'aether-rush'
+            ? 'AetherRush: Cyber Brawler 3D'
+            : id === 'kettle-court'
+            ? 'Kettle Court'
+            : 'Cyber Tactics'),
+        version: baseline?.version || '1.0.0',
+        gameType: game.type,
+        webUrl: game.webUrl || baseline?.webUrl,
+        githubRepo: `${org}/${game.repo}`,
+        isComingSoon: game.isComingSoon
+      },
+      env
+    );
+  });
 }

@@ -30,7 +30,7 @@ export function retainNewerCatalog(incoming: any[], cached: any[]): any[] {
   const known = new Map(cached.map(item => [item.id, item]));
   return incoming.map(item => {
     const previous = known.get(item.id);
-    return item.gameType === 'desktop' && previous && newerGameVersion(previous.version, item.version)
+    return (item.gameType === 'desktop' || item.gameType === 'web') && previous && newerGameVersion(previous.version, item.version)
       ? { ...item, ...previous } : item;
   });
 }

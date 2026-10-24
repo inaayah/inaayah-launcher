@@ -528,6 +528,28 @@ function sanitizeCatalog(data: any[]): any[] {
   });
 }
 
+function mergeLocalSiblingManifests(catalog: any[], catalogDir: string): any[] {
+  return catalog.map((item) => {
+    if (!item?.id || item.isComingSoon) return item;
+    const repoName = typeof item.githubRepo === 'string' ? item.githubRepo.replace(/^[^/]+\//, '') : item.id;
+    const candidateManifestPaths = [
+      path.resolve(catalogDir, '..', repoName, 'game-manifest.json'),
+      path.resolve(catalogDir, '..', item.id, 'game-manifest.json')
+    ];
+    for (const manifestPath of candidateManifestPaths) {
+      if (fs.existsSync(manifestPath)) {
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+          if (manifest && manifest.id === item.id) {
+            return { ...item, ...manifest };
+          }
+        } catch {}
+      }
+    }
+    return item;
+  });
+}
+
 function catalogWithKnownVersions(data: any[]): any[] {
   let previous: any[] = [];
   try { previous = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'catalog_cache.json'), 'utf8')); } catch {}
@@ -541,7 +563,8 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
   // Trigger background scan of installed games to re-validate disk status
   scanInstalledGames().catch(() => {});
 
-  // 0. Check local games-catalog.json candidates (for local development only)
+  // 0. Seed local games-catalog.json + sibling game-manifest.json files in local dev so retainNewerCatalog has latest local state
+  let localDevCatalog: any[] | null = null;
   if (!app.isPackaged) {
     const localCandidates = [
       path.resolve(process.cwd(), 'games-catalog.json'),
@@ -552,9 +575,10 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
         try {
           const raw = JSON.parse(fs.readFileSync(p, 'utf-8'));
           if (Array.isArray(raw) && raw.length > 0) {
-            const sanitized = catalogWithKnownVersions(raw);
-            fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
-            return sanitized;
+            const mergedLocal = mergeLocalSiblingManifests(raw, path.dirname(p));
+            localDevCatalog = catalogWithKnownVersions(mergedLocal);
+            fs.writeFileSync(cacheFile, JSON.stringify(localDevCatalog, null, 2));
+            break;
           }
         } catch {}
       }
@@ -571,7 +595,8 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          const sanitized = catalogWithKnownVersions(data);
+          const merged = !app.isPackaged ? mergeLocalSiblingManifests(data, process.cwd()) : data;
+          const sanitized = catalogWithKnownVersions(merged);
           fs.writeFileSync(cacheFile, JSON.stringify(sanitized, null, 2));
           return sanitized;
         }
@@ -579,6 +604,10 @@ ipcMain.handle('launcher:refresh-catalog', async () => {
     } catch (e) {
       console.log('[Catalog] Remote gateway unreachable or not configured. Using direct manifests and local cache.');
     }
+  }
+
+  if (localDevCatalog) {
+    return localDevCatalog;
   }
 
   // 2. Direct GitHub raw manifest fallback (fetches games-catalog.json directly from public repo)

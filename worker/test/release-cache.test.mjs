@@ -148,6 +148,40 @@ test('manual cache refresh also changes artwork URLs for existing launchers', as
   assert.equal(game.screenshots[0], 'https://inaayah.dev/images/kettle-court-shot1.jpg?v=test-v1');
 });
 
+test('web games dynamically merge version, features, and changelog from their repository game-manifest.json', async t => {
+  t.mock.method(globalThis, 'fetch', async url => {
+    if (String(url).includes('inaayah-launcher/main/games-catalog.json')) {
+      return Response.json([
+        {
+          id: 'kettle-court',
+          gameType: 'web',
+          title: 'Kettle Court',
+          version: '1.0.0',
+          githubRepo: 'inaayah/kettle-court',
+          features: ['Old feature']
+        }
+      ]);
+    }
+    if (String(url).includes('kettle-court/main/game-manifest.json')) {
+      return Response.json({
+        id: 'kettle-court',
+        gameType: 'web',
+        title: 'Kettle Court',
+        version: '1.0.5',
+        features: ['Debt Settlement & Insolvency', 'Grounded Village Aesthetics'],
+        changelog: [{ version: '1.0.5', title: 'Debt Settlement Mechanics' }]
+      });
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  const response = await worker.fetch(request('/api/games/kettle-court/manifest'), env, {});
+  assert.equal(response.status, 200);
+  const game = await response.json();
+  assert.equal(game.version, '1.0.5');
+  assert.deepEqual(game.features, ['Debt Settlement & Insolvency', 'Grounded Village Aesthetics']);
+  assert.equal(game.changelog[0].version, '1.0.5');
+});
+
 
 test('version-pinned patch assets reuse metadata and short-lived redirects without forwarding credentials', async t => {
   let releaseReads = 0, signedReads = 0;
