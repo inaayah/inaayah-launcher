@@ -329,6 +329,68 @@
     ]
   },
   {
+    "id": "eyetest",
+    "slug": "eyetest",
+    "title": "Optik: Daily EyeTest",
+    "subtitle": "5-Round Daily Visual Precision & Optical Calibration Game",
+    "version": "1.0.0",
+    "releaseDate": "October 2026",
+    "description": "Test your eye across a daily 5-round lineup drawn from a 10-challenge optical pool: Chroma Match, Centroid Drop, Kerning Balance, 50/50 Bisect, Angle Bisector, Parallel Align, Symmetry Mirror, Aperture Match, Equidistant Center, and Weber Contrast. Earn your Optical Accuracy %, composite Optik Score with speed multiplier, global Top % rank, and challenge friends via instant visual scorecard links.",
+    "genres": [
+      "Puzzle",
+      "Daily Game",
+      "Design & Precision",
+      "Arcade"
+    ],
+    "tags": [
+      "Instant Play",
+      "10-Challenge Pool",
+      "Daily Seed",
+      "Optical Calibration",
+      "Thumb-Safe 2x Loupe"
+    ],
+    "developer": "Inaayah Game Studio",
+    "coverArt": "https://inaayah.dev/images/eyetest-cover.jpg",
+    "heroBanner": "https://inaayah.dev/images/eyetest-banner.jpg",
+    "screenshots": [
+      "https://inaayah.dev/images/eyetest-banner.jpg",
+      "https://inaayah.dev/images/eyetest-cover.jpg"
+    ],
+    "gameType": "web",
+    "webUrl": "https://arcade.inaayah.dev/eyetest",
+    "sizeBytes": 0,
+    "sizeFormatted": "Cloud / Instant Play",
+    "githubRepo": "inaayah/inaayah-arcade",
+    "onlineBackend": "Cloudflare Pages & Edge Telemetry (api.inaayah.dev)",
+    "features": [
+      "10-Challenge Rotating Optical Pool: Daily 5-round lineup drawn deterministically from 10 geometric & color precision tests",
+      "Deterministic UTC Daily Seed, Seeded Global Percentile Ranking, and Unlimited Practice Mode",
+      "Thumb-Safe Mobile Ergonomics: -45px touch offset and live 2x circular optical magnifying lens",
+      "Composite Optik Score: Combines pure 0-100% optical accuracy with a 1.00x-1.25x solve speed multiplier",
+      "1-Click Visual Scorecard & Challenge Links: Instant ~3 KB SVG scorecard, WebP download, and head-to-head ?c= challenge mode"
+    ],
+    "requirements": {
+      "os": "Any Modern OS / Mobile or Desktop Browser",
+      "cpu": "Any Modern CPU",
+      "gpu": "HTML5 Canvas 2D compatible Browser",
+      "ram": "1 GB RAM",
+      "storage": "No local disk space required"
+    },
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "Oct 26, 2026",
+        "title": "Initial Launch — Modern Glass UI, Speed Multiplier & 1-Click Social Scorecards",
+        "changes": [
+          "Launched 5-round daily visual calibration ritual with Daily and Unlimited Practice modes",
+          "Added active solve-time chronometer and composite Optik Score speed multiplier (1.00x-1.25x)",
+          "Added stateless ~3 KB SVG scorecard generator, 1-click social sharing (X, WhatsApp, Bluesky, WebP), and ?c= challenge links",
+          "Connected web play telemetry to Inaayah Studio Analytics (api.inaayah.dev)"
+        ]
+      }
+    ]
+  },
+  {
     "id": "sundered-depths",
     "slug": "sundered-depths",
     "title": "Sundered Depths",

@@ -34,6 +34,12 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
     type: 'web',
     webUrl: 'https://kettle-court.inaayah.dev/'
   },
+  'eyetest': {
+    repo: 'inaayah-arcade',
+    branch: 'main',
+    type: 'web',
+    webUrl: 'https://arcade.inaayah.dev/eyetest'
+  },
   'sundered-depths': {
     repo: 'sundered-depths',
     branch: 'main',
@@ -296,6 +302,8 @@ async function getGithubReleaseStats(env: Env): Promise<{
           ? 'AetherRush: Cyber Brawler 3D'
           : gameId === 'kettle-court'
           ? 'Kettle Court'
+          : gameId === 'eyetest'
+          ? 'Optik: Daily EyeTest'
           : gameId);
 
       if (cfg.type === 'web') {
