@@ -229,7 +229,8 @@ test('admin email in ADMIN_EMAILS receives admin role and can view detailed stud
   assert.ok(kettleMetrics);
   assert.equal(kettleMetrics.gameType, 'web');
   assert.equal(kettleMetrics.version, '1.0.4');
-  assert.equal(kettleMetrics.trackedDownloads, 1);
+  assert.equal(kettleMetrics.githubDownloads, 1);
+  assert.equal(kettleMetrics.trackedDownloads, 0);
   assert.equal(kettleMetrics.totalDownloads, 1);
   assert.equal(kettleMetrics.onlinePlayers, 1);
 });

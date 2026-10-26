@@ -1296,12 +1296,17 @@ export async function handleAuthAndAnalyticsRequest(
         .map(([version, count]) => ({ version, count }))
         .sort((a, b) => b.count - a.count);
 
-      const gameDownloadsById = new Map<string, number>();
+      const gameLauncherPlaysById = new Map<string, number>();
+      const gameWebPlaysById = new Map<string, number>();
       const gameOnlinePlayersById = new Map<string, Set<string>>();
       const gameLatestVersionById = new Map<string, string>();
       for (const dl of allDownloads) {
         if (dl.target_type === 'game') {
-          gameDownloadsById.set(dl.target_id, (gameDownloadsById.get(dl.target_id) || 0) + 1);
+          if (dl.platform === 'web') {
+            gameWebPlaysById.set(dl.target_id, (gameWebPlaysById.get(dl.target_id) || 0) + 1);
+          } else {
+            gameLauncherPlaysById.set(dl.target_id, (gameLauncherPlaysById.get(dl.target_id) || 0) + 1);
+          }
           if (dl.version && !gameLatestVersionById.has(dl.target_id)) {
             gameLatestVersionById.set(dl.target_id, dl.version);
           }
@@ -1317,7 +1322,9 @@ export async function handleAuthAndAnalyticsRequest(
       }
 
       const gameMetrics = ghStats.games.map((g) => {
-        const tracked = gameDownloadsById.get(g.gameId) || 0;
+        const webPlays = gameWebPlaysById.get(g.gameId) || 0;
+        const launcherPlays = gameLauncherPlaysById.get(g.gameId) || 0;
+        const cdnOrWebPlays = g.githubDownloads + webPlays;
         const pushedOnline = gameOnlinePlayersById.get(g.gameId)?.size;
         const onlinePlayers =
           typeof g.onlinePlayers === 'number'
@@ -1334,9 +1341,9 @@ export async function handleAuthAndAnalyticsRequest(
           title: g.title,
           version,
           gameType: g.gameType || 'desktop',
-          githubDownloads: g.githubDownloads,
-          trackedDownloads: tracked,
-          totalDownloads: g.githubDownloads + tracked,
+          githubDownloads: cdnOrWebPlays,
+          trackedDownloads: launcherPlays,
+          totalDownloads: cdnOrWebPlays + launcherPlays,
           ...(typeof onlinePlayers === 'number' ? { onlinePlayers } : {})
         };
       });
