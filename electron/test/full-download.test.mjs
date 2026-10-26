@@ -41,9 +41,9 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
   const key = `__inaayah_test_handlers_${Date.now()}`;
   globalThis[key] = new Map();
   t.after(() => delete globalThis[key]);
-  const electron = `export const app={getPath:()=>${JSON.stringify(userData)},getAppPath:()=>${JSON.stringify(root)},isPackaged:true,whenReady:()=>new Promise(()=>{}),on:()=>{}};
+  const electron = `export const app={getPath:()=>${JSON.stringify(userData)},getAppPath:()=>${JSON.stringify(root)},getVersion:()=>'0.2.22',setName:()=>{},setPath:()=>{},isPackaged:true,whenReady:()=>new Promise(()=>{}),on:()=>{}};
     export const ipcMain={handle:(name,fn)=>globalThis[${JSON.stringify(key)}].set(name,fn),on:()=>{}};
-    export const BrowserWindow=class{};export const dialog={};export const shell={};export const session={};export const Notification={};`;
+    export const BrowserWindow=class{};export const dialog={};export const shell={};export const session={};export const Notification={};export const nativeImage={createFromPath:()=>({isEmpty:()=>true}),createFromDataURL:()=>({})};export const Tray=class{};export const Menu={buildFromTemplate:()=>({})};`;
   const { outputFiles } = await build({ entryPoints: [fileURLToPath(new URL('../main.ts', import.meta.url))], bundle: true, write: false, platform: 'node', format: 'cjs', target: 'es2022', plugins: [{
     name: 'mock-electron-shell', setup(b) {
       b.onResolve({ filter: /^\.\/local-dev$/ }, () => ({ path: 'local-dev', namespace: 'local' }));

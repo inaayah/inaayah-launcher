@@ -416,14 +416,14 @@ const KNOWN_GAME_TITLES: Record<string, string> = {
   'vigilante-red-city': 'Vigilante: Red City',
   'aether-rush': 'AetherRush: Cyber Brawler 3D',
   'kettle-court': 'Kettle Court: Court of Kettle',
-  'eyetest': 'Eyetest',
+  'eyetest': 'Optik: Daily EyeTest',
   'sundered-depths': 'Sundered Depths',
   'cyber-tactics': 'Cyber Tactics'
 };
 
 const WEB_GAME_URLS: Record<string, string> = {
   'kettle-court': 'https://kettle-court.inaayah.dev/',
-  'eyetest': 'https://eyetest.inaayah.dev/'
+  'eyetest': 'https://arcade.inaayah.dev/eyetest'
 };
 
 function showAndFocusMainWindow(): void {
