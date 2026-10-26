@@ -1,5 +1,5 @@
 import { assertNotOlderInstall, newerGameVersion, retainNewerCatalog, GameDowngradeError } from './game-version';
-import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification, nativeImage, Tray, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -36,8 +36,54 @@ interface InstalledGameMeta {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let appTray: Tray | null = null;
+let isQuitting = false;
 const runningProcesses = new Map<string, { proc: ChildProcess; startTime: number }>();
 const activeDownloads = new Map<string, { abort: () => void; done: Promise<void> }>();
+
+function getCliArgValue(prefix: string): string | null {
+  const found = process.argv.find((arg) => arg.startsWith(prefix));
+  return found ? found.slice(prefix.length) : null;
+}
+
+const standaloneWebGameId = getCliArgValue('--inaayah-web-game-id=');
+const standaloneWebGameUrl = getCliArgValue('--inaayah-web-game-url=');
+const standaloneWebGameTitle = getCliArgValue('--inaayah-web-game-title=');
+const isStandaloneWebGameProcess = Boolean(standaloneWebGameId && standaloneWebGameUrl);
+
+if (isStandaloneWebGameProcess && standaloneWebGameId) {
+  const safeId = standaloneWebGameId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const isolatedUserData = path.join(app.getPath('userData'), 'web-games', safeId);
+  try {
+    fs.mkdirSync(isolatedUserData, { recursive: true });
+    app.setPath('userData', isolatedUserData);
+  } catch {}
+  if (standaloneWebGameTitle) {
+    try {
+      app.setName(standaloneWebGameTitle);
+    } catch {}
+  }
+}
+
+function resolveWebGameIconPath(gameId: string): string | null {
+  const appPath = app.getAppPath();
+  const candidates = [
+    path.join(appPath, 'dist', 'images', `${gameId}-cover.jpg`),
+    path.join(appPath, 'dist', 'images', `${gameId}-cover.png`),
+    path.join(appPath, 'public', 'images', `${gameId}-cover.jpg`),
+    path.join(appPath, 'public', 'images', `${gameId}-cover.png`),
+    path.join(__dirname, '../dist/images', `${gameId}-cover.jpg`),
+    path.join(__dirname, '../public/images', `${gameId}-cover.jpg`),
+    path.join(appPath, 'build', 'icon.png'),
+    path.join(appPath, 'dist', 'icon.png')
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
 
 
 // --- Cached & Background Asynchronous Discovery Helpers ---
@@ -112,6 +158,35 @@ function findGodotBinary(): string | null {
   // Trigger background probe asynchronously without blocking
   resolveGodotBinaryAsync().catch(() => {});
   return null;
+}
+
+function resolveMacAppBinary(appBundlePath: string): string {
+  const macosDir = path.join(appBundlePath, 'Contents', 'MacOS');
+  const plistPath = path.join(appBundlePath, 'Contents', 'Info.plist');
+  try {
+    if (fs.existsSync(plistPath)) {
+      const plistXml = fs.readFileSync(plistPath, 'utf-8');
+      const match = plistXml.match(/<key>\s*CFBundleExecutable\s*<\/key>\s*<string>\s*([^<]+?)\s*<\/string>/);
+      if (match && match[1]) {
+        const candidate = path.join(macosDir, path.basename(match[1].trim()));
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    if (fs.existsSync(macosDir)) {
+      const entries = fs.readdirSync(macosDir, { withFileTypes: true });
+      const binEntry = entries.find((e) => (e.isFile() || e.isSymbolicLink()) && !e.name.startsWith('.'));
+      if (binEntry) {
+        return path.join(macosDir, binEntry.name);
+      }
+    }
+  } catch {}
+
+  return appBundlePath;
 }
 
 async function findGameExecutable(gameDir: string): Promise<string | null> {
@@ -328,11 +403,144 @@ async function performInstalledScan(libraryPath?: string): Promise<Record<string
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('launcher:installed-games-updated', installed);
     }
+    rebuildTrayMenu();
 
     return installed;
   } catch (err) {
     console.error('Background game scan error:', err);
     return cachedInstalledGames;
+  }
+}
+
+const KNOWN_GAME_TITLES: Record<string, string> = {
+  'vigilante-red-city': 'Vigilante: Red City',
+  'aether-rush': 'AetherRush: Cyber Brawler 3D',
+  'kettle-court': 'Kettle Court: Court of Kettle',
+  'eyetest': 'Eyetest',
+  'sundered-depths': 'Sundered Depths',
+  'cyber-tactics': 'Cyber Tactics'
+};
+
+const WEB_GAME_URLS: Record<string, string> = {
+  'kettle-court': 'https://kettle-court.inaayah.dev/',
+  'eyetest': 'https://eyetest.inaayah.dev/'
+};
+
+function showAndFocusMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.show();
+    } catch {}
+  }
+}
+
+function rebuildTrayMenu(): void {
+  if (!appTray) return;
+
+  const gameIds = new Set<string>([
+    ...Object.keys(cachedInstalledGames),
+    ...Object.keys(WEB_GAME_URLS)
+  ]);
+
+  const quickLaunchItems: Electron.MenuItemConstructorOptions[] = Array.from(gameIds).map((gameId) => {
+    const title = KNOWN_GAME_TITLES[gameId] || gameId;
+    const isRunning = runningProcesses.has(gameId);
+    const webUrl = WEB_GAME_URLS[gameId];
+    return {
+      label: isRunning ? `${title} (Running)` : `Play ${title}`,
+      enabled: !isRunning,
+      click: () => {
+        if (webUrl) {
+          launchWebGame(gameId, webUrl).catch(() => {});
+        } else {
+          launchDesktopGame(gameId, []).catch(() => {});
+        }
+      }
+    };
+  });
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: `Inaayah Game Launcher v${app.getVersion()}`,
+      enabled: false
+    },
+    {
+      label: 'Open Inaayah Launcher',
+      click: () => showAndFocusMainWindow()
+    },
+    { type: 'separator' },
+    {
+      label: 'Quick Launch',
+      enabled: false
+    },
+    ...(quickLaunchItems.length > 0
+      ? quickLaunchItems
+      : [{ label: 'No games installed', enabled: false }]),
+    { type: 'separator' },
+    {
+      label: 'Check for Updates...',
+      click: async () => {
+        showAndFocusMainWindow();
+        try {
+          const info = await fetchLatestLauncherRelease();
+          if (info.isNewer) {
+            latestKnownLauncherVersion = info.latestTag;
+            mainWindow?.webContents.send('launcher-update-available', {
+              version: info.latestTag,
+              releaseUrl: info.releaseUrl
+            });
+            if (process.platform === 'darwin' && app.isPackaged) {
+              downloadMacUpdateInBackground(info.latestTag, loadConfig()).catch(() => {});
+            }
+          }
+        } catch {}
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit Inaayah Launcher',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+
+  appTray.setContextMenu(contextMenu);
+}
+
+function setupSystemTray(): void {
+  if (appTray || isStandaloneWebGameProcess) return;
+  const candidates = [
+    path.join(app.getAppPath(), 'build', 'icon.png'),
+    path.join(app.getAppPath(), 'dist', 'icon.png'),
+    path.join(__dirname, '../dist/icon.png'),
+    path.join(__dirname, '../public/icon.png')
+  ];
+  const iconPath = candidates.find((p) => fs.existsSync(p));
+  if (!iconPath) return;
+
+  try {
+    const size = process.platform === 'darwin' ? 18 : 16;
+    const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: size, height: size });
+    appTray = new Tray(trayIcon);
+    appTray.setToolTip('Inaayah Game Launcher');
+    appTray.on('double-click', () => showAndFocusMainWindow());
+    if (process.platform !== 'darwin') {
+      appTray.on('click', () => showAndFocusMainWindow());
+    }
+    rebuildTrayMenu();
+  } catch (err) {
+    console.warn('Failed to initialize system tray:', err);
   }
 }
 
@@ -388,13 +596,60 @@ function createWindow(): void {
     scanInstalledGames().catch(() => {});
   });
 
+  // Hide to system tray instead of quitting when clicking the window close button (Steam/Epic behavior)
+  mainWindow.on('close', (event) => {
+    if (!isQuitting && appTray) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
 // Ensure library path exists
 app.whenReady().then(() => {
+  if (isStandaloneWebGameProcess && standaloneWebGameId && standaloneWebGameUrl) {
+    const iconFile = resolveWebGameIconPath(standaloneWebGameId);
+    let iconImg = iconFile ? nativeImage.createFromPath(iconFile) : undefined;
+    if (iconImg && !iconImg.isEmpty()) {
+      iconImg = iconImg.resize({ width: 256, height: 256 });
+      if (process.platform === 'darwin' && app.dock) {
+        try {
+          app.dock.setIcon(iconImg);
+          app.dock.show();
+        } catch {}
+      }
+    }
+
+    const webGameWin = new BrowserWindow({
+      width: 1280,
+      height: 760,
+      minWidth: 960,
+      minHeight: 540,
+      backgroundColor: '#0a0c13',
+      title: standaloneWebGameTitle || 'Inaayah Games - Web Player',
+      icon: iconImg && !iconImg.isEmpty() ? iconImg : undefined,
+      autoHideMenuBar: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+
+    webGameWin.loadURL(standaloneWebGameUrl);
+    webGameWin.on('closed', () => {
+      app.quit();
+    });
+    return;
+  }
+
   const cfg = loadConfig();
   if (!fs.existsSync(cfg.libraryPath)) {
     try {
@@ -452,6 +707,7 @@ app.whenReady().then(() => {
   resolveGodotBinaryAsync().catch(() => {});
 
   createWindow();
+  setupSystemTray();
 
   setTimeout(async () => {
     try {
@@ -494,12 +750,14 @@ app.whenReady().then(() => {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    showAndFocusMainWindow();
   });
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (isStandaloneWebGameProcess) {
+    app.quit();
+  } else if (process.platform !== 'darwin' && !appTray) {
     app.quit();
   }
 });
@@ -835,7 +1093,14 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     sendProgress('EXTRACTING', received, total);
     await fs.promises.mkdir(stage);
     zip.extractAllTo(stage, true, process.platform !== 'win32');
-    if (!await findGameExecutable(stage)) throw new Error('Game package has no executable');
+    const stageExec = await findGameExecutable(stage);
+    if (!stageExec) throw new Error('Game package has no executable');
+    if (process.platform === 'darwin' && stageExec.endsWith('.app')) {
+      const macBin = resolveMacAppBinary(stageExec);
+      if (macBin !== stageExec) {
+        try { await fs.promises.chmod(macBin, 0o755); } catch {}
+      }
+    }
     await fs.promises.writeFile(path.join(stage, 'manifest.json'), JSON.stringify(metadata, null, 2));
     await commitInstall(stage, gameDir, signal);
     uninstalledDevGames.delete(gameId);
@@ -853,7 +1118,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
   }
 });
 
-ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs: string[] = []) => {
+async function launchDesktopGame(gameId: string, customArgs: string[] = []): Promise<boolean> {
   if (activeDownloads.has(gameId)) return false;
   const cfg = loadConfig();
   const gameDir = path.join(cfg.libraryPath, gameId);
@@ -887,11 +1152,13 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
         const startTime = Date.now();
         runningProcesses.set(gameId, { proc: child, startTime });
         mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
+        rebuildTrayMenu();
 
         child.on('error', (err) => {
           console.error('Godot dev engine error:', err);
           runningProcesses.delete(gameId);
           mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
+          rebuildTrayMenu();
         });
 
         child.on('exit', (code) => {
@@ -910,6 +1177,7 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
           }
 
           mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: code || 0 });
+          rebuildTrayMenu();
         });
 
         return true;
@@ -940,8 +1208,22 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
     const isBatch = execPath.toLowerCase().endsWith('.bat') || execPath.toLowerCase().endsWith('.cmd');
 
     if (process.platform === 'darwin' && execPath.endsWith('.app')) {
-      child = spawn('open', ['-n', '-W', execPath, '--args', ...customArgs], { detached: true });
+      const macBin = resolveMacAppBinary(execPath);
+      if (macBin !== execPath) {
+        try { fs.chmodSync(macBin, 0o755); } catch {}
+        child = spawn(macBin, customArgs, {
+          detached: true,
+          cwd: path.dirname(macBin),
+          stdio: 'ignore'
+        });
+        child.unref();
+      } else {
+        child = spawn('open', ['-n', '-W', execPath, '--args', ...customArgs], { detached: true });
+      }
     } else {
+      if (process.platform !== 'win32') {
+        try { fs.chmodSync(execPath, 0o755); } catch {}
+      }
       child = spawn(execPath, customArgs, {
         detached: true,
         cwd: path.dirname(execPath),
@@ -955,6 +1237,7 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
     const startTime = Date.now();
     runningProcesses.set(gameId, { proc: child, startTime });
     mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
+    rebuildTrayMenu();
 
     child.on('exit', (code) => {
       const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));
@@ -971,6 +1254,7 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
       }
 
       mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: code || 0 });
+      rebuildTrayMenu();
     });
 
     if (cfg.closeLauncherOnGameStart && mainWindow) {
@@ -981,6 +1265,7 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
   } catch (err: any) {
     console.error('Failed to spawn game process:', err);
     runningProcesses.delete(gameId);
+    rebuildTrayMenu();
 
     const execStillExists = execPath && fs.existsSync(execPath);
     if (!execStillExists) {
@@ -998,35 +1283,49 @@ ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs
     dialog.showErrorBox('Launch Failed', err.message);
     return false;
   }
+}
+
+ipcMain.handle('launcher:launch-game', async (_event, gameId: string, customArgs: string[] = []) => {
+  return launchDesktopGame(gameId, customArgs);
 });
 
-ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: string) => {
+async function launchWebGame(gameId: string, url: string): Promise<boolean> {
   try {
+    if (runningProcesses.has(gameId)) {
+      return true;
+    }
+
     const cfg = loadConfig();
     const gameDir = path.join(cfg.libraryPath, gameId);
     fs.mkdirSync(gameDir, { recursive: true });
 
-    const webGameWin = new BrowserWindow({
-      width: 1280,
-      height: 760,
-      minWidth: 960,
-      minHeight: 540,
-      backgroundColor: '#0a0c13',
-      title: 'Inaayah Games - Web Player',
-      autoHideMenuBar: true,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true
-      }
-    });
+    const title = KNOWN_GAME_TITLES[gameId] || 'Inaayah Web Game';
 
-    webGameWin.loadURL(url);
+    const cliFlags = [
+      `--inaayah-web-game-id=${gameId}`,
+      `--inaayah-web-game-url=${url}`,
+      `--inaayah-web-game-title=${title}`
+    ];
+    const spawnArgs = app.isPackaged ? cliFlags : [app.getAppPath(), ...cliFlags];
+    const childEnv = { ...process.env };
+    delete childEnv.ELECTRON_RUN_AS_NODE;
+
+    const child = spawn(process.execPath, spawnArgs, {
+      detached: true,
+      stdio: 'ignore',
+      env: childEnv
+    });
+    child.unref();
 
     const startTime = Date.now();
+    runningProcesses.set(gameId, { proc: child, startTime });
     mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
+    rebuildTrayMenu();
 
-    webGameWin.on('closed', () => {
+    child.on('exit', (code) => {
       const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+      runningProcesses.delete(gameId);
+
       const manifestPath = path.join(gameDir, 'manifest.json');
       let meta: any = {
         id: gameId,
@@ -1043,9 +1342,12 @@ ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: s
       }
       meta.lastPlayedAt = Date.now();
       meta.totalPlaytimeMinutes = (meta.totalPlaytimeMinutes || 0) + elapsedMinutes;
-      fs.writeFileSync(manifestPath, JSON.stringify(meta, null, 2));
+      try {
+        fs.writeFileSync(manifestPath, JSON.stringify(meta, null, 2));
+      } catch {}
 
-      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: 0 });
+      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: code || 0 });
+      rebuildTrayMenu();
     });
 
     if (cfg.closeLauncherOnGameStart && mainWindow) {
@@ -1058,6 +1360,10 @@ ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: s
     dialog.showErrorBox('Launch Web Game Failed', err.message);
     return false;
   }
+}
+
+ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: string) => {
+  return launchWebGame(gameId, url);
 });
 
 ipcMain.handle('launcher:open-external-url', async (_event, targetUrl: string) => {
