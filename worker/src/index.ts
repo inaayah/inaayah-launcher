@@ -40,6 +40,12 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
     type: 'web',
     webUrl: 'https://arcade.inaayah.dev/eyetest'
   },
+  'prism': {
+    repo: 'inaayah-arcade',
+    branch: 'main',
+    type: 'web',
+    webUrl: 'https://arcade.inaayah.dev/prism'
+  },
   'sundered-depths': {
     repo: 'sundered-depths',
     branch: 'main',
@@ -304,13 +310,15 @@ async function getGithubReleaseStats(env: Env): Promise<{
           ? 'Kettle Court'
           : gameId === 'eyetest'
           ? 'Optik: Daily EyeTest'
+          : gameId === 'prism'
+          ? 'Prism: Daily Hue Matrix'
           : gameId);
 
       if (cfg.type === 'web') {
         try {
           const manifest = await fetchRepoManifest(cfg.repo, cfg.branch, env);
           if (manifest?.version) version = String(manifest.version).replace(/^v/, '');
-          if (manifest?.title) title = manifest.title;
+          if (manifest?.title && (!manifest.id || manifest.id === gameId)) title = manifest.title;
         } catch {}
         return { gameId, title, version, gameType: 'web' as const, githubDownloads: 0 };
       }
