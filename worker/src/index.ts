@@ -46,6 +46,30 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
     type: 'web',
     webUrl: 'https://arcade.inaayah.dev/prism'
   },
+  'kinetic': {
+    repo: 'inaayah-arcade',
+    branch: 'main',
+    type: 'web',
+    webUrl: 'https://arcade.inaayah.dev/kinetic'
+  },
+  'tessera': {
+    repo: 'inaayah-arcade',
+    branch: 'main',
+    type: 'web',
+    webUrl: 'https://arcade.inaayah.dev/tessera'
+  },
+  'chrono': {
+    repo: 'inaayah-arcade',
+    branch: 'main',
+    type: 'web',
+    webUrl: 'https://arcade.inaayah.dev/chrono'
+  },
+  'vector': {
+    repo: 'inaayah-arcade',
+    branch: 'main',
+    type: 'web',
+    webUrl: 'https://arcade.inaayah.dev/vector'
+  },
   'sundered-depths': {
     repo: 'sundered-depths',
     branch: 'main',
@@ -312,6 +336,14 @@ async function getGithubReleaseStats(env: Env): Promise<{
           ? 'Optik: Daily EyeTest'
           : gameId === 'prism'
           ? 'Prism: Daily Hue Matrix'
+          : gameId === 'kinetic'
+          ? 'Kinetic: Daily Trajectory'
+          : gameId === 'tessera'
+          ? 'Tessera: Daily Polyomino'
+          : gameId === 'chrono'
+          ? 'Chrono: Daily Rhythm'
+          : gameId === 'vector'
+          ? 'Vector: Daily Equilibrium'
           : gameId);
 
       if (cfg.type === 'web') {
