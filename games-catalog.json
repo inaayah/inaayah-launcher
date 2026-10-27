@@ -332,10 +332,10 @@
     "id": "eyetest",
     "slug": "eyetest",
     "title": "Optik: Daily EyeTest",
-    "subtitle": "5-Round Daily Visual Precision & Optical Calibration Game",
-    "version": "1.0.0",
+    "subtitle": "5-Round Daily Visual Precision & Optical Calibration Game (20-Challenge Pool)",
+    "version": "1.2.0",
     "releaseDate": "October 2026",
-    "description": "Test your eye across a daily 5-round lineup drawn from a 10-challenge optical pool: Chroma Match, Centroid Drop, Kerning Balance, 50/50 Bisect, Angle Bisector, Parallel Align, Symmetry Mirror, Aperture Match, Equidistant Center, and Weber Contrast. Earn your Optical Accuracy %, composite Optik Score with speed multiplier, global Top % rank, and challenge friends via instant visual scorecard links.",
+    "description": "Test your eye across a daily 5-round lineup drawn from a 20-challenge optical pool: Chroma, Centroid, Kerning, Bisect, Angle, Parallel, Symmetry, Aperture, Circumcenter, Color Mix, Tangent Ray, Vanishing Point, Ebbinghaus Illusion, Rotated Square, Right-Angle Drop, Bezier Handle, Parallelogram 4th Vertex, Golden Ratio Split, Kelvin White Balance, and 4-Step Gradient Ramp.",
     "genres": [
       "Puzzle",
       "Daily Game",
@@ -344,7 +344,7 @@
     ],
     "tags": [
       "Instant Play",
-      "10-Challenge Pool",
+      "20-Challenge Pool",
       "Daily Seed",
       "Optical Calibration",
       "Thumb-Safe 2x Loupe"
@@ -363,8 +363,8 @@
     "githubRepo": "inaayah/inaayah-arcade",
     "onlineBackend": "Cloudflare Pages & Edge Telemetry (api.inaayah.dev)",
     "features": [
-      "10-Challenge Rotating Optical Pool: Daily 5-round lineup drawn deterministically from 10 geometric & color precision tests",
-      "Deterministic UTC Daily Seed, Seeded Global Percentile Ranking, and Unlimited Practice Mode",
+      "20-Challenge Rotating Optical Pool: Daily 5-round lineup drawn deterministically from 20 geometric, color, perspective, and typographic calibration tests",
+      "Full Inaayah Web Arcade Suite: Includes Optik (/eyetest), Prism (/prism), Kinetic (/kinetic), Tessera (/tessera), Chrono (/chrono), and Vector (/vector)",
       "Thumb-Safe Mobile Ergonomics: -45px touch offset and live 2x circular optical magnifying lens",
       "Composite Optik Score: Combines pure 0-100% optical accuracy with a 1.00x-1.25x solve speed multiplier",
       "1-Click Visual Scorecard & Challenge Links: Instant ~3 KB SVG scorecard, WebP download, and head-to-head ?c= challenge mode"
@@ -377,6 +377,16 @@
       "storage": "No local disk space required"
     },
     "changelog": [
+      {
+        "version": "1.2.0",
+        "date": "Oct 27, 2026",
+        "title": "20-Challenge Optical Pool & 6-Game Daily Web Arcade Expansion",
+        "changes": [
+          "Expanded Optik: Daily EyeTest from 10 to 20 rotating optical & geometric calibration challenges",
+          "Replaced blind 3-slider Midtone Bridge with intuitive 2-slider Color Mix pigment challenge",
+          "Launched 5 additional standalone daily web games on arcade.inaayah.dev: Prism (/prism), Kinetic (/kinetic), Tessera (/tessera), Chrono (/chrono), and Vector (/vector)"
+        ]
+      },
       {
         "version": "1.0.0",
         "date": "Oct 26, 2026",
