@@ -267,18 +267,18 @@ export const GameHero: React.FC<GameHeroProps> = ({
               {installed && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Clock size={15} color="var(--accent-cyan)" />
-                    <span>Playtime: <strong style={{ color: '#fff' }}>{formatPlaytime(installed.totalPlaytimeMinutes)}</strong></span>
+                    <Clock size={15} color="var(--brand-accent)" />
+                    <span>Playtime: <strong style={{ color: 'var(--text-primary)' }}>{formatPlaytime(installed.totalPlaytimeMinutes)}</strong></span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Flame size={15} color="var(--accent-gold)" />
-                    <span>Last Played: <strong style={{ color: '#fff' }}>{formatLastPlayed(installed.lastPlayedAt)}</strong></span>
+                    <Flame size={15} color="var(--brand-amber)" />
+                    <span>Last Played: <strong style={{ color: 'var(--text-primary)' }}>{formatLastPlayed(installed.lastPlayedAt)}</strong></span>
                   </div>
                 </>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <HardDrive size={15} color="var(--text-muted)" />
-                <span>Format: <strong style={{ color: '#fff' }}>{game.sizeFormatted}</strong></span>
+                <span>Format: <strong style={{ color: 'var(--text-primary)' }}>{game.sizeFormatted}</strong></span>
               </div>
             </div>
           </div>
@@ -668,8 +668,9 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <span
                       style={{
                         padding: '3px 10px',
-                        background: 'rgba(0, 240, 255, 0.15)',
-                        color: 'var(--accent-cyan)',
+                        background: 'var(--badge-teal-bg)',
+                        border: '1px solid var(--badge-teal-border)',
+                        color: 'var(--brand-accent)',
                         borderRadius: 6,
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 700,

@@ -127,19 +127,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
       </div>
 
       {/* Library Metrics & Filter Toolbar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 16,
-          padding: '14px 18px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-lg)'
-        }}
-      >
+      <div className="catalog-filter-bar">
         {/* Filter Pills */}
         <div style={{ display: 'flex', gap: 10 }}>
           <button
@@ -147,12 +135,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
             className={`btn-secondary ${filterMode === 'all' ? 'active' : ''}`}
             style={{
               height: 34,
-              borderRadius: 20,
+              borderRadius: 999,
               fontSize: 12,
-              padding: '0 16px',
-              background: filterMode === 'all' ? 'rgba(0, 240, 255, 0.15)' : undefined,
-              borderColor: filterMode === 'all' ? 'var(--accent-cyan)' : undefined,
-              color: filterMode === 'all' ? 'var(--accent-cyan)' : undefined
+              padding: '0 16px'
             }}
           >
             All Games ({catalog.length})
@@ -163,12 +148,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
             className={`btn-secondary ${filterMode === 'installed' ? 'active' : ''}`}
             style={{
               height: 34,
-              borderRadius: 20,
+              borderRadius: 999,
               fontSize: 12,
-              padding: '0 16px',
-              background: filterMode === 'installed' ? 'rgba(0, 255, 136, 0.15)' : undefined,
-              borderColor: filterMode === 'installed' ? 'var(--accent-green)' : undefined,
-              color: filterMode === 'installed' ? 'var(--accent-green)' : undefined
+              padding: '0 16px'
             }}
           >
             Installed & Ready ({installedCount})
@@ -178,12 +160,12 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
         {/* Quick Stats Summary */}
         <div style={{ display: 'flex', gap: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <HardDrive size={14} color="var(--accent-cyan)" />
-            <span>Ready: <strong style={{ color: '#fff' }}>{installedCount}</strong></span>
+            <HardDrive size={14} color="var(--brand-accent)" />
+            <span>Ready: <strong style={{ color: 'var(--text-primary)' }}>{installedCount}</strong></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Clock size={14} color="var(--accent-gold)" />
-            <span>Total Playtime: <strong style={{ color: '#fff' }}>{formatTotalPlaytime(totalPlaytimeMinutes)}</strong></span>
+            <Clock size={14} color="var(--brand-amber)" />
+            <span>Total Playtime: <strong style={{ color: 'var(--text-primary)' }}>{formatTotalPlaytime(totalPlaytimeMinutes)}</strong></span>
           </div>
         </div>
       </div>
@@ -216,7 +198,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                   border: isRunning
                     ? '1px solid #a855f7'
                     : isInstalled
-                    ? '1px solid rgba(0, 255, 136, 0.3)'
+                    ? '1px solid var(--badge-teal-border)'
                     : undefined
                 }}
               >

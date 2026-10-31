@@ -166,9 +166,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated 
         <div className="auth-brand-header">
           <div className="auth-brand-icon-wrap">
             <img
-              src={getAssetUrl('icon.png')}
+              src={getAssetUrl('brand/inaayah-symbol.svg')}
               alt="Inaayah Studio"
-              style={{ width: 42, height: 42, borderRadius: 10 }}
+              style={{ width: 38, height: 38, borderRadius: 10 }}
             />
           </div>
           <div>

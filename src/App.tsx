@@ -237,6 +237,15 @@ export const App: React.FC = () => {
     };
   }, [refreshGames]);
 
+  // 3. Window focus: automatically refresh when returning from Finder, terminal, or Godot
+  useEffect(() => {
+    const onWindowFocus = () => {
+      refreshGames(true);
+    };
+    window.addEventListener('focus', onWindowFocus);
+    return () => window.removeEventListener('focus', onWindowFocus);
+  }, [refreshGames]);
+
   // 4. IPC Event Listeners
   useEffect(() => {
     const unsubProgress = launcherBridge.onDownloadProgress((prog) => {
@@ -382,9 +391,9 @@ export const App: React.FC = () => {
         <div className="launcher-splash-screen" role="status" aria-live="polite">
           <div className="splash-logo-ring">
             <img
-              src={getAssetUrl('icon.png')}
+              src={getAssetUrl('brand/inaayah-symbol.svg')}
               alt="Inaayah Studio"
-              style={{ width: 52, height: 52, borderRadius: 12 }}
+              style={{ width: 44, height: 44, borderRadius: 12 }}
             />
           </div>
           <div className="splash-text-group">

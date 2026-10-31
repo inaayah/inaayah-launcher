@@ -105,6 +105,16 @@ export interface LauncherUser {
   lastSeenAt: string | null;
 }
 
+export interface AnalyticsPeriodBucket {
+  key: string;
+  label: string;
+  webPlays: number;
+  launcherPlays: number;
+  totalPlays: number;
+  newUsers: number;
+  newInstalls: number;
+}
+
 export interface StudioAnalyticsOverview {
   generatedAt: string;
   senderEmail: string;
@@ -121,6 +131,12 @@ export interface StudioAnalyticsOverview {
     dau: number;
     mau: number;
     totalGameDownloads: number;
+    todayPlays?: number;
+    monthPlays?: number;
+    todayNewUsers?: number;
+    monthNewUsers?: number;
+    todayNewInstalls?: number;
+    monthNewInstalls?: number;
   };
   platformBreakdown: {
     darwin: number;
@@ -137,8 +153,16 @@ export interface StudioAnalyticsOverview {
     githubDownloads: number;
     trackedDownloads: number;
     totalDownloads: number;
+    todayDownloads?: number;
+    monthDownloads?: number;
+    todayWebPlays?: number;
+    todayLauncherPlays?: number;
+    monthWebPlays?: number;
+    monthLauncherPlays?: number;
     onlinePlayers?: number;
   }>;
+  dailyBreakdown?: AnalyticsPeriodBucket[];
+  monthlyBreakdown?: AnalyticsPeriodBucket[];
   recentUsers: Array<{
     id: string;
     email: string;

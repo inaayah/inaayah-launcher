@@ -791,6 +791,7 @@ export const authService = {
           } catch {}
         }
         const trackedDownloads = localDownloadsMap[g.gameId] || 0;
+        const total = githubDownloads + trackedDownloads;
         return {
           gameId: g.gameId,
           title,
@@ -798,7 +799,13 @@ export const authService = {
           gameType: g.gameType,
           githubDownloads,
           trackedDownloads,
-          totalDownloads: githubDownloads + trackedDownloads,
+          totalDownloads: total,
+          todayDownloads: trackedDownloads,
+          monthDownloads: total,
+          todayWebPlays: 0,
+          todayLauncherPlays: trackedDownloads,
+          monthWebPlays: githubDownloads,
+          monthLauncherPlays: trackedDownloads,
           ...(typeof onlinePlayers === 'number' ? { onlinePlayers } : {})
         };
       })
@@ -808,6 +815,41 @@ export const authService = {
     const verifiedList = localUsersList.filter((u) => u.emailVerified);
     const platform = detectPlatform();
     const appVersion = await launcherBridge.getAppVersion().catch(() => APP_VERSION);
+    const totalPlaysAll = gameMetrics.reduce((s, m) => s + m.totalDownloads, 0);
+    const todayPlaysAll = gameMetrics.reduce((s, m) => s + (m.todayDownloads || 0), 0);
+
+    const nowDate = new Date();
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dailyBreakdown = Array.from({ length: 14 }, (_, idx) => {
+      const i = 13 - idx;
+      const d = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate() - i));
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+      const label = `${shortMonths[d.getUTCMonth()]} ${d.getUTCDate()}`;
+      return {
+        key,
+        label,
+        webPlays: 0,
+        launcherPlays: i === 0 ? todayPlaysAll : 0,
+        totalPlays: i === 0 ? todayPlaysAll : 0,
+        newUsers: i === 0 ? Math.max(verifiedList.length, 1) : 0,
+        newInstalls: i === 0 ? 1 : 0
+      };
+    });
+    const monthlyBreakdown = Array.from({ length: 6 }, (_, idx) => {
+      const i = 5 - idx;
+      const d = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth() - i, 1));
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      const label = `${shortMonths[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+      return {
+        key,
+        label,
+        webPlays: i === 0 ? gameMetrics.reduce((s, m) => s + m.githubDownloads, 0) : 0,
+        launcherPlays: i === 0 ? todayPlaysAll : 0,
+        totalPlays: i === 0 ? totalPlaysAll : 0,
+        newUsers: i === 0 ? Math.max(verifiedList.length, 1) : 0,
+        newInstalls: i === 0 ? 1 : 0
+      };
+    });
 
     return {
       generatedAt: new Date().toISOString(),
@@ -824,7 +866,13 @@ export const authService = {
         onlineNow: 1,
         dau: Math.max(verifiedList.length, 1),
         mau: Math.max(verifiedList.length, 1),
-        totalGameDownloads: gameMetrics.reduce((s, m) => s + m.totalDownloads, 0)
+        totalGameDownloads: totalPlaysAll,
+        todayPlays: todayPlaysAll,
+        monthPlays: totalPlaysAll,
+        todayNewUsers: Math.max(verifiedList.length, 1),
+        monthNewUsers: Math.max(verifiedList.length, 1),
+        todayNewInstalls: 1,
+        monthNewInstalls: 1
       },
       platformBreakdown: {
         darwin: platform === 'darwin' ? 1 : 0,
@@ -834,6 +882,8 @@ export const authService = {
       },
       versionBreakdown: [{ version: appVersion, count: 1 }],
       gameMetrics,
+      dailyBreakdown,
+      monthlyBreakdown,
       recentUsers: localUsersList.map((u) => ({
         id: u.id,
         email: u.email,

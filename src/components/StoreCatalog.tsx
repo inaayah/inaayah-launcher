@@ -88,8 +88,8 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
         </div>
       </div>
 
-      {/* Genre Pills */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {/* Genre Pills (Flattened Mobbin Pattern) */}
+      <div className="catalog-filter-bar" style={{ justifyContent: 'flex-start', gap: 8 }}>
         {genres.map((g) => (
           <button
             key={g}
@@ -97,11 +97,8 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
             className={`btn-secondary ${selectedGenre === g ? 'active' : ''}`}
             style={{
               height: 32,
-              borderRadius: 20,
-              fontSize: 12,
-              background: selectedGenre === g ? 'rgba(0, 240, 255, 0.15)' : undefined,
-              borderColor: selectedGenre === g ? 'var(--accent-cyan)' : undefined,
-              color: selectedGenre === g ? 'var(--accent-cyan)' : undefined
+              borderRadius: 999,
+              fontSize: 12
             }}
           >
             {g}
@@ -139,7 +136,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                   </div>
                 ) : isInLibrary && !isComingSoon && (
                   <div style={{ position: 'absolute', top: 12, left: 12 }}>
-                    <span className="badge" style={{ background: 'rgba(0, 240, 255, 0.2)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.4)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span className="badge cyan" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <BookmarkCheck size={11} /> In Library
                     </span>
                   </div>
@@ -276,14 +273,11 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     </button>
                   ) : isWebGame ? (
                     <button
-                      className="btn-secondary"
+                      className="btn-primary-action play"
                       style={{
                         height: 34,
                         padding: '0 14px',
-                        fontSize: 12,
-                        background: 'rgba(0, 255, 136, 0.15)',
-                        borderColor: 'var(--accent-green)',
-                        color: 'var(--accent-green)'
+                        fontSize: 12
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -294,14 +288,11 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     </button>
                   ) : (
                     <button
-                      className="btn-secondary"
+                      className={isInstalled ? 'btn-primary-action play' : 'btn-primary-action install'}
                       style={{
                         height: 34,
                         padding: '0 14px',
-                        fontSize: 12,
-                        background: isInstalled ? 'rgba(0, 255, 136, 0.15)' : 'rgba(0, 240, 255, 0.15)',
-                        borderColor: isInstalled ? 'var(--accent-green)' : 'var(--accent-cyan)',
-                        color: isInstalled ? 'var(--accent-green)' : 'var(--accent-cyan)'
+                        fontSize: 12
                       }}
                       onClick={(e) => {
                         e.stopPropagation();

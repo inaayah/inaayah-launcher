@@ -232,7 +232,15 @@ test('admin email in ADMIN_EMAILS receives admin role and can view detailed stud
   assert.equal(kettleMetrics.githubDownloads, 1);
   assert.equal(kettleMetrics.trackedDownloads, 0);
   assert.equal(kettleMetrics.totalDownloads, 1);
+  assert.equal(kettleMetrics.todayDownloads, 1);
+  assert.equal(kettleMetrics.monthDownloads, 1);
   assert.equal(kettleMetrics.onlinePlayers, 1);
+  assert.ok(Array.isArray(stats.dailyBreakdown));
+  assert.equal(stats.dailyBreakdown.length, 14);
+  assert.ok(stats.dailyBreakdown[13].webPlays >= 1);
+  assert.ok(Array.isArray(stats.monthlyBreakdown));
+  assert.equal(stats.monthlyBreakdown.length, 6);
+  assert.ok(stats.monthlyBreakdown[5].totalPlays >= 2);
 });
 
 test('production worker never leaks devOtpCode when ALLOW_DEV_OTP_PREVIEW is not enabled and locks out brute-force logins', async () => {

@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Downloads</span>
           </div>
           {activeDownloadsCount > 0 && (
-            <span className="nav-badge" style={{ background: 'rgba(0, 240, 255, 0.3)', color: '#00f0ff' }}>
+            <span className="nav-badge">
               {activeDownloadsCount}
             </span>
           )}
@@ -112,8 +112,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span
               className="nav-badge"
               style={{
-                background: 'rgba(0, 255, 136, 0.18)',
-                color: 'var(--accent-green)',
                 fontSize: 9,
                 letterSpacing: '0.06em'
               }}
@@ -253,8 +251,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             marginTop: 8,
             padding: '8px 10px',
             borderRadius: 'var(--radius-sm)',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.04)',
+            background: 'var(--bg-subtle-box)',
+            border: '1px solid var(--border-subtle)',
             fontSize: 11,
             color: 'var(--text-muted)'
           }}

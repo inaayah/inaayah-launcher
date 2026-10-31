@@ -7,17 +7,27 @@
     <link rel="icon" type="image/png" href="./icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('inaayah_theme');
+          var sysLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+          var theme = saved === 'light' || saved === 'dark' ? saved : (sysLight ? 'light' : 'dark');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body style="margin:0;padding:0;background:#07090e;color:#f1f5f9;font-family:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;overflow:hidden;user-select:none;">
+  <body style="margin:0;padding:0;background:var(--bg-base, #07080a);color:var(--text-primary, #f5f4f0);font-family:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;overflow:hidden;user-select:none;">
     <div id="root">
-      <div style="height:100vh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,rgba(0,240,255,0.12),transparent 55%),#07090e;gap:18px;">
-        <div style="width:68px;height:68px;border-radius:18px;background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.32);display:flex;align-items:center;justify-content:center;box-shadow:0 0 28px rgba(0,240,255,0.22);">
+      <div style="height:100vh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,rgba(45,212,191,0.1),transparent 55%),var(--bg-base, #07080a);gap:18px;">
+        <div style="width:68px;height:68px;border-radius:18px;background:rgba(45,212,191,0.08);border:1px solid rgba(45,212,191,0.28);display:flex;align-items:center;justify-content:center;box-shadow:0 18px 42px -12px rgba(0,0,0,0.6);">
           <img src="./icon.png" alt="Inaayah Studio" style="width:48px;height:48px;border-radius:12px;" />
         </div>
         <div style="text-align:center;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.22em;color:#00f0ff;text-transform:uppercase;margin-bottom:6px;">INAAYAH STUDIO</div>
-          <div style="font-size:18px;font-weight:700;color:#f1f5f9;">Initializing Launcher...</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.22em;color:#2dd4bf;text-transform:uppercase;margin-bottom:6px;">INAAYAH GAMES</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text-primary, #f5f4f0);">Initializing Launcher...</div>
         </div>
       </div>
     </div>

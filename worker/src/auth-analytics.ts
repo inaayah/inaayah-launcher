@@ -1406,6 +1406,21 @@ export async function handleAuthAndAnalyticsRequest(
       const dauCutoff = now - DAU_WINDOW_MS;
       const mauCutoff = now - MAU_WINDOW_MS;
 
+      const nowDate = new Date(now);
+      const todayStartMs = Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate());
+      const monthStartMs = Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), 1);
+      const fourteenDaysStartMs = todayStartMs - 13 * 86_400_000;
+
+      const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const toUtcDayKey = (ts: number): string => {
+        const d = new Date(ts);
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+      };
+      const toUtcMonthKey = (ts: number): string => {
+        const d = new Date(ts);
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      };
+
       const ghStats = await getGithubReleaseStats().catch(() => ({
         launcherDownloads: 0,
         games: []
@@ -1414,17 +1429,44 @@ export async function handleAuthAndAnalyticsRequest(
       let allUsers: UserRecord[] = [];
       let allInstalls: LauncherInstallRecord[] = [];
       let allDownloads: DownloadEventRecord[] = [];
+      let d1GameAggRows: Array<{
+        target_type: string;
+        target_id: string;
+        platform: string;
+        total_count: number;
+        today_count: number;
+        month_count: number;
+        latest_version: string | null;
+      }> | null = null;
 
       if (env.DB) {
         await ensureD1Schema(env.DB);
-        const [uRes, iRes, dRes] = await Promise.all([
-          env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT 250').all<UserRecord>(),
-          env.DB.prepare('SELECT * FROM launcher_installs ORDER BY last_seen_at DESC LIMIT 1000').all<LauncherInstallRecord>(),
-          env.DB.prepare('SELECT * FROM download_events ORDER BY created_at DESC LIMIT 2000').all<DownloadEventRecord>()
+        const [uRes, iRes, dRes, aggRes] = await Promise.all([
+          env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT 500').all<UserRecord>(),
+          env.DB.prepare('SELECT * FROM launcher_installs ORDER BY last_seen_at DESC LIMIT 2000').all<LauncherInstallRecord>(),
+          env.DB.prepare('SELECT * FROM download_events WHERE created_at >= ? ORDER BY created_at DESC LIMIT 5000')
+            .bind(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth() - 5, 1))
+            .all<DownloadEventRecord>()
+            .catch(() => env.DB!.prepare('SELECT * FROM download_events ORDER BY created_at DESC LIMIT 2000').all<DownloadEventRecord>()),
+          env.DB.prepare(
+            `SELECT target_type, target_id, platform,
+                    COUNT(*) as total_count,
+                    SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as today_count,
+                    SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as month_count,
+                    MAX(version) as latest_version
+             FROM download_events
+             GROUP BY target_type, target_id, platform`
+          )
+            .bind(todayStartMs, monthStartMs)
+            .all<any>()
+            .catch(() => null)
         ]);
         allUsers = uRes.results || [];
         allInstalls = iRes.results || [];
         allDownloads = dRes.results || [];
+        if (aggRes && Array.isArray(aggRes.results)) {
+          d1GameAggRows = aggRes.results;
+        }
       } else {
         allUsers = Array.from(memoryStore.users.values()).sort((a, b) => b.created_at - a.created_at);
         allInstalls = Array.from(memoryStore.installs.values()).sort((a, b) => b.last_seen_at - a.last_seen_at);
@@ -1451,7 +1493,11 @@ export async function handleAuthAndAnalyticsRequest(
       const mauDevices = allInstalls.filter((i) => i.last_seen_at >= mauCutoff).length;
       const mau = Math.max(mauUsers, mauDevices);
 
-      const trackedLauncherDownloads = allDownloads.filter((d) => d.target_type === 'launcher').length;
+      const trackedLauncherDownloads = d1GameAggRows
+        ? d1GameAggRows
+            .filter((r) => r.target_type === 'launcher')
+            .reduce((sum, r) => sum + Number(r.total_count || 0), 0)
+        : allDownloads.filter((d) => d.target_type === 'launcher').length;
       const uniqueDevices = allInstalls.length;
       const totalLauncherDownloads = Math.max(
         ghStats.launcherDownloads + trackedLauncherDownloads,
@@ -1485,14 +1531,55 @@ export async function handleAuthAndAnalyticsRequest(
 
       const gameLauncherPlaysById = new Map<string, number>();
       const gameWebPlaysById = new Map<string, number>();
+      const gameTodayWebById = new Map<string, number>();
+      const gameTodayLauncherById = new Map<string, number>();
+      const gameMonthWebById = new Map<string, number>();
+      const gameMonthLauncherById = new Map<string, number>();
       const gameOnlinePlayersById = new Map<string, Set<string>>();
       const gameLatestVersionById = new Map<string, string>();
+
+      if (d1GameAggRows) {
+        for (const row of d1GameAggRows) {
+          if (row.target_type !== 'game') continue;
+          const id = row.target_id;
+          const total = Number(row.total_count || 0);
+          const today = Number(row.today_count || 0);
+          const month = Number(row.month_count || 0);
+          if (row.platform === 'web') {
+            gameWebPlaysById.set(id, (gameWebPlaysById.get(id) || 0) + total);
+            gameTodayWebById.set(id, (gameTodayWebById.get(id) || 0) + today);
+            gameMonthWebById.set(id, (gameMonthWebById.get(id) || 0) + month);
+          } else {
+            gameLauncherPlaysById.set(id, (gameLauncherPlaysById.get(id) || 0) + total);
+            gameTodayLauncherById.set(id, (gameTodayLauncherById.get(id) || 0) + today);
+            gameMonthLauncherById.set(id, (gameMonthLauncherById.get(id) || 0) + month);
+          }
+          if (row.latest_version && !gameLatestVersionById.has(id)) {
+            gameLatestVersionById.set(id, row.latest_version);
+          }
+        }
+      }
+
       for (const dl of allDownloads) {
         if (dl.target_type === 'game') {
-          if (dl.platform === 'web') {
-            gameWebPlaysById.set(dl.target_id, (gameWebPlaysById.get(dl.target_id) || 0) + 1);
-          } else {
-            gameLauncherPlaysById.set(dl.target_id, (gameLauncherPlaysById.get(dl.target_id) || 0) + 1);
+          if (!d1GameAggRows) {
+            if (dl.platform === 'web') {
+              gameWebPlaysById.set(dl.target_id, (gameWebPlaysById.get(dl.target_id) || 0) + 1);
+              if (dl.created_at >= todayStartMs) {
+                gameTodayWebById.set(dl.target_id, (gameTodayWebById.get(dl.target_id) || 0) + 1);
+              }
+              if (dl.created_at >= monthStartMs) {
+                gameMonthWebById.set(dl.target_id, (gameMonthWebById.get(dl.target_id) || 0) + 1);
+              }
+            } else {
+              gameLauncherPlaysById.set(dl.target_id, (gameLauncherPlaysById.get(dl.target_id) || 0) + 1);
+              if (dl.created_at >= todayStartMs) {
+                gameTodayLauncherById.set(dl.target_id, (gameTodayLauncherById.get(dl.target_id) || 0) + 1);
+              }
+              if (dl.created_at >= monthStartMs) {
+                gameMonthLauncherById.set(dl.target_id, (gameMonthLauncherById.get(dl.target_id) || 0) + 1);
+              }
+            }
           }
           if (dl.version && !gameLatestVersionById.has(dl.target_id)) {
             gameLatestVersionById.set(dl.target_id, dl.version);
@@ -1508,9 +1595,82 @@ export async function handleAuthAndAnalyticsRequest(
         }
       }
 
+      // Build 14-day Daily Breakdown & 6-month Monthly Breakdown
+      const dailyMap = new Map<
+        string,
+        { key: string; label: string; webPlays: number; launcherPlays: number; totalPlays: number; newUsers: number; newInstalls: number }
+      >();
+      for (let i = 13; i >= 0; i--) {
+        const dMs = todayStartMs - i * 86_400_000;
+        const d = new Date(dMs);
+        const key = toUtcDayKey(dMs);
+        const label = `${SHORT_MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+        dailyMap.set(key, { key, label, webPlays: 0, launcherPlays: 0, totalPlays: 0, newUsers: 0, newInstalls: 0 });
+      }
+
+      const monthlyMap = new Map<
+        string,
+        { key: string; label: string; webPlays: number; launcherPlays: number; totalPlays: number; newUsers: number; newInstalls: number }
+      >();
+      for (let i = 5; i >= 0; i--) {
+        const mDate = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth() - i, 1));
+        const key = toUtcMonthKey(mDate.getTime());
+        const label = `${SHORT_MONTHS[mDate.getUTCMonth()]} ${mDate.getUTCFullYear()}`;
+        monthlyMap.set(key, { key, label, webPlays: 0, launcherPlays: 0, totalPlays: 0, newUsers: 0, newInstalls: 0 });
+      }
+
+      for (const dl of allDownloads) {
+        if (dl.target_type !== 'game') continue;
+        if (dl.created_at >= fourteenDaysStartMs) {
+          const dBucket = dailyMap.get(toUtcDayKey(dl.created_at));
+          if (dBucket) {
+            if (dl.platform === 'web') dBucket.webPlays += 1;
+            else dBucket.launcherPlays += 1;
+            dBucket.totalPlays += 1;
+          }
+        }
+        const mBucket = monthlyMap.get(toUtcMonthKey(dl.created_at));
+        if (mBucket) {
+          if (dl.platform === 'web') mBucket.webPlays += 1;
+          else mBucket.launcherPlays += 1;
+          mBucket.totalPlays += 1;
+        }
+      }
+
+      let todayNewUsers = 0;
+      let monthNewUsers = 0;
+      for (const u of verifiedUsers) {
+        const ts = u.verified_at || u.created_at;
+        if (ts >= todayStartMs) todayNewUsers += 1;
+        if (ts >= monthStartMs) monthNewUsers += 1;
+        const dBucket = dailyMap.get(toUtcDayKey(ts));
+        if (dBucket) dBucket.newUsers += 1;
+        const mBucket = monthlyMap.get(toUtcMonthKey(ts));
+        if (mBucket) mBucket.newUsers += 1;
+      }
+
+      let todayNewInstalls = 0;
+      let monthNewInstalls = 0;
+      for (const inst of allInstalls) {
+        const ts = inst.first_seen_at || inst.last_seen_at;
+        if (ts >= todayStartMs) todayNewInstalls += 1;
+        if (ts >= monthStartMs) monthNewInstalls += 1;
+        const dBucket = dailyMap.get(toUtcDayKey(ts));
+        if (dBucket) dBucket.newInstalls += 1;
+        const mBucket = monthlyMap.get(toUtcMonthKey(ts));
+        if (mBucket) mBucket.newInstalls += 1;
+      }
+
+      const dailyBreakdown = Array.from(dailyMap.values());
+      const monthlyBreakdown = Array.from(monthlyMap.values());
+
       const gameMetrics = ghStats.games.map((g) => {
         const webPlays = gameWebPlaysById.get(g.gameId) || 0;
         const launcherPlays = gameLauncherPlaysById.get(g.gameId) || 0;
+        const todayWebPlays = gameTodayWebById.get(g.gameId) || 0;
+        const todayLauncherPlays = gameTodayLauncherById.get(g.gameId) || 0;
+        const monthWebPlays = gameMonthWebById.get(g.gameId) || 0;
+        const monthLauncherPlays = gameMonthLauncherById.get(g.gameId) || 0;
         const cdnOrWebPlays = g.githubDownloads + webPlays;
         const pushedOnline = gameOnlinePlayersById.get(g.gameId)?.size;
         const onlinePlayers =
@@ -1531,11 +1691,19 @@ export async function handleAuthAndAnalyticsRequest(
           githubDownloads: cdnOrWebPlays,
           trackedDownloads: launcherPlays,
           totalDownloads: cdnOrWebPlays + launcherPlays,
+          todayDownloads: todayWebPlays + todayLauncherPlays,
+          monthDownloads: monthWebPlays + monthLauncherPlays,
+          todayWebPlays,
+          todayLauncherPlays,
+          monthWebPlays,
+          monthLauncherPlays,
           ...(typeof onlinePlayers === 'number' ? { onlinePlayers } : {})
         };
       });
 
       const totalGameDownloads = gameMetrics.reduce((sum, g) => sum + g.totalDownloads, 0);
+      const todayPlays = gameMetrics.reduce((sum, g) => sum + (g.todayDownloads || 0), 0);
+      const monthPlays = gameMetrics.reduce((sum, g) => sum + (g.monthDownloads || 0), 0);
 
       const recentUsers = allUsers.slice(0, 50).map((u) => ({
         id: u.id,
@@ -1565,11 +1733,19 @@ export async function handleAuthAndAnalyticsRequest(
           onlineNow,
           dau,
           mau,
-          totalGameDownloads
+          totalGameDownloads,
+          todayPlays,
+          monthPlays,
+          todayNewUsers,
+          monthNewUsers,
+          todayNewInstalls,
+          monthNewInstalls
         },
         platformBreakdown,
         versionBreakdown,
         gameMetrics,
+        dailyBreakdown,
+        monthlyBreakdown,
         recentUsers
       });
     }

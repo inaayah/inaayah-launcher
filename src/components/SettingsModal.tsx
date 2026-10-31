@@ -171,7 +171,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <label className="form-label">Launcher Version & Updates</label>
           <div
             style={{
-              background: 'rgba(255, 255, 255, 0.03)',
+              background: 'var(--bg-subtle-box)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-sm)',
               padding: '12px 14px'
@@ -200,23 +200,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   borderRadius: 6,
                   fontSize: 12,
                   marginTop: 10,
-                  background: updateStatus.available
-                    ? 'rgba(0, 240, 255, 0.08)'
-                    : updateStatus.error
-                    ? 'rgba(255, 68, 68, 0.08)'
-                    : 'rgba(0, 255, 136, 0.08)',
+                  background: updateStatus.error
+                    ? 'rgba(239, 68, 68, 0.08)'
+                    : 'var(--badge-teal-bg)',
                   border: `1px solid ${
-                    updateStatus.available
-                      ? 'rgba(0, 240, 255, 0.25)'
-                      : updateStatus.error
-                      ? 'rgba(255, 68, 68, 0.25)'
-                      : 'rgba(0, 255, 136, 0.25)'
+                    updateStatus.error
+                      ? 'rgba(239, 68, 68, 0.25)'
+                      : 'var(--badge-teal-border)'
                   }`,
-                  color: updateStatus.available
-                    ? 'var(--accent-cyan)'
-                    : updateStatus.error
-                    ? '#ff6b6b'
-                    : 'var(--accent-green)',
+                  color: updateStatus.error
+                    ? '#f87171'
+                    : 'var(--brand-accent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
