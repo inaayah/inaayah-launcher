@@ -77,6 +77,24 @@ export interface DownloadEventRecord {
   created_at: number;
 }
 
+export interface DailyGameScoreRecord {
+  game_id: string;
+  play_date: string;
+  device_id: string;
+  score: number;
+  updated_at: number;
+}
+
+export interface DailyGameScoreStats {
+  gameId: string;
+  playDate: string;
+  score: number;
+  totalPlayers: number;
+  lowerCount: number;
+  equalCount: number;
+  empiricalPercentile: number | null;
+}
+
 export interface PublicUser {
   id: string;
   email: string;
@@ -106,6 +124,7 @@ const memoryStore = {
   sessions: new Map<string, SessionRecord>(),
   installs: new Map<string, LauncherInstallRecord>(),
   downloads: [] as DownloadEventRecord[],
+  dailyScores: new Map<string, DailyGameScoreRecord>(), // keyed by `${game_id}:${play_date}:${device_id}`
   loginFailures: new Map<string, { count: number; resetAt: number }>()
 };
 
@@ -116,6 +135,7 @@ export function resetMemoryStoreForTests(): void {
   memoryStore.sessions.clear();
   memoryStore.installs.clear();
   memoryStore.downloads.length = 0;
+  memoryStore.dailyScores.clear();
   memoryStore.loginFailures.clear();
 }
 
@@ -184,6 +204,14 @@ async function ensureD1Schema(db: D1DatabaseLike): Promise<void> {
       user_id TEXT,
       device_id TEXT,
       created_at INTEGER NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS daily_game_scores (
+      game_id TEXT NOT NULL,
+      play_date TEXT NOT NULL,
+      device_id TEXT NOT NULL,
+      score REAL NOT NULL,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (game_id, play_date, device_id)
     )`
   ];
   for (const sql of statements) {
@@ -565,6 +593,135 @@ export async function recordDownloadEvent(
   }
 
   memoryStore.downloads.push(event);
+}
+
+function normalizeUtcDateStr(raw: unknown): string {
+  const serverToday = new Date().toISOString().slice(0, 10);
+  if (typeof raw !== 'string') return serverToday;
+  const trimmed = raw.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return serverToday;
+  // Prevent future dates (> 1 day ahead of UTC clock) from purging today's live scores
+  const maxDate = new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return trimmed > maxDate ? serverToday : trimmed;
+}
+
+export async function recordDailyGameScore(
+  params: {
+    gameId: string;
+    playDate?: string;
+    deviceId: string;
+    score: number;
+  },
+  env: AuthAnalyticsEnv
+): Promise<DailyGameScoreStats> {
+  const gameId = (params.gameId || 'eyetest').trim().toLowerCase().slice(0, 64);
+  const playDate = normalizeUtcDateStr(params.playDate);
+  const deviceId = (params.deviceId || '').trim().slice(0, 128);
+  const score = Number(Math.max(0, Math.min(100, Number(params.score) || 0)).toFixed(1));
+  const now = Date.now();
+
+  if (env.DB) {
+    await ensureD1Schema(env.DB);
+    // 1. Automatically delete all previous days' stats so D1 only ever retains today's rows
+    await env.DB.prepare('DELETE FROM daily_game_scores WHERE play_date < ?')
+      .bind(playDate)
+      .run();
+
+    // 2. Upsert this device's daily score for (game_id, play_date, device_id)
+    if (deviceId) {
+      await env.DB.prepare(
+        `INSERT INTO daily_game_scores (game_id, play_date, device_id, score, updated_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(game_id, play_date, device_id) DO UPDATE SET
+           score = excluded.score,
+           updated_at = excluded.updated_at`
+      )
+        .bind(gameId, playDate, deviceId, score, now)
+        .run();
+    }
+  } else {
+    // 1. Purge previous days' rows in memory fallback
+    for (const [k, row] of memoryStore.dailyScores.entries()) {
+      if (row.play_date < playDate) {
+        memoryStore.dailyScores.delete(k);
+      }
+    }
+    // 2. Upsert in memory fallback
+    if (deviceId) {
+      memoryStore.dailyScores.set(`${gameId}:${playDate}:${deviceId}`, {
+        game_id: gameId,
+        play_date: playDate,
+        device_id: deviceId,
+        score,
+        updated_at: now
+      });
+    }
+  }
+
+  return queryDailyGameScoreStats({ gameId, playDate, score }, env);
+}
+
+export async function queryDailyGameScoreStats(
+  params: {
+    gameId: string;
+    playDate?: string;
+    score: number;
+  },
+  env: AuthAnalyticsEnv
+): Promise<DailyGameScoreStats> {
+  const gameId = (params.gameId || 'eyetest').trim().toLowerCase().slice(0, 64);
+  const playDate = normalizeUtcDateStr(params.playDate);
+  const score = Number(Math.max(0, Math.min(100, Number(params.score) || 0)).toFixed(1));
+
+  let totalPlayers = 0;
+  let lowerCount = 0;
+  let equalCount = 0;
+
+  if (env.DB) {
+    await ensureD1Schema(env.DB);
+    const row = await env.DB.prepare(
+      `SELECT
+         COUNT(*) AS total_players,
+         SUM(CASE WHEN score < ? THEN 1 ELSE 0 END) AS lower_count,
+         SUM(CASE WHEN score = ? THEN 1 ELSE 0 END) AS equal_count
+       FROM daily_game_scores
+       WHERE game_id = ? AND play_date = ?`
+    )
+      .bind(score, score, gameId, playDate)
+      .first<{ total_players: number; lower_count: number; equal_count: number }>();
+
+    totalPlayers = Number(row?.total_players || 0);
+    lowerCount = Number(row?.lower_count || 0);
+    equalCount = Number(row?.equal_count || 0);
+  } else {
+    for (const row of memoryStore.dailyScores.values()) {
+      if (row.game_id === gameId && row.play_date === playDate) {
+        totalPlayers += 1;
+        if (row.score < score) lowerCount += 1;
+        else if (row.score === score) equalCount += 1;
+      }
+    }
+  }
+
+  const empiricalPercentile =
+    totalPlayers > 0
+      ? Number(
+          Math.min(
+            99.9,
+            Math.max(1, ((lowerCount + 0.5 * equalCount) / totalPlayers) * 100)
+          ).toFixed(1)
+        )
+      : null;
+
+  return {
+    gameId,
+    playDate,
+    score,
+    totalPlayers,
+    lowerCount,
+    equalCount,
+    empiricalPercentile
+  };
 }
 
 // --- Outbound OTP Email Sender ---
@@ -1199,6 +1356,36 @@ export async function handleAuthAndAnalyticsRequest(
       }
 
       return jsonResponse({ ok: true, serverTime: new Date().toISOString() });
+    }
+
+    // 9b. POST / GET /api/telemetry/daily-score (Ephemeral Daily Score & Percentile)
+    if (pathname === '/api/telemetry/daily-score') {
+      if (request.method === 'POST') {
+        const body: any = await request.json().catch(() => ({}));
+        const gameId = typeof body.gameId === 'string' ? body.gameId : 'eyetest';
+        const playDate = typeof body.playDate === 'string' ? body.playDate : undefined;
+        const deviceId = typeof body.deviceId === 'string' ? body.deviceId : '';
+        const score = Number(body.score);
+        if (!Number.isFinite(score)) {
+          return jsonResponse({ error: 'Valid numeric score is required.' }, 400);
+        }
+        const stats = await recordDailyGameScore(
+          { gameId, playDate, deviceId, score },
+          env
+        );
+        return jsonResponse({ ok: true, ...stats });
+      }
+      if (request.method === 'GET') {
+        const url = new URL(request.url);
+        const gameId = url.searchParams.get('gameId') || 'eyetest';
+        const playDate = url.searchParams.get('playDate') || undefined;
+        const score = Number(url.searchParams.get('score') ?? 0);
+        const stats = await queryDailyGameScoreStats(
+          { gameId, playDate, score: Number.isFinite(score) ? score : 0 },
+          env
+        );
+        return jsonResponse({ ok: true, ...stats });
+      }
     }
 
     // 10. GET /api/analytics/overview (ADMIN ONLY)

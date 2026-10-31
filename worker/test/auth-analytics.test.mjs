@@ -279,3 +279,73 @@ test('production worker never leaks devOtpCode when ALLOW_DEV_OTP_PREVIEW is not
   assert.equal(lockedRes.status, 429);
 });
 
+test('daily-score endpoint records today stats, calculates empirical percentile, and auto-purges previous days', async () => {
+  // 1. Submit three scores on 2026-10-25
+  const p1 = await worker.fetch(
+    jsonReq('/api/telemetry/daily-score', 'POST', {
+      gameId: 'eyetest',
+      playDate: '2026-10-25',
+      deviceId: 'dev-1',
+      score: 62.4
+    }),
+    baseEnv,
+    {}
+  );
+  assert.equal(p1.status, 200);
+  const s1 = await p1.json();
+  assert.equal(s1.totalPlayers, 1);
+
+  await worker.fetch(
+    jsonReq('/api/telemetry/daily-score', 'POST', {
+      gameId: 'eyetest',
+      playDate: '2026-10-25',
+      deviceId: 'dev-2',
+      score: 72.6
+    }),
+    baseEnv,
+    {}
+  );
+
+  const p3 = await worker.fetch(
+    jsonReq('/api/telemetry/daily-score', 'POST', {
+      gameId: 'eyetest',
+      playDate: '2026-10-25',
+      deviceId: 'dev-3',
+      score: 91.2
+    }),
+    baseEnv,
+    {}
+  );
+  const s3 = await p3.json();
+  assert.equal(s3.totalPlayers, 3);
+  assert.equal(s3.lowerCount, 2);
+  assert.equal(s3.equalCount, 1);
+  assert.ok(s3.empiricalPercentile > 80);
+
+  // 2. Submit a score on the next day (2026-10-26) -> must auto-delete 2026-10-25 rows
+  const nextDayRes = await worker.fetch(
+    jsonReq('/api/telemetry/daily-score', 'POST', {
+      gameId: 'eyetest',
+      playDate: '2026-10-26',
+      deviceId: 'dev-1',
+      score: 84.0
+    }),
+    baseEnv,
+    {}
+  );
+  const nextDayStats = await nextDayRes.json();
+  assert.equal(nextDayStats.playDate, '2026-10-26');
+  assert.equal(nextDayStats.totalPlayers, 1);
+
+  // Verify 2026-10-25 stats were purged
+  const oldDayRes = await worker.fetch(
+    jsonReq('/api/telemetry/daily-score?gameId=eyetest&playDate=2026-10-25&score=72.6', 'GET'),
+    baseEnv,
+    {}
+  );
+  const oldDayStats = await oldDayRes.json();
+  assert.equal(oldDayStats.totalPlayers, 0);
+  assert.equal(oldDayStats.empiricalPercentile, null);
+});
+
+

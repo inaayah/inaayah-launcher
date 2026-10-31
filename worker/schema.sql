@@ -78,3 +78,17 @@ CREATE TABLE IF NOT EXISTS release_cache_state (id TEXT PRIMARY KEY, revision TE
 CREATE TABLE IF NOT EXISTS release_publications (
   game_id TEXT PRIMARY KEY, version TEXT NOT NULL, fingerprint TEXT NOT NULL, published_at TEXT NOT NULL
 );
+
+-- Ephemeral daily game scores (previous days' rows are automatically purged on write).
+CREATE TABLE IF NOT EXISTS daily_game_scores (
+  game_id TEXT NOT NULL,
+  play_date TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  score REAL NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (game_id, play_date, device_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_game_scores_date ON daily_game_scores(play_date);
+CREATE INDEX IF NOT EXISTS idx_daily_game_scores_lookup ON daily_game_scores(game_id, play_date, score);
+
