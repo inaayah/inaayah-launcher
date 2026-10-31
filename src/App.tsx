@@ -11,7 +11,7 @@ import { AuthGate } from './components/AuthGate';
 import { StudioAnalytics } from './components/StudioAnalytics';
 import { catalogData } from './data/catalog';
 import { launcherBridge } from './services/electronBridge';
-import { authService, getStoredUser } from './services/authService';
+import { authService, getStoredUser, getStoredToken } from './services/authService';
 import type {
   LauncherConfig,
   InstalledGame,
@@ -119,7 +119,7 @@ export const App: React.FC = () => {
       .sendHeartbeat('game_download', { gameId, gameVersion: game.version })
       .catch(() => {});
     try {
-      const completed = await launcherBridge.downloadGame(gameId, game.version);
+      const completed = await launcherBridge.downloadGame(gameId, game.version, undefined, getStoredToken() ?? undefined);
       if (!completed) autoUpdateDismissedRef.current.add(`${gameId}_${game.version}`);
     } catch (err) {
       console.error('Download failed:', err);

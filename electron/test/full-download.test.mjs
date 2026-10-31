@@ -20,14 +20,15 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
   archive.addFile(executable, Buffer.from('runtime executable'));
   archive.addFile('README.txt', Buffer.from('runtime notices'));
   const data = archive.toBuffer();
-  const release = { id: 'fixture-game', version: '1.0.1', downloads: { [process.platform]: {
+  const release = { id: 'vigilante-red-city', version: '1.0.1', downloads: { [process.platform]: {
     name: 'fixture.zip', sizeBytes: data.length, sha256: createHash('sha256').update(data).digest('hex')
   } } };
-  let corrupt = false, requests = 0;
+  let corrupt = false, requests = 0, denied = false;
   const server = http.createServer((request, response) => {
     requests++;
     if (request.url.endsWith('/manifest')) { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(release)); }
     else {
+      if (request.headers.authorization !== 'Bearer inay_fixture' || denied) { response.writeHead(401); response.end(); return; }
       response.setHeader('Content-Length', data.length);
       const payload = Buffer.from(data);
       if (corrupt) payload[0] ^= 1;
@@ -52,7 +53,7 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
         export const findLocalGodotProject=()=>${JSON.stringify(path.join(root, 'old-development-copy'))};
         export const localDevLaunch=()=>{throw new Error('Downloaded game must not launch a different dev copy')};
         export const discoverLocalGodotProjects=async()=>{if(globalThis[${JSON.stringify(key)}].scanDelay) await globalThis[${JSON.stringify(key)}].scanDelay;
-          return new Map([['fixture-game',${JSON.stringify(path.join(root, 'old-development-copy'))}]]);};` }));
+          return new Map([['vigilante-red-city',${JSON.stringify(path.join(root, 'old-development-copy'))}]]);};` }));
       b.onResolve({ filter: /^child_process$/ }, () => ({ path: 'child', namespace: 'child' }));
       b.onLoad({ filter: /.*/, namespace: 'child' }, () => ({ loader: 'js', contents: `
         export const spawn=(executable,args)=>{globalThis[${JSON.stringify(key)}].launched={executable,args};
@@ -68,27 +69,28 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
   await fs.writeFile(bundled, outputFiles[0].text);
   createRequire(import.meta.url)(bundled);
   const download = globalThis[key].get('launcher:download-game');
-  const game = path.join(library, 'fixture-game');
-  assert.equal(await download({}, 'fixture-game', '1.0.1'), true);
+  const game = path.join(library, 'vigilante-red-city');
+  assert.equal(await download({}, 'vigilante-red-city', '1.0.1'), false);
+  assert.equal(await download({}, 'vigilante-red-city', '1.0.1', undefined, 'inay_fixture'), true);
   assert.equal((await fs.readFile(path.join(game, executable))).toString(), 'runtime executable');
   assert.equal(JSON.parse(await fs.readFile(path.join(game, 'manifest.json'))).version, '1.0.1');
   const installed = globalThis[key].get('launcher:get-installed-games');
   for (let refresh = 0; refresh < 3; refresh++) {
     const snapshot = await installed();
-    assert.equal(snapshot['fixture-game'].version, '1.0.1');
-    assert.equal(snapshot['fixture-game'].installPath, game);
+    assert.equal(snapshot['vigilante-red-city'].version, '1.0.1');
+    assert.equal(snapshot['vigilante-red-city'].installPath, game);
   }
   const checkUpdates = globalThis[key].get('launcher:check-updates');
-  assert.equal(await checkUpdates({}, 'fixture-game', '1.0.0'), false);
-  assert.equal(await checkUpdates({}, 'fixture-game', 'v1.0.1'), false);
-  assert.equal(await checkUpdates({}, 'fixture-game', '1.0.2'), true);
+  assert.equal(await checkUpdates({}, 'vigilante-red-city', '1.0.0'), false);
+  assert.equal(await checkUpdates({}, 'vigilante-red-city', 'v1.0.1'), false);
+  assert.equal(await checkUpdates({}, 'vigilante-red-city', '1.0.2'), true);
   const beforeStaleFeed = requests;
   release.version = '1.0.0';
-  assert.equal(await download({}, 'fixture-game', '1.0.0'), false);
+  assert.equal(await download({}, 'vigilante-red-city', '1.0.0'), false);
   assert.equal(requests, beforeStaleFeed, 'An older update is rejected before any download');
   assert.equal(JSON.parse(await fs.readFile(path.join(game, 'manifest.json'))).version, '1.0.1');
   const launch = globalThis[key].get('launcher:launch-game');
-  assert.equal(await launch({}, 'fixture-game'), true);
+  assert.equal(await launch({}, 'vigilante-red-city'), true);
   const invoked = globalThis[key].launched;
   assert.ok(invoked.executable === path.join(game, executable) || invoked.args.includes(path.join(game, 'Game.app')));
   globalThis[key].exit(0);
@@ -104,9 +106,12 @@ test('actual download handler installs valid ZIPs, rejects corrupt downloads and
   completeScan();
   assert.deepEqual(await joined, await firstScan);
   delete globalThis[key].scanDelay;
-  release.version = '1.0.2'; corrupt = true;
-  assert.equal(await download({}, 'fixture-game', '1.0.2'), false);
+  release.version = '1.0.2'; denied = true;
+  assert.equal(await download({}, 'vigilante-red-city', '1.0.2', undefined, 'inay_fixture'), false);
+  assert.equal(JSON.parse(await fs.readFile(path.join(game, 'manifest.json'))).version, '1.0.1');
+  denied = false; corrupt = true;
+  assert.equal(await download({}, 'vigilante-red-city', '1.0.2', undefined, 'inay_fixture'), false);
   assert.equal(JSON.parse(await fs.readFile(path.join(game, 'manifest.json'))).version, '1.0.1');
   assert.equal((await fs.readFile(path.join(game, executable))).toString(), 'runtime executable');
-  assert.deepEqual(await fs.readdir(library), ['fixture-game']);
+  assert.deepEqual(await fs.readdir(library), ['vigilante-red-city']);
 });

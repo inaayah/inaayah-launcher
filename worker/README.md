@@ -114,3 +114,35 @@ Launcher installer recovery: manually dispatch `Release Launcher Installers` on
 `main` with the existing `release_tag` and the failed `platform`. Successful
 platform assets are retained, the version tag is unchanged, and final publication
 still verifies all desktop installers and updater metadata before succeeding.
+
+
+## Launcher-only game downloads
+
+Vigilante desktop packages and incremental recipe/data files require a verified
+launcher account session when `LAUNCHER_AUTH_GAMES` includes `vigilante-red-city`.
+Both `/api/games/:id/download/:platform` and `/api/games/:id/assets/:version/:name`
+check authorization before reading any cached signed redirect. Invalid/expired
+sessions return 401 without a Location header; database failures fail closed.
+Catalogs, manifests, artwork and launcher installers remain public. Android
+APK/AAB packages are not distributed through these Vigilante routes.
+
+The desktop client passes its existing sign-in session for these downloads, follows
+redirects manually and strips the session before requesting signed CDN URLs.
+It does not store that session in game manifests. An installed game still runs
+without an additional download authorization check.
+
+Rollout order: deploy the guard with the setting empty, publish the session-aware
+launcher on macOS/Windows/Linux via `npm run release:patch`, verify every installer
+and updater channel, then enable `LAUNCHER_AUTH_GAMES = "vigilante-red-city"` in a
+separate Worker deployment. If deployment fails, repair it before enabling the
+setting. Older launchers must update the launcher before installing/updating the game.
+Do not use a public User-Agent or a bundled shared secret as authentication.
+
+The release publisher attaches its short-lived, signed GitHub Actions OIDC identity
+and `X-Inaayah-Release-Version` to gateway package checks only. The existing verifier
+binds it to the exact game repository, release workflow, issuer, audience, main/tag
+ref and expiry; it is never sent to the CDN. Update game workflows to pin the
+session-aware publisher action before enforcing this guard. Local `--verify-only`
+without an Actions identity can read metadata but cannot verify protected packages.
+Tests: `npm run test:worker`, `npm run test:updater`, and
+`python3 .github/actions/publish-release/test_publish.py`.

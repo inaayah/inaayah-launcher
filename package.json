@@ -21,9 +21,9 @@
     "release:patch": "node scripts/release.js patch",
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major",
-    "test:worker": "node --test worker/test/cache-refresh.test.mjs worker/test/release-cache.test.mjs worker/test/auth-analytics.test.mjs worker/test/release-sync.test.mjs",
+    "test:worker": "node --test worker/test/cache-refresh.test.mjs worker/test/release-cache.test.mjs worker/test/auth-analytics.test.mjs worker/test/release-sync.test.mjs worker/test/download-auth.test.mjs",
     "refresh:releases": "python3 scripts/refresh_release_cache.py",
-    "test:updater": "node --test electron/test/mac-update-state.test.mjs electron/test/incremental-update.test.mjs electron/test/full-download.test.mjs electron/test/game-version.test.mjs",
+    "test:updater": "node --test electron/test/mac-update-state.test.mjs electron/test/incremental-update.test.mjs electron/test/full-download.test.mjs electron/test/game-version.test.mjs electron/test/game-download-auth.test.mjs",
     "test:local-dev": "node --test electron/test/local-dev.test.mjs",
     "test:incremental": "node --test electron/test/incremental-update.test.mjs",
     "test:renderer": "node --test src/test/landing-refresh.test.mjs"

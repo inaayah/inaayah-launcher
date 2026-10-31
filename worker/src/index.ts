@@ -1,3 +1,4 @@
+import { authorizeGameDownload, requiresLauncherSignIn, isMobilePackage } from './download-auth';
 import rawCatalog from '../../games-catalog.json';
 import { synchronizeRelease, withPublishedRevision } from './release-sync';
 import {
@@ -15,6 +16,7 @@ export interface Env extends AuthAnalyticsEnv {
   GITHUB_ORG: string;
   CACHE_TTL_SECONDS: number;
   CACHE_REVISION?: string;
+  LAUNCHER_AUTH_GAMES?: string;
 }
 
 const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'desktop' | 'web'; webUrl?: string; isComingSoon?: boolean }> = {
@@ -87,7 +89,7 @@ const REGISTERED_GAMES: Record<string, { repo: string; branch: string; type: 'de
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, HEAD, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range, X-Inaayah-Release-Version'
 };
 
 export default {
@@ -115,7 +117,7 @@ export default {
 
     // 2. GET /api/games -> list registered catalog dynamically from games-catalog.json
     if (pathname === '/api/games') {
-      const catalog = await getDynamicCatalog(env);
+      const catalog = (await getDynamicCatalog(env)).map(game => requiresLauncherSignIn(game.id, env) ? { ...game, requiresLauncherSignIn: true } : game);
       return new Response(JSON.stringify(catalog, null, 2), {
         headers: {
           ...CORS_HEADERS,
@@ -129,7 +131,7 @@ export default {
     const manifestMatch = pathname.match(/^\/api\/games\/([^/]+)\/manifest$/);
     if (manifestMatch) {
       const gameId = manifestMatch[1];
-      const catalog = await getDynamicCatalog(env);
+      const catalog = (await getDynamicCatalog(env)).map(game => requiresLauncherSignIn(game.id, env) ? { ...game, requiresLauncherSignIn: true } : game);
       const game = catalog.find((g: any) => g.id === gameId);
       if (!game) {
         return new Response(JSON.stringify({ error: `Game ${gameId} not found in catalog` }), {
@@ -186,6 +188,7 @@ export default {
           );
         }
         const releaseData = await fetchLatestRelease(gameConfig.repo, env);
+        if (gameId === 'vigilante-red-city') releaseData.assets = releaseData.assets.filter((asset: any) => !isMobilePackage(gameId, asset.name));
         return new Response(JSON.stringify(releaseData, null, 2), {
           headers: {
             ...CORS_HEADERS,
@@ -206,13 +209,15 @@ export default {
     if (assetMatch) {
       const [, gameId, version, name] = assetMatch;
       const repo = REGISTERED_GAMES[gameId]?.repo;
-      if (!repo) return new Response('Game not found', { status: 404, headers: CORS_HEADERS });
+      if (!repo || isMobilePackage(gameId, name)) return new Response('Asset not found', { status: 404, headers: CORS_HEADERS });
+      const denied = await authorizeGameDownload(request, env, gameId, repo, version);
+      if (denied) return denied;
       try {
         const release = await fetchTaggedRelease(repo, version, env);
         const asset = release.assets.find((a: any) => a.name === name);
         if (!asset) return new Response('Asset not found', { status: 404, headers: CORS_HEADERS });
         const location = await assetDownloadUrl(repo, asset.id, env);
-        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: location, 'Cache-Control': 'no-store' } });
+        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: location, 'Cache-Control': 'private, no-store', Vary: 'Authorization' } });
       } catch {
         return new Response('Release asset unavailable', { status: 503, headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' } });
       }
@@ -229,11 +234,18 @@ export default {
         return new Response('Game or repository not found', { status: 404, headers: CORS_HEADERS });
       }
 
+      if (gameId === 'vigilante-red-city' && !['darwin', 'win32', 'linux'].includes(platform)) {
+        return new Response('Platform not distributed here', { status: 404, headers: CORS_HEADERS });
+      }
+      const denied = await authorizeGameDownload(request, env, gameId, repo);
+      if (denied) return denied;
       try {
         const downloadUrl = await getReleaseAssetDownloadUrl(repo, platform, env);
+        const ciVersion = request.headers.get('X-Inaayah-Release-Version');
+        if (ciVersion && downloadUrl.version !== `v${ciVersion}`) return new Response('Release version changed', { status: 409, headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' } });
         await recordDownloadEvent({ targetType: 'game', targetId: gameId, platform }, env).catch(() => {});
         // Redirect directly to the signed AWS S3 CDN asset download
-        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl.url, 'X-Release-Version': downloadUrl.version, 'Cache-Control': 'no-store' } });
+        return new Response(null, { status: 302, headers: { ...CORS_HEADERS, Location: downloadUrl.url, 'X-Release-Version': downloadUrl.version, 'Cache-Control': 'private, no-store', Vary: 'Authorization' } });
       } catch (err: any) {
         return new Response(JSON.stringify({ error: err.message }), {
           status: 500,

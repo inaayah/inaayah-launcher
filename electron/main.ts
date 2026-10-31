@@ -1,3 +1,4 @@
+import { fetchGamePackage, DownloadAuthorizationError } from './game-download-auth';
 import { assertNotOlderInstall, newerGameVersion, retainNewerCatalog, GameDowngradeError } from './game-version';
 import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification, nativeImage, Tray, Menu } from 'electron';
 import path from 'path';
@@ -993,7 +994,7 @@ ipcMain.handle('launcher:check-updates', async (_event, gameId: string, latestVe
   return false;
 });
 
-ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVersion: string, downloadUrl?: string) => {
+ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVersion: string, downloadUrl?: string, sessionToken?: string) => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(gameId) || !/^\d+\.\d+\.\d+$/.test(targetVersion)) return false;
   if (activeDownloads.has(gameId) || runningProcesses.has(gameId)) return false;
   const cfg = loadConfig();
@@ -1014,6 +1015,8 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
   const gateway = (cfg.releaseGatewayUrl || 'https://releases.inaayah.dev').replace(/\/$/, '');
   const platform = process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux';
   const assetUrl = (name: string) => `${gateway}/api/games/${gameId}/assets/${targetVersion}/${encodeURIComponent(name)}`;
+  const packageFetch = (url: string, init: { headers?: Record<string, string>; signal?: AbortSignal } = {}) =>
+    fetchGamePackage({ gateway, gameId, url, sessionToken, signal, ...init });
   let temporary: string | undefined;
   try {
     await assertNotOlderInstall(gameDir, targetVersion);
@@ -1032,7 +1035,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     if (!downloadUrl && incremental && archive?.sizeBytes && fs.existsSync(gameDir)) {
       try {
         if (!/^[a-f0-9]{64}$/.test(incremental.sha256) || incremental.sizeBytes > 16 * 1024 ** 2) throw new Error('Invalid patch metadata');
-        const response = await fetch(assetUrl(incremental.manifest), { signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]) });
+        const response = await packageFetch(assetUrl(incremental.manifest), { signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]) });
         if (!response.ok) throw new Error('Patch metadata unavailable');
         const bytes = Buffer.from(await response.arrayBuffer());
         if (bytes.length !== incremental.sizeBytes || createHash('sha256').update(bytes).digest('hex') !== incremental.sha256) throw new Error('Patch manifest verification failed');
@@ -1041,7 +1044,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
         const result = await installIncremental({ recipe, gameDir, fullSize: archive.sizeBytes, signal, metadata,
           progress: (phase, received, total) => sendProgress(phase, received, total),
           range: async (start, end, total) => {
-            const response = await fetch(assetUrl(recipe.dataAsset), { headers: { Range: `bytes=${start}-${end}`, 'Accept-Encoding': 'identity' }, signal: AbortSignal.any([signal, AbortSignal.timeout(60000)]) });
+            const response = await packageFetch(assetUrl(recipe.dataAsset), { headers: { Range: `bytes=${start}-${end}`, 'Accept-Encoding': 'identity' }, signal: AbortSignal.any([signal, AbortSignal.timeout(60000)]) });
             if (response.status !== 206 || response.headers.get('content-range') !== `bytes ${start}-${end}/${total}`) {
               await response.body?.cancel();
               throw new Error('Server does not support patch ranges');
@@ -1059,7 +1062,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
         }
       } catch (error: any) {
         signal.throwIfAborted();
-        if (error instanceof GameDowngradeError) throw error;
+        if (error instanceof GameDowngradeError || error instanceof DownloadAuthorizationError) throw error;
         console.warn(`[Updater] Incremental update unavailable; using full package: ${error.message}`);
       }
     }
@@ -1069,7 +1072,7 @@ ipcMain.handle('launcher:download-game', async (_event, gameId: string, targetVe
     const stage = path.join(temporary, 'content');
     // Older games can continue using their normal platform download endpoint.
     const url = downloadUrl || (archive?.name ? assetUrl(archive.name) : `${gateway}/api/games/${gameId}/download/${platform}`);
-    const response = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'InaayahLauncher' }, signal });
+    const response = await packageFetch(url);
     if (!response.ok || !response.body) throw new Error(`Game download failed (HTTP ${response.status})`);
     const total = archive?.sizeBytes || Number(response.headers.get('content-length')) || 0;
     const digest = createHash('sha256');

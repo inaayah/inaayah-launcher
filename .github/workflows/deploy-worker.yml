@@ -43,6 +43,7 @@ jobs:
       - name: Run Worker Tests & Typecheck
         run: |
           npm run test:worker
+          python3 -B .github/actions/publish-release/test_publish.py
           npx tsc --noEmit -p worker/tsconfig.json
 
       - name: Apply D1 Schema & Deploy Worker to Cloudflare

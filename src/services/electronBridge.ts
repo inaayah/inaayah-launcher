@@ -101,8 +101,8 @@ export const launcherBridge: InaayahLauncherAPI = {
     return getMockInstalled();
   },
 
-  async downloadGame(gameId: string, targetVersion: string = '1.0.0', downloadUrl?: string): Promise<boolean> {
-    if (window.inaayahLauncher) return window.inaayahLauncher.downloadGame(gameId, targetVersion, downloadUrl);
+  async downloadGame(gameId: string, targetVersion: string = '1.0.0', downloadUrl?: string, sessionToken?: string): Promise<boolean> {
+    if (window.inaayahLauncher) return window.inaayahLauncher.downloadGame(gameId, targetVersion, downloadUrl, sessionToken);
 
     // Mock download simulation
     const totalBytes = 450 * 1024 * 1024;

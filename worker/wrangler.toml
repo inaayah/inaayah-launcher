@@ -16,6 +16,8 @@ routes = [
 #   npx wrangler secret put GITHUB_TOKEN
 
 [vars]
+# Enable only after the session-aware launcher is published on all desktop platforms.
+LAUNCHER_AUTH_GAMES = ""
 GITHUB_ORG = "inaayah"
 CACHE_TTL_SECONDS = 604800
 CACHE_REVISION = "launcher-v0.2.13"

@@ -17,7 +17,7 @@ const bundled = await build({ entryPoints: [fileURLToPath(new URL('../App.tsx', 
     b.onResolve({ filter: /services\/(electronBridge|authService)$/ }, a => ({ path: a.path, namespace: 'fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, a => ({ loader: 'js', contents: a.path.endsWith('electronBridge')
       ? `export const launcherBridge = globalThis.${stateKey}.bridge;`
-      : `export const getStoredUser=()=>({id:'test'}); export const authService={verifySession:async()=>({id:'test'}),sendHeartbeat:async()=>{}};` }));
+      : `export const getStoredToken=()=> 'inay_renderer_fixture'; export const getStoredUser=()=>({id:'test'}); export const authService={verifySession:async()=>({id:'test'}),sendHeartbeat:async()=>{}};` }));
     b.onResolve({ filter: /components\// }, a => ({ path: a.path.split('/').pop(), namespace: 'component' }));
     b.onLoad({ filter: /.*/, namespace: 'component' }, a => ({ loader: 'js', contents: `import React from 'react';export const ${a.path}=props=>React.createElement('${a.path}',props);` }));
   } }] });
@@ -38,7 +38,7 @@ test('landing page follows new releases, install completion, failures and late s
   const bridge = {
     getConfig: async () => ({ autoUpdate: false }), getInstalledGames: async () => installed,
     refreshCatalog: async () => late ? late : catalog,
-    downloadGame: async () => { downloads++; return new Promise(resolve => { finish = resolve; }); },
+    downloadGame: async (id, version, url, token) => { assert.equal(token, 'inay_renderer_fixture'); downloads++; return new Promise(resolve => { finish = resolve; }); },
     checkLauncherUpdate: async () => {}, onDownloadProgress: subscribe('progress'),
     onInstalledGamesUpdated: subscribe('installed'), onGameStatusChanged: subscribe('status'),
     onLauncherUpdateReady: subscribe('ready'), onLauncherUpdateAvailable: subscribe('available')

@@ -36,8 +36,9 @@ def read_json(url, **kwargs):
         return json.load(response)
 
 
-def verify(gateway, game_id, version):
+def verify(gateway, game_id, version, identity=None):
     tag = f'v{version}'
+    package_auth = {'token': identity, 'headers': {'X-Inaayah-Release-Version': version}} if identity and game_id != 'launcher' else {}
     prefix = '/api/launcher' if game_id == 'launcher' else f'/api/games/{game_id}'
     latest = read_json(f'{gateway}{prefix}/releases/latest')
     if latest.get('version') != tag:
@@ -52,7 +53,7 @@ def verify(gateway, game_id, version):
         if item.get('downloads') != manifest.get('downloads'):
             raise RuntimeError('Catalog and manifest package metadata disagree')
     for platform in ['darwin', 'win32', 'linux']:
-        with request(f'{gateway}{prefix}/download/{platform}', redirect=False) as response:
+        with request(f'{gateway}{prefix}/download/{platform}', redirect=False, **package_auth) as response:
             if response.code != 302 or response.headers.get('X-Release-Version') != tag:
                 raise RuntimeError(f'{platform} download is not serving {tag}')
             location = response.headers.get('Location', '')
@@ -71,7 +72,7 @@ def verify(gateway, game_id, version):
             for kind in ['manifest', 'data']:
                 name = manifest.get('incremental', {}).get(platform, {}).get(kind)
                 if name:
-                    with request(f'{gateway}{prefix}/assets/{version}/{name}', redirect=False) as response:
+                    with request(f'{gateway}{prefix}/assets/{version}/{name}', redirect=False, **package_auth) as response:
                         if response.code != 302 or not response.headers.get('Location', '').startswith('https://'):
                             raise RuntimeError(f'{platform} incremental {kind} is unavailable')
     return f'{game_id} {tag}: latest, catalog/manifest and all desktop download channels verified'
@@ -86,11 +87,13 @@ def main():
     gateway = os.environ.get('INAAYAH_RELEASE_GATEWAY', 'https://releases.inaayah.dev').rstrip('/')
     if not re.fullmatch(r'[a-z0-9-]+', game_id) or not re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', version):
         raise RuntimeError('Invalid release ID or stable version')
-    if not args.verify_only:
+    identity = None
+    if not args.verify_only or os.environ.get('ACTIONS_ID_TOKEN_REQUEST_URL'):
         audience = urllib.parse.urlencode({'audience': 'https://releases.inaayah.dev'})
         identity_url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']
         identity_url += ('&' if '?' in identity_url else '?') + audience
         identity = read_json(identity_url, token=os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN'])['value']
+    if not args.verify_only:
         for attempt in range(4):
             try:
                 result = read_json(f'{gateway}/api/releases/sync', data={'gameId': game_id, 'version': version}, token=identity)
@@ -103,7 +106,7 @@ def main():
                 time.sleep(10)
     for attempt in range(4):
         try:
-            message = verify(gateway, game_id, version)
+            message = verify(gateway, game_id, version, identity)
             print(message)
             if os.environ.get('GITHUB_STEP_SUMMARY'):
                 with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:

@@ -160,7 +160,7 @@ export interface InaayahLauncherAPI {
   setConfig: (config: Partial<LauncherConfig>) => Promise<LauncherConfig>;
   browseDirectory: () => Promise<string | null>;
   getInstalledGames: () => Promise<Record<string, InstalledGame>>;
-  downloadGame: (gameId: string, targetVersion?: string, downloadUrl?: string) => Promise<boolean>;
+  downloadGame: (gameId: string, targetVersion?: string, downloadUrl?: string, sessionToken?: string) => Promise<boolean>;
   cancelDownload: (gameId: string) => Promise<boolean>;
   uninstallGame: (gameId: string) => Promise<boolean>;
   launchGame: (gameId: string, args?: string[]) => Promise<boolean>;

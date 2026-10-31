@@ -20,8 +20,8 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     return ipcRenderer.invoke('launcher:get-installed-games');
   },
 
-  downloadGame: (gameId: string, targetVersion: string = '1.0.0', downloadUrl?: string): Promise<boolean> => {
-    return ipcRenderer.invoke('launcher:download-game', gameId, targetVersion, downloadUrl);
+  downloadGame: (gameId: string, targetVersion: string = '1.0.0', downloadUrl?: string, sessionToken?: string): Promise<boolean> => {
+    return ipcRenderer.invoke('launcher:download-game', gameId, targetVersion, downloadUrl, sessionToken);
   },
 
   cancelDownload: (gameId: string): Promise<boolean> => {
