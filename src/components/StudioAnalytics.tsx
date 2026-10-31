@@ -41,8 +41,6 @@ export const StudioAnalytics: React.FC<StudioAnalyticsProps> = ({ currentUser, g
 
   useEffect(() => {
     loadAnalytics();
-    const timer = window.setInterval(loadAnalytics, 30000);
-    return () => clearInterval(timer);
   }, [loadAnalytics]);
 
   if (currentUser.role !== 'admin') {

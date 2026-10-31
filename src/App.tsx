@@ -237,31 +237,6 @@ export const App: React.FC = () => {
     };
   }, [refreshGames]);
 
-  // 1b. Periodic active player heartbeat (every 2 minutes)
-  useEffect(() => {
-    const hbTimer = setInterval(() => {
-      authService.sendHeartbeat('heartbeat').catch(() => {});
-    }, 120000);
-    return () => clearInterval(hbTimer);
-  }, []);
-
-  // 2. Real-time background auto-refresh every 30s so new releases appear without restart!
-  useEffect(() => {
-    const timer = setInterval(() => {
-      refreshGames(true);
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [refreshGames]);
-
-  // 3. Window focus: automatically refresh when returning from Finder, terminal, or Godot
-  useEffect(() => {
-    const onWindowFocus = () => {
-      refreshGames(true);
-    };
-    window.addEventListener('focus', onWindowFocus);
-    return () => window.removeEventListener('focus', onWindowFocus);
-  }, [refreshGames]);
-
   // 4. IPC Event Listeners
   useEffect(() => {
     const unsubProgress = launcherBridge.onDownloadProgress((prog) => {
