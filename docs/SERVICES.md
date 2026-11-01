@@ -24,7 +24,7 @@ This document serves as the single source of truth for all network endpoints, re
 | Repository | Local Workspace Path | Scope | Tech Stack | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **[`inaayah/inaayah-backend`](https://github.com/inaayah/inaayah-backend)** | `/Users/sazid/Repositories/inaayah-backend` | Unified Backend & Cron Worker | Cloudflare Workers, Hono, TypeScript, D1, KV, R2 | Single consolidated backend serving `api.inaayah.dev` and `releases.inaayah.dev` (Auth, Releases, Telemetry, Sponsor API, Daily Cron). |
-| **[`inaayah/inaayah-sponsor`](https://github.com/inaayah/inaayah-sponsor)** | `/Users/sazid/Repositories/inaayah-ads` | Sponsorship Frontend & Widget CDN | pnpm, React 19, Vite, Tailwind, Custom Elements | Public sponsor showcase, admin-gated publisher dashboard, and `<inaayah-slot>` Web Component (`sponsor.inaayah.dev`). |
+| **[`inaayah/inaayah-sponsor`](https://github.com/inaayah/inaayah-sponsor)** | `/Users/sazid/Repositories/inaayah-sponsor` | Sponsorship Frontend & Widget CDN | pnpm, React 19, Vite, Tailwind, Custom Elements | Public sponsor showcase, admin-gated publisher dashboard, and `<inaayah-slot>` Web Component (`sponsor.inaayah.dev`). |
 | **[`inaayah/inaayah-launcher`](https://github.com/inaayah/inaayah-launcher)** | `/Users/sazid/Repositories/inaayah-launcher` | Desktop Launcher & Web Portal | Electron 34, React 19, TypeScript, Vite 6 | Steam-style desktop game launcher, incremental chunk auto-updater, and `inaayah.dev` web portal. |
 | **[`inaayah/inaayah-arcade`](https://github.com/inaayah/inaayah-arcade)** | `/Users/sazid/Repositories/inaayah-arcade` | Web Arcade Monorepo | pnpm, Turborepo, React 18, Vite | Daily precision browser games (`Optik`, `Prism`, `Kinetic`, `Tessera`, `Chrono`, `Vector`) at `arcade.inaayah.dev`. |
 | **[`inaayah/brand-symbol`](https://github.com/inaayah/brand-symbol)** | `/Users/sazid/Repositories/brand-symbol` | Brand Assets & R2 CDN | Cloudflare R2, SVG | Canonical studio brand symbols synced to `cdn.inaayah.dev/brand/*`. |
@@ -52,8 +52,8 @@ This document serves as the single source of truth for all network endpoints, re
 - Push to `main` (triggers `.github/workflows/deploy.yml`) or run `npm run deploy`.
 
 ### 2. Deploying Inaayah Sponsor Frontend & Widget CDN (`sponsor.inaayah.dev`)
-- Located in `/Users/sazid/Repositories/inaayah-ads` (`inaayah/inaayah-sponsor`).
-- Run `pnpm check` and `pnpm run deploy` (or push to `main` to trigger `.github/workflows/deploy-worker.yml`).
+- Located in `/Users/sazid/Repositories/inaayah-sponsor` (`inaayah/inaayah-sponsor`).
+- Connected to Cloudflare Git auto-deploy (`main` branch) or run `pnpm check && pnpm run deploy`.
 
 ### 3. Deploying Inaayah Web Arcade (`arcade.inaayah.dev`)
 - Connected directly to Cloudflare via Git (`inaayah/inaayah-arcade`, branch `main`).
