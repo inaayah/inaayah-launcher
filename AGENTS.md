@@ -1,5 +1,11 @@
 # Inaayah Launcher & Studio Website (`inaayah-launcher`) — Agent Rules & Architecture Guide
 
+> **Canonical Studio Architecture, Bootstrap Runbook & New-Repo Template**:
+> - Cloud Source of Truth: [`https://github.com/inaayah/inaayah-studio`](https://github.com/inaayah/inaayah-studio)
+> - Local Master Guide: [`/Users/sazid/Repositories/AGENTS.md`](file:///Users/sazid/Repositories/AGENTS.md) -> [`/Users/sazid/Repositories/inaayah-studio/AGENTS.md`](file:///Users/sazid/Repositories/inaayah-studio/AGENTS.md)
+> - Laptop / Cloud Disaster Recovery: [`/Users/sazid/Repositories/inaayah-studio/BOOTSTRAP.md`](file:///Users/sazid/Repositories/inaayah-studio/BOOTSTRAP.md)
+> - Creating a New Repo: [`/Users/sazid/Repositories/inaayah-studio/REPO_TEMPLATE.md`](file:///Users/sazid/Repositories/inaayah-studio/REPO_TEMPLATE.md)
+
 ## 1. Repository Role & Architecture Boundaries
 - **Local Path**: `/Users/sazid/Repositories/inaayah-launcher`
 - **GitHub Remote**: `git@github.com:inaayah/inaayah-launcher.git`
