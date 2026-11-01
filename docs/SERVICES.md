@@ -39,7 +39,7 @@ This document serves as the single source of truth for all network endpoints, re
 | :--- | :--- | :--- | :--- |
 | `GITHUB_TOKEN` | Cloudflare Worker Secrets (`inaayah-api`) | `inaayah-backend` | Fine-grained token with read access to `inaayah` org releases to stream private builds. |
 | `RESEND_API_KEY` | Cloudflare Worker Secrets (`inaayah-api`) | `inaayah-backend` | Sends 6-digit OTP verification emails and sponsor escrow notifications from `noreply@inaayah.dev` (Reply-To: `support@inaayah.dev`). |
-| `CLOUDFLARE_API_TOKEN` | GitHub Actions Secrets | `inaayah-backend`, `inaayah-sponsor`, `inaayah-launcher` | Used by CI workflows to deploy `inaayah-backend` (`inaayah-api`), `inaayah-sponsor`, and `inaayah.dev`. |
+| `CLOUDFLARE_API_TOKEN` | GitHub Actions Secrets | `inaayah-backend` | Used by `.github/workflows/deploy.yml` in `inaayah-backend` to run D1 migrations and deploy `inaayah-api` after tests pass. |
 | `nakama_server_key` | Client Config | Launcher & Games | Default server key (`defaultkey`) used to authenticate guest sessions with Nakama. |
 
 ---
