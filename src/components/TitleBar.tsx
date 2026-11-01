@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Minus, Square, X, ShieldCheck, Wifi, Bell, RotateCcw, Download, Settings, Sun, Moon } from 'lucide-react';
 import { launcherBridge } from '../services/electronBridge';
 import type { LauncherConfig } from '../types/launcher';
-import { getAssetUrl } from '../utils/assets';
+import { getAssetUrl, getLocalBrandFallbackUrl } from '../utils/assets';
 import { APP_VERSION } from '../utils/version';
 
 type ThemeMode = 'dark' | 'light';
@@ -117,6 +117,12 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         <div className="studio-logo">
           <img
             src={getAssetUrl('brand/inaayah-symbol.svg')}
+            onError={(e) => {
+              if (e.currentTarget.dataset.fallbackApplied !== '1') {
+                e.currentTarget.dataset.fallbackApplied = '1';
+                e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-symbol.svg');
+              }
+            }}
             alt="Inaayah"
             style={{ width: 20, height: 20, borderRadius: 5 }}
           />

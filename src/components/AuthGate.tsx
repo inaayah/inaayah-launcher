@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import type { LauncherUser } from '../types/launcher';
-import { getAssetUrl } from '../utils/assets';
+import { getAssetUrl, getLocalBrandFallbackUrl } from '../utils/assets';
 
 interface AuthGateProps {
   gatewayUrl?: string;
@@ -167,6 +167,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated 
           <div className="auth-brand-icon-wrap">
             <img
               src={getAssetUrl('brand/inaayah-symbol.svg')}
+              onError={(e) => {
+                if (e.currentTarget.dataset.fallbackApplied !== '1') {
+                  e.currentTarget.dataset.fallbackApplied = '1';
+                  e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-symbol.svg');
+                }
+              }}
               alt="Inaayah Studio"
               style={{ width: 38, height: 38, borderRadius: 10 }}
             />

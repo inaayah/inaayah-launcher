@@ -96,3 +96,15 @@ test('remaining download time uses whole seconds across minute boundaries', () =
     assert.equal(formatDownloadETA(seconds), expected);
   }
 });
+
+const assetsBundle = await build({ entryPoints: [fileURLToPath(new URL('../utils/assets.ts', import.meta.url))], bundle: true, write: false, platform: 'node', format: 'cjs' });
+const { getAssetUrl, getBrandAssetUrl, getLocalBrandFallbackUrl } = load(assetsBundle.outputFiles[0].text);
+test('brand assets resolve to R2 CDN (https://cdn.inaayah.dev/brand/*) with local ./brand/* fallback', () => {
+  assert.equal(getAssetUrl('brand/inaayah-symbol.svg'), 'https://cdn.inaayah.dev/brand/inaayah-symbol.svg');
+  assert.equal(getAssetUrl('/brand/inaayah-symbol.svg'), 'https://cdn.inaayah.dev/brand/inaayah-symbol.svg');
+  assert.equal(getAssetUrl('./brand/inaayah-icon-512.png'), 'https://cdn.inaayah.dev/brand/inaayah-icon-512.png');
+  assert.equal(getAssetUrl('https://inaayah.dev/brand/inaayah-symbol.svg'), 'https://cdn.inaayah.dev/brand/inaayah-symbol.svg');
+  assert.equal(getBrandAssetUrl('inaayah-symbol.svg'), 'https://cdn.inaayah.dev/brand/inaayah-symbol.svg');
+  assert.equal(getLocalBrandFallbackUrl('inaayah-symbol.svg'), './brand/inaayah-symbol.svg');
+  assert.equal(getAssetUrl('aether-rush-cover.jpg'), 'https://inaayah.dev/images/aether-rush-cover.jpg');
+});

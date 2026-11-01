@@ -20,7 +20,7 @@ import type {
   GameCatalogItem,
   LauncherUser
 } from './types/launcher';
-import { getAssetUrl } from './utils/assets';
+import { getAssetUrl, getLocalBrandFallbackUrl } from './utils/assets';
 import { computeGameStatuses, settledGameStatus } from './utils/gameStatus';
 
 export const App: React.FC = () => {
@@ -392,6 +392,12 @@ export const App: React.FC = () => {
           <div className="splash-logo-ring">
             <img
               src={getAssetUrl('brand/inaayah-symbol.svg')}
+              onError={(e) => {
+                if (e.currentTarget.dataset.fallbackApplied !== '1') {
+                  e.currentTarget.dataset.fallbackApplied = '1';
+                  e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-symbol.svg');
+                }
+              }}
               alt="Inaayah Studio"
               style={{ width: 44, height: 44, borderRadius: 12 }}
             />
