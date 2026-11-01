@@ -5,6 +5,7 @@
 > - Local Master Guide: [`/Users/sazid/Repositories/AGENTS.md`](file:///Users/sazid/Repositories/AGENTS.md) -> [`/Users/sazid/Repositories/inaayah-studio/AGENTS.md`](file:///Users/sazid/Repositories/inaayah-studio/AGENTS.md)
 > - Laptop / Cloud Disaster Recovery: [`/Users/sazid/Repositories/inaayah-studio/BOOTSTRAP.md`](file:///Users/sazid/Repositories/inaayah-studio/BOOTSTRAP.md)
 > - Creating a New Repo: [`/Users/sazid/Repositories/inaayah-studio/REPO_TEMPLATE.md`](file:///Users/sazid/Repositories/inaayah-studio/REPO_TEMPLATE.md)
+> - **Mandatory Architecture Sync**: Whenever you change any studio architecture, add/remove a repository, add a Cloudflare resource (D1/KV/R2/domain), or modify deployment workflows, you **MUST** also update `/Users/sazid/Repositories/inaayah-studio` (`AGENTS.md` & `BOOTSTRAP.md`) and commit + push to `inaayah/inaayah-studio` so it never becomes outdated.
 
 ## 1. Repository Role & Architecture Boundaries
 - **Local Path**: `/Users/sazid/Repositories/inaayah-launcher`
