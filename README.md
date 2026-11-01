@@ -57,12 +57,6 @@ inaayah-launcher/
 │   ├── SERVICES.md            # Live server endpoints, repos, Nakama IPs
 │   ├── FREE_INFRASTRUCTURE.md # 100% free CDN & proxy architecture
 │   └── GAME_MANIFEST_SPEC.md  # Standard game-manifest.json specification
-├── scripts/               # Operational automation scripts
-│   └── deploy-release-worker.sh # 1-click deployment for Cloudflare Worker
-├── worker/                # Free Cloudflare Worker release caching proxy
-│   ├── src/index.ts           # Worker proxy & token masking logic
-│   ├── wrangler.toml          # Worker configuration (free tier)
-│   └── README.md              # Worker deployment guide
 ├── electron/
 │   ├── main.ts            # Electron main process (IPC, downloads, process spawning)
 │   └── preload.ts         # Secure contextBridge IPC layer exposing `window.inaayahLauncher`
@@ -108,11 +102,8 @@ npm start
 ```
 > Automatically compiles frontend and launches the native frameless desktop window.
 
-### 4. Deploy Free Edge Release Gateway
-```bash
-npm run deploy:worker
-```
-> Deploys the free Cloudflare Worker caching gateway to `releases.inaayah.dev`.
+### 4. Backend API & Edge Release Gateway (`inaayah/inaayah-backend`)
+The backend API (`https://api.inaayah.dev`) and release caching gateway (`https://releases.inaayah.dev`) live in the dedicated [`inaayah/inaayah-backend`](https://github.com/inaayah/inaayah-backend) repository (`/Users/sazid/Repositories/inaayah-backend`). Run `npm run check && npm run deploy` inside `inaayah-backend` to deploy backend updates.
 
 ### 5. Packaging & Distribution
 ```bash

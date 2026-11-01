@@ -176,5 +176,5 @@ export interface GameManifest {
 ## 🚀 How to Add a New Game to the Launcher
 
 1. Place `game-manifest.json` in the root of your game's GitHub repository.
-2. In `inaayah-launcher`, add the game ID to `REGISTERED_GAMES` in `worker/src/index.ts` (or `src/data/catalog.ts` for offline fallback).
-3. The launcher will automatically fetch the new game, display it in the store, and allow players to install or launch it!
+2. In `inaayah/inaayah-backend` (`/Users/sazid/Repositories/inaayah-backend`), add the game ID to `REGISTERED_GAMES` in `src/index.ts` and `games-catalog.json` (and optionally `src/data/catalog.ts` in `inaayah-launcher` for offline fallback).
+3. The launcher will automatically fetch the new game from `https://api.inaayah.dev/api/games`, display it in the store, and allow players to install or launch it!
