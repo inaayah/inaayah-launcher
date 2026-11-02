@@ -116,15 +116,19 @@ export const TitleBar: React.FC<TitleBarProps> = ({
       >
         <div className="studio-logo">
           <img
-            src={getAssetUrl('brand/inaayah-symbol.svg')}
+            src={getAssetUrl('brand/inaayah-games-icon.png')}
             onError={(e) => {
-              if (e.currentTarget.dataset.fallbackApplied !== '1') {
+              const step = e.currentTarget.dataset.fallbackApplied;
+              if (!step) {
                 e.currentTarget.dataset.fallbackApplied = '1';
-                e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-symbol.svg');
+                e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-games-icon.png');
+              } else if (step === '1') {
+                e.currentTarget.dataset.fallbackApplied = '2';
+                e.currentTarget.src = './icon.png';
               }
             }}
-            alt="Inaayah"
-            style={{ width: 20, height: 20, borderRadius: 5 }}
+            alt="Inaayah Games"
+            style={{ width: 22, height: 22, borderRadius: 6 }}
           />
           <span className="studio-logo-wordmark">
             <span>INAAYAH</span>

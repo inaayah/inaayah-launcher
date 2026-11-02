@@ -391,15 +391,19 @@ export const App: React.FC = () => {
         <div className="launcher-splash-screen" role="status" aria-live="polite">
           <div className="splash-logo-ring">
             <img
-              src={getAssetUrl('brand/inaayah-symbol.svg')}
+              src={getAssetUrl('brand/inaayah-games-icon.png')}
               onError={(e) => {
-                if (e.currentTarget.dataset.fallbackApplied !== '1') {
+                const step = e.currentTarget.dataset.fallbackApplied;
+                if (!step) {
                   e.currentTarget.dataset.fallbackApplied = '1';
-                  e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-symbol.svg');
+                  e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-games-icon.png');
+                } else if (step === '1') {
+                  e.currentTarget.dataset.fallbackApplied = '2';
+                  e.currentTarget.src = './icon.png';
                 }
               }}
-              alt="Inaayah Studio"
-              style={{ width: 44, height: 44, borderRadius: 12 }}
+              alt="Inaayah Games"
+              style={{ width: 48, height: 48, borderRadius: 12 }}
             />
           </div>
           <div className="splash-text-group">

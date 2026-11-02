@@ -166,15 +166,19 @@ export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated 
         <div className="auth-brand-header">
           <div className="auth-brand-icon-wrap">
             <img
-              src={getAssetUrl('brand/inaayah-symbol.svg')}
+              src={getAssetUrl('brand/inaayah-games-icon.png')}
               onError={(e) => {
-                if (e.currentTarget.dataset.fallbackApplied !== '1') {
+                const step = e.currentTarget.dataset.fallbackApplied;
+                if (!step) {
                   e.currentTarget.dataset.fallbackApplied = '1';
-                  e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-symbol.svg');
+                  e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-games-icon.png');
+                } else if (step === '1') {
+                  e.currentTarget.dataset.fallbackApplied = '2';
+                  e.currentTarget.src = './icon.png';
                 }
               }}
-              alt="Inaayah Studio"
-              style={{ width: 38, height: 38, borderRadius: 10 }}
+              alt="Inaayah Games"
+              style={{ width: 42, height: 42, borderRadius: 10 }}
             />
           </div>
           <div>
