@@ -417,14 +417,14 @@ const KNOWN_GAME_TITLES: Record<string, string> = {
   'vigilante-red-city': 'Vigilante: Red City',
   'aether-rush': 'AetherRush: Cyber Brawler 3D',
   'kettle-court': 'Kettle Court: Court of Kettle',
-  'eyetest': 'Optik: Daily EyeTest',
+  'inaayah-arcade': 'Inaayah Daily Arcade',
   'sundered-depths': 'Sundered Depths',
   'cyber-tactics': 'Cyber Tactics'
 };
 
 const WEB_GAME_URLS: Record<string, string> = {
   'kettle-court': 'https://kettle-court.inaayah.dev/',
-  'eyetest': 'https://arcade.inaayah.dev/eyetest'
+  'inaayah-arcade': 'https://arcade.inaayah.dev/'
 };
 
 function showAndFocusMainWindow(): void {
@@ -776,15 +776,23 @@ function sanitizeCatalog(data: any[]): any[] {
     return url;
   };
 
-  return data.map((game) => {
-    const coverArt = mapUrl(game.coverArt);
-    const heroBanner = mapUrl(game.heroBanner);
-    const screenshots = Array.isArray(game.screenshots)
-      ? game.screenshots.map(mapUrl)
-      : [];
-    const isComingSoon = game.id === 'sundered-depths' || game.id === 'cyber-tactics' || Boolean(game.isComingSoon);
-    return { ...game, coverArt, heroBanner, screenshots, isComingSoon };
-  });
+  return data
+    .filter(
+      (game) =>
+        game &&
+        game.id !== 'eyetest' &&
+        game.githubRepo !== 'inaayah/inaayah-arcade' &&
+        !(typeof game.webUrl === 'string' && game.webUrl.includes('arcade.inaayah.dev'))
+    )
+    .map((game) => {
+      const coverArt = mapUrl(game.coverArt);
+      const heroBanner = mapUrl(game.heroBanner);
+      const screenshots = Array.isArray(game.screenshots)
+        ? game.screenshots.map(mapUrl)
+        : [];
+      const isComingSoon = game.id === 'sundered-depths' || game.id === 'cyber-tactics' || Boolean(game.isComingSoon);
+      return { ...game, coverArt, heroBanner, screenshots, isComingSoon };
+    });
 }
 
 function mergeLocalSiblingManifests(catalog: any[], catalogDir: string): any[] {

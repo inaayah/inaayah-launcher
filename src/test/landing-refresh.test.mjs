@@ -11,7 +11,7 @@ import { create, act } from 'react-test-renderer';
 
 const root = await fs.mkdtemp(path.join(tmpdir(), 'inaayah-renderer-'));
 const stateKey = '__inaayahLandingTest';
-const components = ['TitleBar', 'Sidebar', 'GameHero', 'LibraryGrid', 'StoreCatalog', 'DownloadsQueue', 'SettingsModal', 'AuthGate', 'StudioAnalytics'];
+const components = ['TitleBar', 'Sidebar', 'GameHero', 'LibraryGrid', 'StoreCatalog', 'DownloadsQueue', 'SettingsModal', 'AuthGate', 'StudioAnalytics', 'DailyArcade'];
 const bundled = await build({ entryPoints: [fileURLToPath(new URL('../App.tsx', import.meta.url))], bundle: true, write: false,
   platform: 'node', format: 'cjs', jsx: 'automatic', external: ['react', 'react/jsx-runtime'], plugins: [{ name: 'bridge-fixture', setup(b) {
     b.onResolve({ filter: /services\/(electronBridge|authService)$/ }, a => ({ path: a.path, namespace: 'fixture' }));
@@ -87,6 +87,10 @@ test('landing page follows new releases, install completion, failures and late s
   await act(async () => { resolveLate(catalog); late = null; await flush(); });
   assert.equal(get('GameHero').installed.version, '1.4.0');
   assert.equal(get('GameHero').status, 'INSTALLED');
+
+  // Selecting the Daily Arcade tab renders DailyArcade directly instead of individual arcade tiles.
+  await act(async () => get('Sidebar').onSelectTab('arcade'));
+  assert.ok(view.root.findByType('DailyArcade'));
 });
 
 const timeBundle = await build({ entryPoints: [fileURLToPath(new URL('../utils/downloadTime.ts', import.meta.url))], bundle: true, write: false, platform: 'node', format: 'cjs' });

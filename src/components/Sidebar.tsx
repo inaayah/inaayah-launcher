@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ShoppingBag,
   Library,
+  Gamepad2,
   Download,
   Settings,
   HardDrive,
@@ -19,7 +20,7 @@ import type {
 } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
 
-export type NavTab = 'store' | 'library' | 'downloads' | 'analytics';
+export type NavTab = 'store' | 'library' | 'arcade' | 'downloads' | 'analytics';
 
 interface SidebarProps {
   currentTab: NavTab;
@@ -83,6 +84,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>My Library</span>
           </div>
           {installedCount > 0 && <span className="nav-badge">{installedCount}</span>}
+        </button>
+
+        <button
+          className={`nav-item ${currentTab === 'arcade' ? 'active' : ''}`}
+          onClick={() => onSelectTab('arcade')}
+        >
+          <div className="nav-item-left">
+            <Gamepad2 size={18} />
+            <span>Daily Arcade</span>
+          </div>
+          <span
+            className="nav-badge"
+            style={{
+              fontSize: 9,
+              letterSpacing: '0.06em'
+            }}
+          >
+            DAILY
+          </span>
         </button>
 
         <button

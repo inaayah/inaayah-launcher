@@ -9,6 +9,7 @@ import { DownloadsQueue } from './components/DownloadsQueue';
 import { SettingsModal } from './components/SettingsModal';
 import { AuthGate } from './components/AuthGate';
 import { StudioAnalytics } from './components/StudioAnalytics';
+import { DailyArcade } from './components/DailyArcade';
 import { catalogData } from './data/catalog';
 import { launcherBridge } from './services/electronBridge';
 import { authService, getStoredUser, getStoredToken } from './services/authService';
@@ -165,10 +166,17 @@ export const App: React.FC = () => {
 
       let activeCatalog = catalogRef.current;
       if (Array.isArray(dyn) && dyn.length > 0) {
+        const isArcadeSubGame = (item: Partial<GameCatalogItem>) =>
+          item.id === 'eyetest' ||
+          item.githubRepo === 'inaayah/inaayah-arcade' ||
+          Boolean(item.webUrl && item.webUrl.includes('arcade.inaayah.dev'));
+
         const map = new Map<string, GameCatalogItem>();
-        catalogRef.current.forEach((g) => map.set(g.id, g));
+        catalogRef.current.forEach((g) => {
+          if (!isArcadeSubGame(g)) map.set(g.id, g);
+        });
         dyn.forEach((d) => {
-          if (d && d.id) {
+          if (d && d.id && !isArcadeSubGame(d)) {
             const existing = map.get(d.id) || ({} as GameCatalogItem);
             map.set(d.id, {
               ...existing,
@@ -494,6 +502,8 @@ export const App: React.FC = () => {
                 setCurrentTab(tab);
                 if (tab === 'library') {
                   setIsViewingDetail(false);
+                } else if (tab === 'arcade') {
+                  authService.sendHeartbeat('game_launch', { gameId: 'eyetest' }, config.releaseGatewayUrl).catch(() => {});
                 }
               }}
               catalog={libraryGames}
@@ -567,6 +577,8 @@ export const App: React.FC = () => {
                   />
                 )
               )}
+
+              {currentTab === 'arcade' && <DailyArcade />}
 
               {currentTab === 'downloads' && (
                 <DownloadsQueue
