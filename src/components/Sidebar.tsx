@@ -7,7 +7,6 @@ import {
   Settings,
   HardDrive,
   RotateCw,
-  BarChart3,
   ShieldCheck,
   LogOut
 } from 'lucide-react';
@@ -20,7 +19,7 @@ import type {
 } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
 
-export type NavTab = 'store' | 'library' | 'arcade' | 'downloads' | 'analytics';
+export type NavTab = 'store' | 'library' | 'arcade' | 'downloads';
 
 interface SidebarProps {
   currentTab: NavTab;
@@ -120,26 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </button>
 
-        {currentUser?.role === 'admin' && (
-          <button
-            className={`nav-item ${currentTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => onSelectTab('analytics')}
-          >
-            <div className="nav-item-left">
-              <BarChart3 size={18} />
-              <span>Studio Analytics</span>
-            </div>
-            <span
-              className="nav-badge"
-              style={{
-                fontSize: 9,
-                letterSpacing: '0.06em'
-              }}
-            >
-              ADMIN
-            </span>
-          </button>
-        )}
+
       </div>
 
       <div className="nav-section" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

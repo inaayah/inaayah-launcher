@@ -35,3 +35,9 @@
 1. Add `game-manifest.json` in the game's repository root (`inaayah/<game-slug>`).
 2. In **`/Users/sazid/Repositories/inaayah-backend`**, add the game to `games-catalog.json` and `REGISTERED_GAMES` in `src/index.ts`, then run `npm run check && npm run deploy`.
 3. In **`/Users/sazid/Repositories/inaayah-launcher`**, update `games-catalog.json` / `src/data/catalog.ts` for offline fallback.
+
+## Studio administration
+- Admin dashboards live in the private `inaayah/inaayah-portal` frontend at `https://admin.inaayah.dev`.
+- Keep the launcher focused on discovery, library, downloads, player authentication, and telemetry ingestion.
+- The launcher has no admin dashboards or portal shortcut. Do not reintroduce bundled analytics UI or local admin analytics fallbacks.
+- Backend auth and analytics remain in `inaayah/inaayah-backend`.

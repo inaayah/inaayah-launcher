@@ -8,7 +8,6 @@ import { StoreCatalog } from './components/StoreCatalog';
 import { DownloadsQueue } from './components/DownloadsQueue';
 import { SettingsModal } from './components/SettingsModal';
 import { AuthGate } from './components/AuthGate';
-import { StudioAnalytics } from './components/StudioAnalytics';
 import { DailyArcade } from './components/DailyArcade';
 import { catalogData } from './data/catalog';
 import { launcherBridge } from './services/electronBridge';
@@ -379,9 +378,6 @@ export const App: React.FC = () => {
   const handleLogout = async () => {
     await authService.logout(config.releaseGatewayUrl);
     setCurrentUser(null);
-    if (currentTab === 'analytics') {
-      setCurrentTab('library');
-    }
   };
 
   return (
@@ -593,12 +589,7 @@ export const App: React.FC = () => {
                 />
               )}
 
-              {currentTab === 'analytics' && currentUser?.role === 'admin' && (
-                <StudioAnalytics
-                  currentUser={currentUser}
-                  gatewayUrl={config.releaseGatewayUrl}
-                />
-              )}
+
             </main>
           </div>
         </>
