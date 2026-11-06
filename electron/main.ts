@@ -288,6 +288,80 @@ function saveConfig(cfg: Partial<LauncherConfig>): LauncherConfig {
   return updated;
 }
 
+interface PersistedAuthSessionData {
+  token?: string | null;
+  user?: any | null;
+  rememberMe?: boolean;
+  savedEmail?: string | null;
+  deviceId?: string | null;
+  updatedAt?: number;
+}
+
+function getAuthSessionPaths(): [string, string] {
+  const primary = path.join(app.getPath('userData'), 'auth_session.json');
+  const libDir = loadConfig().libraryPath || getDefaultLibraryPath();
+  const backup = path.join(libDir, '.launcher_auth.json');
+  return [primary, backup];
+}
+
+function loadPersistedAuthSession(): PersistedAuthSessionData | null {
+  const [primary, backup] = getAuthSessionPaths();
+  for (const candidate of [primary, backup]) {
+    try {
+      if (fs.existsSync(candidate)) {
+        const parsed = JSON.parse(fs.readFileSync(candidate, 'utf-8')) as PersistedAuthSessionData;
+        if (parsed && typeof parsed === 'object') {
+          // If restored from the library backup after a Windows NSIS update, heal primary userData copy
+          if (candidate === backup && !fs.existsSync(primary)) {
+            try {
+              fs.mkdirSync(path.dirname(primary), { recursive: true });
+              fs.writeFileSync(primary, JSON.stringify(parsed, null, 2), 'utf-8');
+            } catch {}
+          }
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function savePersistedAuthSession(sessionData: PersistedAuthSessionData): boolean {
+  const existing = loadPersistedAuthSession() || {};
+  const merged: PersistedAuthSessionData = {
+    ...existing,
+    ...sessionData,
+    updatedAt: Date.now()
+  };
+  const [primary, backup] = getAuthSessionPaths();
+  let savedAny = false;
+  for (const target of [primary, backup]) {
+    try {
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, JSON.stringify(merged, null, 2), 'utf-8');
+      savedAny = true;
+    } catch {}
+  }
+  try {
+    session.defaultSession?.flushStorageData?.();
+  } catch {}
+  return savedAny;
+}
+
+function clearPersistedAuthSession(options?: { keepEmail?: boolean }): boolean {
+  const existing = loadPersistedAuthSession();
+  const keepEmail = options?.keepEmail ?? (existing?.rememberMe !== false);
+  const nextData: PersistedAuthSessionData = {
+    token: null,
+    user: null,
+    rememberMe: existing?.rememberMe ?? true,
+    savedEmail: keepEmail ? existing?.savedEmail || existing?.user?.email || null : null,
+    deviceId: existing?.deviceId || null,
+    updatedAt: Date.now()
+  };
+  return savePersistedAuthSession(nextData);
+}
+
 // Background asynchronous game library scanner & cache
 let cachedInstalledGames: Record<string, InstalledGameMeta> = {};
 let installedScan: Promise<Record<string, InstalledGameMeta>> | null = null;
@@ -740,7 +814,15 @@ app.whenReady().then(() => {
     }
   }, 2500);
 
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  (autoUpdater as any).on('before-quit-for-update', () => {
+    isQuitting = true;
+  });
+
   autoUpdater.on('update-downloaded', (info) => {
+    isWindowsLinuxUpdateDownloaded = true;
     mainWindow?.webContents.send('launcher-update-ready', info.version);
     if (Notification.isSupported()) {
       new Notification({
@@ -919,6 +1001,18 @@ ipcMain.handle('launcher:get-config', async () => {
 
 ipcMain.handle('launcher:set-config', async (_event, cfg: Partial<LauncherConfig>) => {
   return saveConfig(cfg);
+});
+
+ipcMain.handle('launcher:get-auth-session', async () => {
+  return loadPersistedAuthSession();
+});
+
+ipcMain.handle('launcher:save-auth-session', async (_event, sessionData: PersistedAuthSessionData) => {
+  return savePersistedAuthSession(sessionData);
+});
+
+ipcMain.handle('launcher:clear-auth-session', async (_event, options?: { keepEmail?: boolean }) => {
+  return clearPersistedAuthSession(options);
 });
 
 ipcMain.handle('launcher:browse-directory', async () => {
@@ -1403,6 +1497,79 @@ let macPendingUpdate: MacPendingUpdate | null = null;
 let isMacUpdateDownloading = false;
 let macUpdatePromise: Promise<void> | null = null;
 let latestKnownLauncherVersion: string | null = null;
+let isWindowsLinuxUpdateDownloaded = false;
+let windowsLinuxUpdatePromise: Promise<boolean> | null = null;
+
+async function ensureWindowsLinuxUpdateDownloaded(): Promise<boolean> {
+  if (isWindowsLinuxUpdateDownloaded) return true;
+  if (windowsLinuxUpdatePromise) return windowsLinuxUpdatePromise;
+
+  windowsLinuxUpdatePromise = new Promise<boolean>((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        autoUpdater.removeListener?.('update-downloaded', onDownloaded);
+        autoUpdater.removeListener?.('update-not-available', onNotAvailable);
+        autoUpdater.removeListener?.('error', onError);
+      } catch {}
+      windowsLinuxUpdatePromise = null;
+      resolve(ok);
+    };
+
+    const onDownloaded = () => {
+      isWindowsLinuxUpdateDownloaded = true;
+      finish(true);
+    };
+    const onNotAvailable = () => {
+      finish(isWindowsLinuxUpdateDownloaded);
+    };
+    const onError = (err: any) => {
+      console.warn('[AutoUpdater] Error while downloading update:', err?.message || err);
+      finish(isWindowsLinuxUpdateDownloaded);
+    };
+
+    const timer = setTimeout(() => finish(isWindowsLinuxUpdateDownloaded), 5 * 60 * 1000);
+
+    try {
+      autoUpdater.on?.('update-downloaded', onDownloaded);
+      autoUpdater.on?.('update-not-available', onNotAvailable);
+      autoUpdater.on?.('error', onError);
+    } catch {}
+
+    Promise.resolve()
+      .then(() => autoUpdater.checkForUpdates())
+      .then((checkResult: any) => {
+        if (isWindowsLinuxUpdateDownloaded) {
+          finish(true);
+          return;
+        }
+        if (checkResult && checkResult.downloadPromise) {
+          checkResult.downloadPromise
+            .then(() => {
+              isWindowsLinuxUpdateDownloaded = true;
+              finish(true);
+            })
+            .catch(onError);
+        } else if (typeof autoUpdater.downloadUpdate === 'function') {
+          autoUpdater
+            .downloadUpdate()
+            .then(() => {
+              isWindowsLinuxUpdateDownloaded = true;
+              finish(true);
+            })
+            .catch(onError);
+        }
+      })
+      .catch((err: any) => {
+        console.warn('[AutoUpdater] checkForUpdates while waiting note:', err?.message);
+      });
+  });
+
+  return windowsLinuxUpdatePromise;
+}
 
 async function downloadAndExtractMacZip(url: string, zipPath: string, extractedDir: string, extractedAppPath: string, version: string): Promise<boolean> {
   console.log(`[MacUpdater] Fetching macOS update archive from ${url}...`);
@@ -1689,11 +1856,16 @@ ipcMain.handle('launcher:check-for-updates', async () => {
 ipcMain.handle('launcher:restart-and-install-update', async () => {
   console.log('[AutoUpdater] restart-and-install-update triggered');
 
+  try {
+    session.defaultSession?.flushStorageData?.();
+  } catch {}
+
   // Development mode: restart immediately
   if (!app.isPackaged) {
+    isQuitting = true;
     app.relaunch();
     app.exit(0);
-    return;
+    return true;
   }
 
   // 1. Custom macOS Background Updater in-place swap
@@ -1731,35 +1903,46 @@ ipcMain.handle('launcher:restart-and-install-update', async () => {
       child.unref();
 
       // Exit current application immediately so the swap proceeds
+      isQuitting = true;
       app.removeAllListeners('window-all-closed');
       try {
-        BrowserWindow.getAllWindows().forEach((w) => w.destroy());
+        BrowserWindow.getAllWindows().forEach((w) => {
+          w.removeAllListeners('close');
+          w.destroy();
+        });
       } catch {}
       app.exit(0);
-      return;
+      return true;
     }
-    return;
+    return false;
   }
 
-  // Windows / Linux:
+  // 2. Windows / Linux: Wait for electron-updater download to finish before quitting & installing!
+  if (!isWindowsLinuxUpdateDownloaded) {
+    console.log('[AutoUpdater] Waiting for Windows/Linux update download to complete before installing...');
+    const downloaded = await ensureWindowsLinuxUpdateDownloaded();
+    if (!downloaded && !isWindowsLinuxUpdateDownloaded) {
+      console.warn('[AutoUpdater] Update download did not complete; aborting premature restart.');
+      return false;
+    }
+  }
+
+  isQuitting = true;
   app.removeAllListeners('window-all-closed');
   try {
-    autoUpdater.quitAndInstall(false, true);
-  } catch (err: any) {
-    console.warn('[AutoUpdater] quitAndInstall threw, forcing relaunch:', err?.message);
-    app.relaunch();
-    app.exit(0);
-    return;
-  }
+    mainWindow?.removeAllListeners('close');
+    session.defaultSession?.flushStorageData?.();
+  } catch {}
 
-  // Watchdog timer: ensure the process restarts and does not hang
-  setTimeout(() => {
+  setImmediate(() => {
     try {
-      BrowserWindow.getAllWindows().forEach((w) => w.destroy());
-    } catch {}
-    app.relaunch();
-    app.exit(0);
-  }, 1200);
+      autoUpdater.quitAndInstall(false, true);
+    } catch (err: any) {
+      console.warn('[AutoUpdater] quitAndInstall threw:', err?.message);
+    }
+  });
+
+  return true;
 });
 
 ipcMain.handle('launcher:get-app-version', () => {

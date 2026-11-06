@@ -31,7 +31,7 @@ interface TitleBarProps {
   updateReadyVersion?: string | null;
   updateAvailableVersion?: string | null;
   updateReleaseUrl?: string | null;
-  onRestartUpdate?: () => void;
+  onRestartUpdate?: () => Promise<boolean | void> | void;
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({
@@ -108,6 +108,19 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     launcherBridge.openExternalUrl(updateReleaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest');
   };
 
+  const triggerRestartUpdate = async () => {
+    if (isRestarting) return;
+    setIsRestarting(true);
+    try {
+      const ok = await onRestartUpdate?.();
+      if (ok === false) {
+        setIsRestarting(false);
+      }
+    } catch {
+      setIsRestarting(false);
+    }
+  };
+
   return (
     <div className="titlebar titlebar-drag">
       <div
@@ -158,10 +171,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             className="update-pill-btn ready"
             title="Update is downloaded! Click to restart launcher and apply"
             disabled={isRestarting}
-            onClick={() => {
-              setIsRestarting(true);
-              onRestartUpdate?.();
-            }}
+            onClick={triggerRestartUpdate}
           >
             <RotateCcw size={12} className="spin-slow" />
             <span>{isRestarting ? 'Restarting...' : `Restart to Update (v${updateReadyVersion})`}</span>
@@ -171,13 +181,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             className="update-pill-btn available"
             title="Click to download and install this launcher update automatically"
             disabled={isRestarting}
-            onClick={() => {
-              setIsRestarting(true);
-              onRestartUpdate?.();
-            }}
+            onClick={triggerRestartUpdate}
           >
             {isRestarting ? <RotateCcw size={12} className="spin-fast" /> : <Download size={12} />}
-            <span>{isRestarting ? `Updating v${updateAvailableVersion}...` : `Update v${updateAvailableVersion}`}</span>
+            <span>{isRestarting ? `Downloading & Installing v${updateAvailableVersion}...` : `Update v${updateAvailableVersion}`}</span>
           </button>
         ) : null}
 
@@ -194,7 +201,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         <button
           className={`titlebar-icon-btn ${hasUpdate ? 'active-update' : ''}`}
           title={hasUpdate ? (updateReadyVersion ? `Update v${updateReadyVersion} ready to install` : `Update to v${updateAvailableVersion}`) : 'Notifications'}
-          onClick={hasUpdate ? () => { setIsRestarting(true); onRestartUpdate?.(); } : onOpenSettings}
+          onClick={hasUpdate ? triggerRestartUpdate : onOpenSettings}
         >
           <Bell size={14} />
           {hasUpdate && <span className="bell-badge-pulse" />}

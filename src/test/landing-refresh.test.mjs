@@ -113,3 +113,98 @@ test('brand assets resolve to R2 CDN (https://cdn.inaayah.dev/brand/*) with loca
   assert.equal(getLocalBrandFallbackUrl('inaayah-games-icon.png'), './brand/inaayah-games-icon.png');
   assert.equal(getAssetUrl('aether-rush-cover.jpg'), 'https://inaayah.dev/images/aether-rush-cover.jpg');
 });
+
+const authBundle = await build({
+  entryPoints: [fileURLToPath(new URL('../services/authService.ts', import.meta.url))],
+  bundle: true,
+  write: false,
+  platform: 'node',
+  format: 'cjs',
+  plugins: [{
+    name: 'auth-bridge-fixture',
+    setup(b) {
+      b.onResolve({ filter: /electronBridge$/ }, a => ({ path: a.path, namespace: 'auth-fixture' }));
+      b.onLoad({ filter: /.*/, namespace: 'auth-fixture' }, () => ({
+        loader: 'js',
+        contents: `export const launcherBridge = globalThis.__authTestBridge;`
+      }));
+    }
+  }]
+});
+
+test('authService persists rememberMe session to disk and restores it when localStorage is cleared after update', async () => {
+  const localMap = new Map();
+  const sessionMap = new Map();
+  globalThis.localStorage = {
+    getItem: k => localMap.has(k) ? localMap.get(k) : null,
+    setItem: (k, v) => localMap.set(k, String(v)),
+    removeItem: k => localMap.delete(k)
+  };
+  globalThis.sessionStorage = {
+    getItem: k => sessionMap.has(k) ? sessionMap.get(k) : null,
+    setItem: (k, v) => sessionMap.set(k, String(v)),
+    removeItem: k => sessionMap.delete(k)
+  };
+
+  let diskSession = null;
+  globalThis.__authTestBridge = {
+    isElectron: true,
+    getAppVersion: async () => '0.2.30',
+    getAuthSession: async () => diskSession,
+    saveAuthSession: async (s) => { diskSession = s; return true; },
+    clearAuthSession: async () => { diskSession = null; return true; }
+  };
+
+  const mockUser = {
+    id: 'usr_123',
+    email: 'player@inaayah.dev',
+    displayName: 'PlayerOne',
+    role: 'player',
+    emailVerified: true
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith('/api/auth/login')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ status: 'AUTHENTICATED', token: 'tok_persisted_123', user: mockUser })
+      };
+    }
+    if (String(url).endsWith('/api/auth/me')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ user: mockUser })
+      };
+    }
+    return { ok: true, status: 200, json: async () => ({}) };
+  };
+
+  try {
+    const { authService, getStoredToken, getRememberedEmail, getRememberMePreference } = load(authBundle.outputFiles[0].text);
+
+    // 1. Login with rememberMe = true saves to both localStorage and Electron disk session
+    await authService.login('player@inaayah.dev', 'secret123', 'https://releases.inaayah.dev', true);
+    assert.equal(getStoredToken(), 'tok_persisted_123');
+    assert.equal(getRememberedEmail(), 'player@inaayah.dev');
+    assert.equal(getRememberMePreference(), true);
+    assert.ok(diskSession);
+    assert.equal(diskSession.token, 'tok_persisted_123');
+    assert.equal(diskSession.rememberMe, true);
+
+    // 2. Simulate Windows NSIS update wiping Chromium localStorage
+    localMap.clear();
+    sessionMap.clear();
+    assert.equal(getStoredToken(), null);
+
+    // 3. verifySession hydrates from Electron disk backup automatically without asking to log in again
+    const restoredUser = await authService.verifySession('https://releases.inaayah.dev');
+    assert.deepEqual(restoredUser, mockUser);
+    assert.equal(getStoredToken(), 'tok_persisted_123');
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete globalThis.__authTestBridge;
+  }
+});

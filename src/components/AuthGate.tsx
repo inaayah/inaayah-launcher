@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ShieldCheck,
   Mail,
@@ -13,7 +13,8 @@ import {
   KeyRound,
   Sparkles
 } from 'lucide-react';
-import { authService } from '../services/authService';
+import { authService, getRememberMePreference, getRememberedEmail } from '../services/authService';
+import { launcherBridge } from '../services/electronBridge';
 import type { LauncherUser } from '../types/launcher';
 import { getAssetUrl, getLocalBrandFallbackUrl } from '../utils/assets';
 
@@ -26,11 +27,30 @@ type AuthMode = 'signin' | 'signup' | 'verify' | 'forgot' | 'reset';
 
 export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated }) => {
   const [mode, setMode] = useState<AuthMode>('signin');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => getRememberedEmail());
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState<boolean>(() => getRememberMePreference());
+
+  useEffect(() => {
+    let mounted = true;
+    if (!email && launcherBridge.isElectron && launcherBridge.getAuthSession) {
+      launcherBridge.getAuthSession().then((disk) => {
+        if (!mounted || !disk) return;
+        if (disk.savedEmail && !email) {
+          setEmail(disk.savedEmail);
+        }
+        if (typeof disk.rememberMe === 'boolean') {
+          setRememberMe(disk.rememberMe);
+        }
+      }).catch(() => {});
+    }
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -53,7 +73,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated 
     setInfoMessage(null);
     setLoading(true);
     try {
-      const result = await authService.login(email, password, gatewayUrl);
+      const result = await authService.login(email, password, gatewayUrl, rememberMe);
       if (result.status === 'VERIFICATION_REQUIRED') {
         if (result.sender) setSenderAddress(result.sender);
         setDevPreviewCode(result.devOtpCode || null);
@@ -98,7 +118,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated 
     setError(null);
     setLoading(true);
     try {
-      const result = await authService.verifyEmail(email, otpCode, gatewayUrl);
+      const result = await authService.verifyEmail(email, otpCode, gatewayUrl, rememberMe);
       if (result.user) {
         onAuthenticated(result.user);
       }
@@ -293,6 +313,30 @@ export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated 
               </div>
             </div>
 
+            <label
+              htmlFor="signin-remember-me"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                userSelect: 'none',
+                marginTop: -2,
+                marginBottom: 4
+              }}
+            >
+              <input
+                type="checkbox"
+                id="signin-remember-me"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ accentColor: 'var(--accent-cyan)', width: 15, height: 15, cursor: 'pointer' }}
+              />
+              <span>Remember me on this device (stay signed in across launcher updates)</span>
+            </label>
+
             <button
               type="submit"
               className="btn-primary-action play auth-submit-btn"
@@ -387,6 +431,30 @@ export const AuthGate: React.FC<AuthGateProps> = ({ gatewayUrl, onAuthenticated 
                 </button>
               </div>
             </div>
+
+            <label
+              htmlFor="signup-remember-me"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                userSelect: 'none',
+                marginTop: -2,
+                marginBottom: 4
+              }}
+            >
+              <input
+                type="checkbox"
+                id="signup-remember-me"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ accentColor: 'var(--accent-cyan)', width: 15, height: 15, cursor: 'pointer' }}
+              />
+              <span>Remember me on this device (stay signed in across launcher updates)</span>
+            </label>
 
             <button
               type="submit"

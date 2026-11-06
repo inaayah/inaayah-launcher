@@ -449,9 +449,10 @@ export const App: React.FC = () => {
                     className="btn-primary-action play"
                     style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
                     disabled={isRestartingLauncher}
-                    onClick={() => {
+                    onClick={async () => {
                       setIsRestartingLauncher(true);
-                      launcherBridge.restartAndInstallUpdate();
+                      const ok = await launcherBridge.restartAndInstallUpdate();
+                      if (ok === false) setIsRestartingLauncher(false);
                     }}
                   >
                     <RotateCcw size={12} className={isRestartingLauncher ? 'spin-fast' : 'spin-slow'} />
@@ -462,9 +463,10 @@ export const App: React.FC = () => {
                     className="btn-primary-action play"
                     style={{ height: 28, padding: '0 14px', fontSize: 12, gap: 6 }}
                     disabled={isRestartingLauncher}
-                    onClick={() => {
+                    onClick={async () => {
                       setIsRestartingLauncher(true);
-                      launcherBridge.restartAndInstallUpdate();
+                      const ok = await launcherBridge.restartAndInstallUpdate();
+                      if (ok === false) setIsRestartingLauncher(false);
                     }}
                   >
                     {isRestartingLauncher ? (
@@ -474,7 +476,7 @@ export const App: React.FC = () => {
                     )}
                     <span>
                       {isRestartingLauncher
-                        ? `Updating to v${updateAvailableInfo?.version}...`
+                        ? `Downloading & Installing v${updateAvailableInfo?.version}...`
                         : `Update Now (v${updateAvailableInfo?.version})`}
                     </span>
                   </button>

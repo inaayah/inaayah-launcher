@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { LauncherConfig, DownloadProgress, GameStatus, InstalledGame } from '../src/types/launcher';
+import type { LauncherConfig, DownloadProgress, GameStatus, InstalledGame, PersistedAuthSession } from '../src/types/launcher';
 
 contextBridge.exposeInMainWorld('inaayahLauncher', {
   isElectron: true,
@@ -10,6 +10,18 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
 
   setConfig: (config: Partial<LauncherConfig>): Promise<LauncherConfig> => {
     return ipcRenderer.invoke('launcher:set-config', config);
+  },
+
+  getAuthSession: (): Promise<PersistedAuthSession | null> => {
+    return ipcRenderer.invoke('launcher:get-auth-session');
+  },
+
+  saveAuthSession: (session: PersistedAuthSession): Promise<boolean> => {
+    return ipcRenderer.invoke('launcher:save-auth-session', session);
+  },
+
+  clearAuthSession: (options?: { keepEmail?: boolean }): Promise<boolean> => {
+    return ipcRenderer.invoke('launcher:clear-auth-session', options);
   },
 
   browseDirectory: (): Promise<string | null> => {

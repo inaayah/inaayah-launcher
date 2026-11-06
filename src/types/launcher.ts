@@ -105,10 +105,22 @@ export interface LauncherUser {
   lastSeenAt: string | null;
 }
 
+export interface PersistedAuthSession {
+  token?: string | null;
+  user?: LauncherUser | null;
+  rememberMe?: boolean;
+  savedEmail?: string | null;
+  deviceId?: string | null;
+  updatedAt?: number;
+}
+
 export interface InaayahLauncherAPI {
   isElectron: boolean;
   getConfig: () => Promise<LauncherConfig>;
   setConfig: (config: Partial<LauncherConfig>) => Promise<LauncherConfig>;
+  getAuthSession?: () => Promise<PersistedAuthSession | null>;
+  saveAuthSession?: (session: PersistedAuthSession) => Promise<boolean>;
+  clearAuthSession?: (options?: { keepEmail?: boolean }) => Promise<boolean>;
   browseDirectory: () => Promise<string | null>;
   getInstalledGames: () => Promise<Record<string, InstalledGame>>;
   downloadGame: (gameId: string, targetVersion?: string, downloadUrl?: string, sessionToken?: string) => Promise<boolean>;
@@ -122,7 +134,7 @@ export interface InaayahLauncherAPI {
   refreshCatalog: () => Promise<GameCatalogItem[]>;
   getAppVersion: () => Promise<string>;
   checkLauncherUpdate: () => Promise<UpdateCheckResult>;
-  restartAndInstallUpdate: () => Promise<void>;
+  restartAndInstallUpdate: () => Promise<boolean | void>;
   onLauncherUpdateReady: (callback: (version: string) => void) => () => void;
   onLauncherUpdateAvailable: (callback: (info: { version: string; releaseUrl: string }) => void) => () => void;
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;

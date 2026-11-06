@@ -4,6 +4,8 @@ import { launcherBridge } from './electronBridge';
 
 const STORAGE_TOKEN_KEY = 'inaayah_auth_token';
 const STORAGE_USER_KEY = 'inaayah_auth_user';
+const STORAGE_REMEMBER_ME_KEY = 'inaayah_auth_remember_me';
+const STORAGE_SAVED_EMAIL_KEY = 'inaayah_auth_saved_email';
 const STORAGE_DEVICE_ID_KEY = 'inaayah_device_id';
 const STORAGE_LOCAL_USERS_KEY = 'inaayah_local_users_v1';
 const STORAGE_LOCAL_OTPS_KEY = 'inaayah_local_otps_v1';
@@ -62,17 +64,41 @@ export function getDeviceId(): string {
   }
 }
 
+export function getRememberMePreference(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_REMEMBER_ME_KEY);
+    if (raw === 'false') return false;
+  } catch {}
+  return true;
+}
+
+export function getRememberedEmail(): string {
+  try {
+    return localStorage.getItem(STORAGE_SAVED_EMAIL_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
 export function getStoredToken(): string | null {
   try {
-    return localStorage.getItem(STORAGE_TOKEN_KEY);
-  } catch {
-    return null;
-  }
+    const local = localStorage.getItem(STORAGE_TOKEN_KEY);
+    if (local) return local;
+  } catch {}
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem(STORAGE_TOKEN_KEY);
+    }
+  } catch {}
+  return null;
 }
 
 export function getStoredUser(): LauncherUser | null {
   try {
-    const raw = localStorage.getItem(STORAGE_USER_KEY);
+    let raw = localStorage.getItem(STORAGE_USER_KEY);
+    if (!raw && typeof sessionStorage !== 'undefined') {
+      raw = sessionStorage.getItem(STORAGE_USER_KEY);
+    }
     if (!raw) return null;
     const parsed = JSON.parse(raw) as LauncherUser;
     if (parsed && parsed.emailVerified) return parsed;
@@ -82,11 +108,40 @@ export function getStoredUser(): LauncherUser | null {
   }
 }
 
-function saveAuthSession(token: string, user: LauncherUser): void {
+function saveAuthSession(token: string, user: LauncherUser, rememberMe: boolean = getRememberMePreference()): void {
   try {
-    localStorage.setItem(STORAGE_TOKEN_KEY, token);
-    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+    localStorage.setItem(STORAGE_REMEMBER_ME_KEY, rememberMe ? 'true' : 'false');
+    if (rememberMe) {
+      localStorage.setItem(STORAGE_TOKEN_KEY, token);
+      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+      localStorage.setItem(STORAGE_SAVED_EMAIL_KEY, user.email);
+    } else {
+      localStorage.removeItem(STORAGE_TOKEN_KEY);
+      localStorage.removeItem(STORAGE_USER_KEY);
+      localStorage.removeItem(STORAGE_SAVED_EMAIL_KEY);
+    }
   } catch {}
+
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(STORAGE_TOKEN_KEY, token);
+      sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+    }
+  } catch {}
+
+  if (rememberMe) {
+    launcherBridge
+      .saveAuthSession?.({
+        token,
+        user,
+        rememberMe: true,
+        savedEmail: user.email,
+        deviceId: getDeviceId()
+      })
+      .catch(() => {});
+  } else {
+    launcherBridge.clearAuthSession?.({ keepEmail: false }).catch(() => {});
+  }
 }
 
 export function clearAuthSession(): void {
@@ -94,6 +149,63 @@ export function clearAuthSession(): void {
     localStorage.removeItem(STORAGE_TOKEN_KEY);
     localStorage.removeItem(STORAGE_USER_KEY);
   } catch {}
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(STORAGE_TOKEN_KEY);
+      sessionStorage.removeItem(STORAGE_USER_KEY);
+    }
+  } catch {}
+  launcherBridge.clearAuthSession?.({ keepEmail: getRememberMePreference() }).catch(() => {});
+}
+
+async function hydrateStoredSession(): Promise<{ token: string | null; user: LauncherUser | null }> {
+  const existingToken = getStoredToken();
+  const existingUser = getStoredUser();
+  if (existingToken && existingUser) {
+    // Ensure disk backup is also populated for existing logged-in users before their next update
+    if (getRememberMePreference()) {
+      launcherBridge
+        .saveAuthSession?.({
+          token: existingToken,
+          user: existingUser,
+          rememberMe: true,
+          savedEmail: existingUser.email,
+          deviceId: getDeviceId()
+        })
+        .catch(() => {});
+    }
+    return { token: existingToken, user: existingUser };
+  }
+
+  try {
+    const persisted = await launcherBridge.getAuthSession?.();
+    if (persisted?.savedEmail) {
+      try {
+        localStorage.setItem(STORAGE_SAVED_EMAIL_KEY, persisted.savedEmail);
+      } catch {}
+    }
+    if (typeof persisted?.rememberMe === 'boolean') {
+      try {
+        localStorage.setItem(STORAGE_REMEMBER_ME_KEY, persisted.rememberMe ? 'true' : 'false');
+      } catch {}
+    }
+    if (persisted?.deviceId) {
+      try {
+        if (!localStorage.getItem(STORAGE_DEVICE_ID_KEY)) {
+          localStorage.setItem(STORAGE_DEVICE_ID_KEY, persisted.deviceId);
+        }
+      } catch {}
+    }
+    if (persisted && persisted.rememberMe !== false && persisted.token && persisted.user?.emailVerified) {
+      try {
+        localStorage.setItem(STORAGE_TOKEN_KEY, persisted.token);
+        localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(persisted.user));
+      } catch {}
+      return { token: persisted.token, user: persisted.user };
+    }
+  } catch {}
+
+  return { token: existingToken, user: existingUser };
 }
 
 async function resolveGatewayUrl(override?: string): Promise<string> {
@@ -251,7 +363,12 @@ export const authService = {
     };
   },
 
-  async verifyEmail(emailRaw: string, codeRaw: string, gatewayUrl?: string): Promise<AuthActionResult> {
+  async verifyEmail(
+    emailRaw: string,
+    codeRaw: string,
+    gatewayUrl?: string,
+    rememberMe: boolean = getRememberMePreference()
+  ): Promise<AuthActionResult> {
     const email = emailRaw.trim().toLowerCase();
     const code = codeRaw.trim();
     const base = await resolveGatewayUrl(gatewayUrl);
@@ -281,7 +398,7 @@ export const authService = {
           throw new Error(data.error || 'Invalid or expired verification code.');
         }
         if (data.token && data.user) {
-          saveAuthSession(data.token, data.user);
+          saveAuthSession(data.token, data.user, rememberMe);
         }
         return data as AuthActionResult;
       }
@@ -326,7 +443,7 @@ export const authService = {
       lastSeenAt: user.lastSeenAt
     };
     const token = `inay_local_${crypto.randomUUID()}`;
-    saveAuthSession(token, publicUser);
+    saveAuthSession(token, publicUser, rememberMe);
 
     return {
       status: 'AUTHENTICATED',
@@ -377,7 +494,12 @@ export const authService = {
     };
   },
 
-  async login(emailRaw: string, password: string, gatewayUrl?: string): Promise<AuthActionResult> {
+  async login(
+    emailRaw: string,
+    password: string,
+    gatewayUrl?: string,
+    rememberMe: boolean = getRememberMePreference()
+  ): Promise<AuthActionResult> {
     const email = emailRaw.trim().toLowerCase();
     const base = await resolveGatewayUrl(gatewayUrl);
     const appVersion = await launcherBridge.getAppVersion().catch(() => APP_VERSION);
@@ -416,7 +538,7 @@ export const authService = {
           throw new Error(data.error || 'Invalid email or password.');
         }
         if (data.token && data.user) {
-          saveAuthSession(data.token, data.user);
+          saveAuthSession(data.token, data.user, rememberMe);
         }
         return data as AuthActionResult;
       }
@@ -464,7 +586,7 @@ export const authService = {
       lastSeenAt: user.lastSeenAt
     };
     const token = `inay_local_${crypto.randomUUID()}`;
-    saveAuthSession(token, publicUser);
+    saveAuthSession(token, publicUser, rememberMe);
 
     return {
       status: 'AUTHENTICATED',
@@ -591,32 +713,33 @@ export const authService = {
   },
 
   async verifySession(gatewayUrl?: string): Promise<LauncherUser | null> {
-    const token = getStoredToken();
-    const cached = getStoredUser();
+    const { token, user: cached } = await hydrateStoredSession();
     if (!token || !cached) return null;
 
     const base = await resolveGatewayUrl(gatewayUrl);
-    try {
-      const res = await fetchGateway(
-        '/api/auth/me',
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(5000)
-        },
-        gatewayUrl
-      );
-      if (res.status === 200) {
-        const data = await res.json();
-        if (data?.user && data.user.emailVerified) {
-          saveAuthSession(token, data.user);
-          return data.user as LauncherUser;
+    if (!token.startsWith('inay_local_')) {
+      try {
+        const res = await fetchGateway(
+          '/api/auth/me',
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(5000)
+          },
+          gatewayUrl
+        );
+        if (res.status === 200) {
+          const data = await res.json();
+          if (data?.user && data.user.emailVerified) {
+            saveAuthSession(token, data.user, getRememberMePreference());
+            return data.user as LauncherUser;
+          }
+        } else if (res.status === 401 || res.status === 403) {
+          clearAuthSession();
+          return null;
         }
-      } else if (res.status === 401 || res.status === 403) {
-        clearAuthSession();
-        return null;
+      } catch {
+        // Offline mode: keep verified cached session, but never trust an unverified admin role escalation offline
       }
-    } catch {
-      // Offline mode: keep verified cached session, but never trust an unverified admin role escalation offline
     }
 
     if (cached.role === 'admin' && !isLocalAdminEmail(cached.email)) {

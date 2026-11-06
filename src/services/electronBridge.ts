@@ -1,4 +1,4 @@
-import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus, GameCatalogItem, UpdateCheckResult } from '../types/launcher';
+import type { InaayahLauncherAPI, LauncherConfig, InstalledGame, DownloadProgress, GameStatus, GameCatalogItem, UpdateCheckResult, PersistedAuthSession } from '../types/launcher';
 import { APP_VERSION, compareVersions } from '../utils/version';
 
 const STORAGE_KEY_CONFIG = 'inaayah_launcher_config_mock';
@@ -89,6 +89,39 @@ export const launcherBridge: InaayahLauncherAPI = {
   async setConfig(config: Partial<LauncherConfig>): Promise<LauncherConfig> {
     if (window.inaayahLauncher) return window.inaayahLauncher.setConfig(config);
     return setMockConfig(config);
+  },
+
+  async getAuthSession(): Promise<PersistedAuthSession | null> {
+    if (window.inaayahLauncher?.getAuthSession) {
+      try {
+        return await window.inaayahLauncher.getAuthSession();
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  },
+
+  async saveAuthSession(session: PersistedAuthSession): Promise<boolean> {
+    if (window.inaayahLauncher?.saveAuthSession) {
+      try {
+        return await window.inaayahLauncher.saveAuthSession(session);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  },
+
+  async clearAuthSession(options?: { keepEmail?: boolean }): Promise<boolean> {
+    if (window.inaayahLauncher?.clearAuthSession) {
+      try {
+        return await window.inaayahLauncher.clearAuthSession(options);
+      } catch {
+        return false;
+      }
+    }
+    return false;
   },
 
   async browseDirectory(): Promise<string | null> {
@@ -364,10 +397,11 @@ export const launcherBridge: InaayahLauncherAPI = {
     return { success: true, updateAvailable: false, version: currentVersion, currentVersion };
   },
 
-  async restartAndInstallUpdate(): Promise<void> {
+  async restartAndInstallUpdate(): Promise<boolean | void> {
     if (window.inaayahLauncher?.restartAndInstallUpdate) {
-      await window.inaayahLauncher.restartAndInstallUpdate();
+      return await window.inaayahLauncher.restartAndInstallUpdate();
     }
+    return true;
   },
 
   onLauncherUpdateReady(callback: (version: string) => void) {
