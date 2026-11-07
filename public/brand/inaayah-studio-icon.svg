@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Studio">
+  <title>Inaayah Studio</title>
+  <defs>
+    <linearGradient id="studioBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#151A26"/>
+      <stop offset="100%" stop-color="#0C0F17"/>
+    </linearGradient>
+    <linearGradient id="studioBrass" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5B869"/>
+      <stop offset="100%" stop-color="#CC8B45"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#studioBg)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#D8A24A" stroke-opacity="0.42" stroke-width="1.5"/>
+  <!-- Isometric 3D Creative Prism -->
+  <path
+    d="M32 10L51 21V43L32 54L13 43V21L32 10Z"
+    fill="#D8A24A"
+    fill-opacity="0.12"
+    stroke="url(#studioBrass)"
+    stroke-width="2.4"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M13 21L32 32L51 21M32 32V54"
+    stroke="#8FA8D6"
+    stroke-opacity="0.55"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Multimodal Play / Waveform Core -->
+  <circle cx="32" cy="32" r="8" fill="#0C0F17" stroke="#D8A24A" stroke-width="2"/>
+  <path d="M29.5 28.2L36.2 32L29.5 35.8V28.2Z" fill="#F4F1EA"/>
+</svg>

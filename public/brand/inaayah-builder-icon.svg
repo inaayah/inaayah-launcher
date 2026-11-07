@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Builder">
+  <title>Inaayah Builder</title>
+  <defs>
+    <linearGradient id="builderBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#222422"/>
+      <stop offset="100%" stop-color="#171817"/>
+    </linearGradient>
+    <linearGradient id="builderTeak" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D8A24A"/>
+      <stop offset="100%" stop-color="#CC8B45"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#builderBg)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#CC8B45" stroke-opacity="0.42" stroke-width="1.5"/>
+  <!-- Top 45-degree Chamfered Inaayah Header Beam -->
+  <path fill="url(#builderTeak)" d="M16 12H52L45 22H12V16C12 13.7909 13.7909 12 16 12Z"/>
+  <!-- Left Structural Layout Pillar -->
+  <rect x="12" y="27" width="15" height="25" rx="3.5" fill="#9E6220" fill-opacity="0.42" stroke="#CC8B45" stroke-width="1.75"/>
+  <!-- Right Living Canvas Card with AI Copilot Spark -->
+  <rect x="32" y="27" width="20" height="25" rx="4" fill="#F3F0E8"/>
+  <path fill="#9E6220" d="M42 33L43.6 37.9L48.5 39.5L43.6 41.1L42 46L40.4 41.1L35.5 39.5L40.4 37.9L42 33Z"/>
+</svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Portal">
+  <title>Inaayah Portal</title>
+  <defs>
+    <linearGradient id="portalBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#222422"/>
+      <stop offset="100%" stop-color="#171817"/>
+    </linearGradient>
+    <linearGradient id="portalTeak" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D8A24A"/>
+      <stop offset="100%" stop-color="#CC8B45"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#portalBg)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#CC8B45" stroke-opacity="0.42" stroke-width="1.5"/>
+  <!-- Command Meridian Ring -->
+  <circle cx="32" cy="32" r="21" stroke="#3D403D" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <!-- Left Telemetry Pillar (Brushed Nickel) -->
+  <rect x="16" y="34" width="8" height="16" rx="2" fill="#BFC4C0"/>
+  <!-- Center 45-degree Chamfered Inaayah Command Pillar (Golden Teak) -->
+  <path fill="url(#portalTeak)" d="M30 14H38L35.5 19H36V50H28V16C28 14.8954 28.8954 14 30 14Z"/>
+  <!-- Right Telemetry Pillar (Limestone Chalk) -->
+  <rect x="40" y="25" width="8" height="25" rx="2" fill="#F3F0E8"/>
+  <!-- Apex Beacon -->
+  <circle cx="44" cy="18" r="2.5" fill="#D8A24A"/>
+</svg>
