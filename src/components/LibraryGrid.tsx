@@ -221,11 +221,11 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                         gap: 4,
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-sm)',
-                        background: 'rgba(10, 12, 19, 0.85)',
+                        background: 'rgba(23, 24, 23, 0.88)',
                         backdropFilter: 'blur(8px)',
                         fontSize: 11,
                         color: 'var(--text-secondary)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                        border: '1px solid var(--border-subtle)'
                       }}
                     >
                       <Clock size={11} color="var(--accent-gold)" />

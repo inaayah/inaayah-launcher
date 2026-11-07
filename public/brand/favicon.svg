@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <title>Inaayah Arcade</title>
-  <rect width="64" height="64" rx="14" fill="#0b0e14"/>
-  <path fill="#00f0ff" d="M20 8H52L44 20H38V44H52L44 56H12L20 44H26V20H12L20 8Z"/>
+  <title>Inaayah Studio</title>
+  <rect width="64" height="64" rx="14" fill="#171817"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#323532" stroke-width="1.5"/>
+  <path fill="#CC8B45" d="M20 8H52L44 20H38V44H52L44 56H12L20 44H26V20H12L20 8Z"/>
 </svg>

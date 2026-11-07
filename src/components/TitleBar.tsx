@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Minus, Square, X, ShieldCheck, Wifi, Bell, RotateCcw, Download, Settings, Sun, Moon } from 'lucide-react';
+import { Minus, Square, X, ShieldCheck, Wifi, Bell, RotateCcw, Download, Settings, Sun, Moon, Sparkles } from 'lucide-react';
 import { launcherBridge } from '../services/electronBridge';
 import type { LauncherConfig } from '../types/launcher';
 import { getAssetUrl, getLocalBrandFallbackUrl } from '../utils/assets';
 import { APP_VERSION } from '../utils/version';
 
-type ThemeMode = 'dark' | 'light';
+type ThemeMode = 'dark' | 'midnight' | 'light';
 
 const THEME_STORAGE_KEY = 'inaayah_theme';
 
@@ -13,12 +13,12 @@ function getInitialTheme(): ThemeMode {
   if (typeof window === 'undefined') return 'dark';
   try {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
+    if (saved === 'light' || saved === 'dark' || saved === 'midnight') return saved;
   } catch {
     // ignore storage errors
   }
   const attr = document.documentElement.getAttribute('data-theme');
-  if (attr === 'light' || attr === 'dark') return attr;
+  if (attr === 'light' || attr === 'dark' || attr === 'midnight') return attr;
   if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: light)').matches) {
     return 'light';
   }
@@ -94,7 +94,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   }, []);
 
   const toggleTheme = () => {
-    const next: ThemeMode = theme === 'dark' ? 'light' : 'dark';
+    const next: ThemeMode = theme === 'dark' ? 'midnight' : theme === 'midnight' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
     try {
@@ -103,6 +103,13 @@ export const TitleBar: React.FC<TitleBarProps> = ({
       // ignore
     }
   };
+
+  const themeTooltip =
+    theme === 'dark'
+      ? 'Theme: Gunmetal & Golden Teak (Click for Starry Midnight)'
+      : theme === 'midnight'
+      ? 'Theme: Starry Midnight & Astrolabe Brass (Click for Light Chalk)'
+      : 'Theme: Limestone Chalk & Oiled Teak (Click for Gunmetal Dark)';
 
   const handleOpenReleasePage = () => {
     launcherBridge.openExternalUrl(updateReleaseUrl || 'https://github.com/inaayah/inaayah-launcher/releases/latest');
@@ -192,10 +199,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           type="button"
           className="theme-toggle-btn"
           onClick={toggleTheme}
-          title={theme === 'dark' ? 'Switch to Light Mode (Warm Stone Alabaster)' : 'Switch to Dark Mode (Carbon Obsidian)'}
-          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          title={themeTooltip}
+          aria-label={themeTooltip}
         >
-          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          {theme === 'dark' ? <Moon size={14} /> : theme === 'midnight' ? <Sparkles size={14} /> : <Sun size={14} />}
         </button>
 
         <button

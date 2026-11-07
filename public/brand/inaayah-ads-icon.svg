@@ -2,10 +2,15 @@
   <title>Inaayah Ads</title>
   <defs>
     <linearGradient id="inaayahAdsBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#4F46E5"/>
-      <stop offset="100%" stop-color="#3730A3"/>
+      <stop offset="0%" stop-color="#222422"/>
+      <stop offset="100%" stop-color="#171817"/>
+    </linearGradient>
+    <linearGradient id="inaayahAdsMark" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D8A24A"/>
+      <stop offset="100%" stop-color="#CC8B45"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#inaayahAdsBg)"/>
-  <path fill="#FFFFFF" d="M20 8H52L44 20H38V44H52L44 56H12L20 44H26V20H12L20 8Z"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#CC8B45" stroke-opacity="0.4" stroke-width="1.5"/>
+  <path fill="url(#inaayahAdsMark)" d="M20 8H52L44 20H38V44H52L44 56H12L20 44H26V20H12L20 8Z"/>
 </svg>
