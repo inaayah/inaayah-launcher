@@ -130,7 +130,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                 <div className="card-banner-overlay" />
                 {isDev ? (
                   <div style={{ position: 'absolute', top: 12, left: 12 }}>
-                    <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span className="badge" style={{ background: 'rgba(60, 154, 110, 0.25)', color: '#3C9A6E', border: '1px solid rgba(60, 154, 110, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       ⚡ Local Dev Mode
                     </span>
                   </div>
@@ -154,9 +154,9 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     <span
                       className="badge"
                       style={{
-                        background: 'rgba(168, 85, 247, 0.25)',
-                        color: '#c084fc',
-                        border: '1px solid rgba(168, 85, 247, 0.5)',
+                        background: 'rgba(216, 162, 74, 0.24)',
+                        color: '#D8A24A',
+                        border: '1px solid rgba(216, 162, 74, 0.5)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4
@@ -165,7 +165,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                       <Sparkles size={11} className="animate-spin" /> Running
                     </span>
                   ) : isDev ? (
-                    <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)' }}>
+                    <span className="badge" style={{ background: 'rgba(60, 154, 110, 0.25)', color: '#3C9A6E', border: '1px solid rgba(60, 154, 110, 0.5)' }}>
                       Dev Ready
                     </span>
                   ) : isComingSoon ? (
@@ -187,15 +187,15 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="card-title">{game.title}</h3>
                   {isRunning ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#c084fc', fontSize: 12, fontWeight: 600 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--brand-amber)', fontSize: 12, fontWeight: 600 }}>
                       <Sparkles size={13} className="animate-spin" /> Running
                     </span>
                   ) : isDev ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#34d399', fontSize: 12, fontWeight: 600 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent-green)', fontSize: 12, fontWeight: 600 }}>
                       ⚡ Dev Active
                     </span>
                   ) : isComingSoon ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#ffaa00', fontSize: 12, fontWeight: 600 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--brand-amber)', fontSize: 12, fontWeight: 600 }}>
                       <Clock size={13} /> In Dev
                     </span>
                   ) : isInstalled ? (
@@ -243,8 +243,8 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                         height: 34,
                         padding: '0 14px',
                         fontSize: 12,
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        borderColor: '#34d399'
+                        background: 'linear-gradient(135deg, #3C9A6E 0%, #2E7D57 100%)',
+                        borderColor: '#3C9A6E'
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -260,9 +260,9 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                         height: 34,
                         padding: '0 14px',
                         fontSize: 12,
-                        background: 'rgba(255, 170, 0, 0.12)',
-                        borderColor: 'rgba(255, 170, 0, 0.4)',
-                        color: '#ffaa00'
+                        background: 'rgba(216, 162, 74, 0.14)',
+                        borderColor: 'rgba(216, 162, 74, 0.42)',
+                        color: 'var(--brand-amber)'
                       }}
                       onClick={(e) => {
                         e.stopPropagation();

@@ -114,7 +114,7 @@ export const DownloadsQueue: React.FC<DownloadsQueueProps> = ({
                             <CheckCircle2 size={14} /> Completed
                           </span>
                         ) : isError ? (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#ff4444' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#C95B4B' }}>
                             <AlertTriangle size={14} /> Failed: {p.errorMsg || 'Network error'}
                           </span>
                         ) : (
@@ -131,7 +131,7 @@ export const DownloadsQueue: React.FC<DownloadsQueueProps> = ({
                     {!isCompleted && (
                       <button
                         className="btn-secondary"
-                        style={{ height: 32, padding: '0 10px', color: '#ff6b81' }}
+                        style={{ height: 32, padding: '0 10px', color: '#C95B4B' }}
                         title="Cancel Download"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -150,7 +150,7 @@ export const DownloadsQueue: React.FC<DownloadsQueueProps> = ({
                     style={{
                       width: `${p.percentage}%`,
                       background: isError
-                        ? '#ff4444'
+                        ? '#C95B4B'
                         : isCompleted
                         ? 'var(--accent-green)'
                         : isExtracting

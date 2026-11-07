@@ -196,7 +196,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                 onClick={() => onSelectGame(game.id)}
                 style={{
                   border: isRunning
-                    ? '1px solid #a855f7'
+                    ? '1px solid var(--brand-amber)'
                     : isInstalled
                     ? '1px solid var(--badge-teal-border)'
                     : undefined
@@ -247,9 +247,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                       <span
                         className="badge"
                         style={{
-                          background: 'rgba(168, 85, 247, 0.25)',
-                          color: '#c084fc',
-                          border: '1px solid rgba(168, 85, 247, 0.5)',
+                          background: 'rgba(216, 162, 74, 0.24)',
+                          color: '#D8A24A',
+                          border: '1px solid rgba(216, 162, 74, 0.5)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4
@@ -262,7 +262,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                         <Download size={11} /> {status === 'EXTRACTING' ? 'Unpacking' : `${downloadProg?.percentage || 0}%`}
                       </span>
                     ) : isDev ? (
-                      <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="badge" style={{ background: 'rgba(60, 154, 110, 0.25)', color: '#3C9A6E', border: '1px solid rgba(60, 154, 110, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         ⚡ Dev Mode
                       </span>
                     ) : isComingSoon ? (
@@ -273,9 +273,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                       <span
                         className="badge"
                         style={{
-                          background: 'rgba(255, 183, 0, 0.2)',
-                          color: '#ffaa00',
-                          border: '1px solid rgba(255, 183, 0, 0.4)',
+                          background: 'rgba(216, 162, 74, 0.2)',
+                          color: 'var(--brand-amber)',
+                          border: '1px solid rgba(216, 162, 74, 0.42)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4
@@ -341,8 +341,8 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                           height: 34,
                           padding: '0 16px',
                           fontSize: 12,
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          borderColor: '#34d399'
+                          background: 'linear-gradient(135deg, #3C9A6E 0%, #2E7D57 100%)',
+                          borderColor: '#3C9A6E'
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -358,9 +358,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                           height: 34,
                           padding: '0 14px',
                           fontSize: 12,
-                          background: 'rgba(255, 170, 0, 0.12)',
-                          borderColor: 'rgba(255, 170, 0, 0.4)',
-                          color: '#ffaa00'
+                          background: 'rgba(216, 162, 74, 0.14)',
+                          borderColor: 'rgba(216, 162, 74, 0.42)',
+                          color: 'var(--brand-amber)'
                         }}
                         onClick={(e) => {
                           e.stopPropagation();

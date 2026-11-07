@@ -79,9 +79,9 @@ export const GameHero: React.FC<GameHeroProps> = ({
             key="dev-mode"
             className="badge"
             style={{
-              background: 'rgba(16, 185, 129, 0.25)',
-              color: '#34d399',
-              border: '1px solid rgba(16, 185, 129, 0.5)',
+              background: 'rgba(60, 154, 110, 0.25)',
+              color: '#3C9A6E',
+              border: '1px solid rgba(60, 154, 110, 0.5)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4
@@ -153,9 +153,9 @@ export const GameHero: React.FC<GameHeroProps> = ({
             key="live-dev"
             className="badge"
             style={{
-              background: 'rgba(56, 189, 248, 0.2)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.4)'
+              background: 'rgba(143, 168, 214, 0.2)',
+              color: '#8FA8D6',
+              border: '1px solid rgba(143, 168, 214, 0.4)'
             }}
           >
             ⚡ Live Dev Source
@@ -289,7 +289,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                   {status === 'RUNNING' ? (
-                    <button className="btn-primary-action running" style={{ background: '#a855f7' }}>
+                    <button className="btn-primary-action running" style={{ background: 'var(--brand-amber)' }}>
                       <Sparkles size={18} className="animate-spin" />
                       <span>Running (Dev Mode)</span>
                     </button>
@@ -297,9 +297,9 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <button
                       className="btn-primary-action play"
                       style={{
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        borderColor: '#34d399',
-                        boxShadow: '0 0 20px rgba(16, 185, 129, 0.4)'
+                        background: 'linear-gradient(135deg, #3C9A6E 0%, #2E7D57 100%)',
+                        borderColor: '#3C9A6E',
+                        boxShadow: '0 0 20px rgba(60, 154, 110, 0.35)'
                       }}
                       onClick={() => onLaunch(game.id)}
                     >
@@ -328,10 +328,10 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <span>Roadmap</span>
                   </button>
                 </div>
-                <div style={{ fontSize: 12, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <div style={{ fontSize: 12, color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <span>⚡ Local Godot Project Active</span>
                   <span>•</span>
-                  <span style={{ color: 'var(--text-muted)' }}>Target: <strong style={{ color: '#ffaa00' }}>{game.releaseDate}</strong></span>
+                  <span style={{ color: 'var(--text-muted)' }}>Target: <strong style={{ color: 'var(--brand-amber)' }}>{game.releaseDate}</strong></span>
                 </div>
               </div>
             ) : isComingSoon ? (
@@ -353,7 +353,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </button>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  In Active Development • Target: <strong style={{ color: '#ffaa00' }}>{game.releaseDate}</strong>
+                  In Active Development • Target: <strong style={{ color: 'var(--brand-amber)' }}>{game.releaseDate}</strong>
                 </div>
               </div>
             ) : isWebGame ? (
@@ -488,7 +488,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                     <button
                       className="btn-secondary"
                       title="Uninstall Game"
-                      style={{ color: '#ff6b81' }}
+                      style={{ color: '#C95B4B' }}
                       onClick={() => onUninstall(game.id)}
                     >
                       <Trash2 size={15} />
@@ -573,13 +573,13 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Status</span>
-                    <span style={{ color: isComingSoon ? '#ffaa00' : 'var(--accent-green)', fontWeight: 600 }}>
+                    <span style={{ color: isComingSoon ? 'var(--brand-amber)' : 'var(--accent-green)', fontWeight: 600 }}>
                       {isComingSoon ? 'In Development' : isWebGame ? 'Live Web Game' : 'Available Now'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Distribution</span>
-                    <span style={{ color: isComingSoon ? '#ffaa00' : 'var(--accent-green)', fontWeight: 600 }}>
+                    <span style={{ color: isComingSoon ? 'var(--brand-amber)' : 'var(--accent-green)', fontWeight: 600 }}>
                       {isComingSoon ? 'Coming Soon' : isWebGame ? 'Cloud / Web Hosted' : 'GitHub Releases'}
                     </span>
                   </div>
