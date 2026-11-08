@@ -1,19 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Builder">
   <title>Inaayah Builder</title>
   <defs>
-    <linearGradient id="builderBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bgIB" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#242624"/>
       <stop offset="100%" stop-color="#171817"/>
     </linearGradient>
-    <linearGradient id="builderTeak" x1="12" y1="12" x2="52" y2="24" gradientUnits="userSpaceOnUse">
+    <linearGradient id="teakIB" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#E5B869"/>
       <stop offset="100%" stop-color="#CC8B45"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="#6E4F2B"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#builderBg)"/>
-  <path fill="url(#builderTeak)" d="M16 12H52L44 23H12V16C12 13.7909 13.7909 12 16 12Z"/>
-  <rect x="12" y="28" width="15" height="24" rx="4" fill="#9E6220"/>
-  <rect x="31" y="28" width="21" height="24" rx="4" fill="#F3F0E8"/>
-  <path fill="#9E6220" d="M41.5 33L43.2 38.3L48.5 40L43.2 41.7L41.5 47L39.8 41.7L34.5 40L39.8 38.3L41.5 33Z"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#bgIB)"/>
+  <path fill="url(#teakIB)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
+  <path fill="#F3F0E8" fill-rule="evenodd" clip-rule="evenodd" d="M30.5 15H48L52 19V28.5L48.2 31.8L53 35.8V45L49 49H30.5V15ZM37 21V29H44.2L45.5 27.7V22.3L44.2 21H37ZM37 35V43H45.2L46.5 41.7V36.3L45.2 35H37Z"/>
 </svg>

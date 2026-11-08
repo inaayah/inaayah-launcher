@@ -1,32 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Ads">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Ads">
   <title>Inaayah Ads</title>
   <defs>
-    <linearGradient id="adsBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#222422"/>
+    <linearGradient id="bgIS" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#242624"/>
       <stop offset="100%" stop-color="#171817"/>
     </linearGradient>
-    <linearGradient id="adsTeak" x1="14" y1="9" x2="50" y2="55" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#D8A24A"/>
+    <linearGradient id="teakIS" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5B869"/>
       <stop offset="100%" stop-color="#CC8B45"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="url(#adsBg)"/>
-  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#CC8B45" stroke-opacity="0.42" stroke-width="1.5"/>
-  <path
-    d="M32 9L50 15.5V30.5C50 42.8 42.1 51.2 32 55C21.9 51.2 14 42.8 14 30.5V15.5L32 9Z"
-    fill="#CC8B45"
-    fill-opacity="0.14"
-    stroke="url(#adsTeak)"
-    stroke-width="2.5"
-    stroke-linejoin="round"
-  />
-  <path fill="url(#adsTeak)" d="M23 22H43L39.5 28H20V25C20 23.3431 21.3431 22 23 22Z"/>
-  <path
-    d="M24.5 36.5L29.5 41.5L40.5 30.5"
-    stroke="#F3F0E8"
-    stroke-width="3"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <circle cx="43" cy="25" r="2" fill="#7BA682"/>
+  <rect width="64" height="64" rx="14" fill="#6E4F2B"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#bgIS)"/>
+  <path fill="url(#teakIS)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
+  <path fill="#F3F0E8" d="M34.5 15H53L49 21H37V29H49L53 33V45L49 49H30L34 43H46.5V35H34.5L30.5 31V19L34.5 15Z"/>
 </svg>
