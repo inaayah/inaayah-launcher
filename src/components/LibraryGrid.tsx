@@ -13,7 +13,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, DownloadProgress, GameStatus } from '../types/launcher';
-import { getAssetUrl } from '../utils/assets';
+import { GameTileArtwork } from './GameTileArtwork';
 
 interface LibraryGridProps {
   catalog: GameCatalogItem[];
@@ -203,10 +203,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                 }}
               >
                 {/* Banner Thumbnail */}
-                <div
-                  className="card-banner"
-                  style={{ backgroundImage: `url(${getAssetUrl(game.heroBanner)})` }}
-                >
+                <GameTileArtwork banner={game.heroBanner} cover={game.coverArt}>
                   <div className="card-banner-overlay" />
 
                   {/* Top-Left Playtime Badge */}
@@ -292,7 +289,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                       <span className="badge">v{game.version}</span>
                     )}
                   </div>
-                </div>
+                </GameTileArtwork>
 
                 {/* Card Body */}
                 <div className="card-body">

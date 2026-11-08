@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Gamepad2, Home, RotateCw, ExternalLink, AppWindow } from 'lucide-react';
+import { Home, RotateCw, ExternalLink, AppWindow } from 'lucide-react';
 import { launcherBridge } from '../services/electronBridge';
+import { getAssetUrl, getLocalBrandFallbackUrl } from '../utils/assets';
 
 const ARCADE_HUB_URL = 'https://arcade.inaayah.dev/';
 
@@ -53,22 +54,15 @@ export const DailyArcade: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 7,
-              background: 'rgba(59, 130, 246, 0.14)',
-              border: '1px solid rgba(59, 130, 246, 0.36)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#60A5FA',
-              flexShrink: 0
+          <img
+            src={`${getAssetUrl('brand/inaayah-arcade-icon.svg')}?v=opt1`}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = `${getLocalBrandFallbackUrl('inaayah-arcade-icon.svg')}?v=opt1`;
             }}
-          >
-            <Gamepad2 size={15} />
-          </div>
+            alt="Inaayah Arcade"
+            style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }}
+          />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
               Inaayah Daily Arcade

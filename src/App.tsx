@@ -395,15 +395,15 @@ export const App: React.FC = () => {
         <div className="launcher-splash-screen" role="status" aria-live="polite">
           <div className="splash-logo-ring">
             <img
-              src={getAssetUrl('brand/inaayah-games-icon.png')}
+              src={`${getAssetUrl('brand/inaayah-games-icon.png')}?v=opt1`}
               onError={(e) => {
                 const step = e.currentTarget.dataset.fallbackApplied;
                 if (!step) {
                   e.currentTarget.dataset.fallbackApplied = '1';
-                  e.currentTarget.src = getLocalBrandFallbackUrl('inaayah-games-icon.png');
+                  e.currentTarget.src = `${getLocalBrandFallbackUrl('inaayah-games-icon.png')}?v=opt1`;
                 } else if (step === '1') {
                   e.currentTarget.dataset.fallbackApplied = '2';
-                  e.currentTarget.src = './icon.png';
+                  e.currentTarget.src = './icon.png?v=opt1';
                 }
               }}
               alt="Inaayah Games"

@@ -3,6 +3,7 @@ import { ArrowUpRight, ChevronDown, Clock, Download, Globe, LoaderCircle, Play, 
 import type { GameCatalogItem, InstalledGame, GameStatus } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
 import { settledGameStatus } from '../utils/gameStatus';
+import { GameTileArtwork } from './GameTileArtwork';
 
 interface StoreCatalogProps {
   catalog: GameCatalogItem[];
@@ -207,7 +208,7 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
         <div className="catalog-grid">
           {remaining.map(game => (
             <article key={game.id} className="game-card" onClick={() => onSelectGame(game.id)}>
-              <div className="card-banner" style={{ backgroundImage: `url(${getAssetUrl(game.heroBanner)})` }} />
+              <GameTileArtwork banner={game.heroBanner} cover={game.coverArt} />
               <div className="card-body">
                 <h3 className="card-title">
                   <button type="button" onClick={event => { event.stopPropagation(); onSelectGame(game.id); }}>

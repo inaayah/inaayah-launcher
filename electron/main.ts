@@ -620,15 +620,21 @@ function setupSystemTray(): void {
 }
 
 function createWindow(): void {
-  const iconPath = path.join(app.getAppPath(), 'build/icon.png');
-  if (process.platform === 'darwin' && app.dock && fs.existsSync(iconPath)) {
+  const iconCandidates = [
+    path.join(app.getAppPath(), 'build', 'icon.png'),
+    path.join(app.getAppPath(), 'dist', 'icon.png'),
+    path.join(__dirname, '../dist/icon.png'),
+    path.join(__dirname, '../public/icon.png')
+  ];
+  const iconPath = iconCandidates.find((p) => fs.existsSync(p));
+  if (process.platform === 'darwin' && app.dock && iconPath) {
     try {
       app.dock.setIcon(iconPath);
     } catch {}
   }
 
   mainWindow = new BrowserWindow({
-    icon: fs.existsSync(iconPath) ? iconPath : undefined,
+    icon: iconPath,
     width: 1280,
     height: 820,
     minWidth: 1024,

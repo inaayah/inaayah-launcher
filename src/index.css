@@ -1288,12 +1288,42 @@ html[data-theme="midnight"] .app-container,
 }
 
 .card-banner {
-  height: 180px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  aspect-ratio: 16 / 9;
+  flex: none;
+  overflow: hidden;
   background-color: var(--bg-artwork-well);
   position: relative;
+}
+
+.card-banner-image,
+.card-banner-backdrop,
+.card-banner-placeholder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.card-banner-image,
+.card-banner-backdrop {
+  width: 100%;
+  height: 100%;
+}
+
+.card-banner-image {
+  object-fit: contain;
+}
+
+.card-banner-backdrop {
+  object-fit: cover;
+  filter: blur(14px);
+  transform: scale(1.12);
+  opacity: 0.5;
+}
+
+.card-banner-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
 }
 
 .card-banner-overlay {
@@ -1447,7 +1477,6 @@ html[data-theme="midnight"] .app-container,
 .discover-catalog .catalog-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 16px; }
 .discover-catalog .game-card { background: var(--bg-card-solid); box-shadow: none; }
 .discover-catalog .game-card:hover { transform: none; }
-.discover-catalog .card-banner { height: auto; aspect-ratio: 1.85; }
 .discover-catalog .card-body { gap: 8px; padding: 14px; }
 .discover-catalog .card-title button {
   padding: 0;
