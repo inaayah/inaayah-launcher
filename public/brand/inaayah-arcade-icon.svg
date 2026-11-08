@@ -1,23 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Inaayah Arcade">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Arcade">
+  <title>Inaayah Arcade</title>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#151A26" />
-      <stop offset="100%" stop-color="#0C0F17" />
+    <linearGradient id="arcadeBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#171F30"/>
+      <stop offset="100%" stop-color="#0C0F17"/>
     </linearGradient>
-    <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#D8A24A" />
-      <stop offset="100%" stop-color="#CC8B45" />
+    <linearGradient id="arcadeBrass" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5B869"/>
+      <stop offset="100%" stop-color="#CC8B45"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="8" fill="url(#bg)" />
-  <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="7.25" fill="none" stroke="#D8A24A" stroke-opacity="0.42" stroke-width="1.5" />
-  <path
-    d="M16 5.5L18.9 13.1L26.5 16L18.9 18.9L16 26.5L13.1 18.9L5.5 16L13.1 13.1L16 5.5Z"
-    fill="url(#spark)"
-    fill-opacity="0.22"
-    stroke="url(#spark)"
-    stroke-width="2"
-    stroke-linejoin="round"
-  />
-  <circle cx="16" cy="16" r="2.2" fill="#F3F0E8" />
+  <!-- Starry Midnight Hardware Tile & Astrolabe Brass Bezel -->
+  <rect width="64" height="64" rx="14" fill="#6E5229"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#arcadeBg)"/>
+  <!-- Top 45-degree Chamfered Inaayah Arcade Marquee Beam -->
+  <path fill="url(#arcadeBrass)" d="M16 12H52L45 21H12V16C12 13.7909 13.7909 12 16 12Z"/>
+  <!-- Bottom-Left: Tactile 4-Way Arcade D-Pad Cross (Astrolabe Brass) -->
+  <path fill="url(#arcadeBrass)" d="M21 26H29V33H36V41H29V48H21V41H14V33H21V26Z"/>
+  <circle cx="25" cy="37" r="2.5" fill="#0C0F17"/>
+  <!-- Bottom-Right: Dual Arcade Action Buttons (Starlight Chalk B + Sirius Silver-Blue A) -->
+  <circle cx="43" cy="44" r="5" fill="#8FA8D6"/>
+  <circle cx="49" cy="32" r="5" fill="#F4F1EA"/>
 </svg>
