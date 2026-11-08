@@ -2,16 +2,16 @@
   <title>Inaayah Ads</title>
   <defs>
     <linearGradient id="bgIS" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#242624"/>
-      <stop offset="100%" stop-color="#171817"/>
+      <stop offset="0%" stop-color="#1E1038"/>
+      <stop offset="100%" stop-color="#0F071E"/>
     </linearGradient>
-    <linearGradient id="teakIS" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#E5B869"/>
-      <stop offset="100%" stop-color="#CC8B45"/>
+    <linearGradient id="violetIS" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="#6E4F2B"/>
+  <rect width="64" height="64" rx="14" fill="#7C3AED"/>
   <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#bgIS)"/>
-  <path fill="url(#teakIS)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
-  <path fill="#F3F0E8" d="M34.5 15H53L49 21H37V29H49L53 33V45L49 49H30L34 43H46.5V35H34.5L30.5 31V19L34.5 15Z"/>
+  <path fill="url(#violetIS)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
+  <path fill="#FFFFFF" d="M34.5 15H53L49 21H37V29H49L53 33V45L49 49H30L34 43H46.5V35H34.5L30.5 31V19L34.5 15Z"/>
 </svg>

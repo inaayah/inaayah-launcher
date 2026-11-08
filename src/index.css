@@ -6,35 +6,41 @@ html[data-theme="dark"] {
   --font-mono: 'JetBrains Mono', monospace;
   --font-serif: 'Fraunces', Georgia, serif;
 
-  /* Foundation A: Golden Teak (#CC8B45), Gunmetal Titanium (#171817) & Limestone Chalk (#F3F0E8) */
-  --bg-base: #171817;
-  --bg-primary: #1C1D1C;
-  --bg-secondary: #222422;
-  --bg-tertiary: #2C2E2C;
-  --bg-surface: #222422;
-  --bg-surface-elevated: #2C2E2C;
-  --bg-card: linear-gradient(180deg, #242624 0%, #1B1C1B 100%);
-  --bg-card-solid: #222422;
-  --bg-glass: rgba(30, 32, 30, 0.90);
-  --bg-titlebar: rgba(23, 24, 23, 0.90);
-  --bg-subtle-box: rgba(23, 24, 23, 0.78);
-  --bg-hover: rgba(243, 240, 232, 0.05);
-  --bg-active-pill: rgba(204, 139, 69, 0.12);
-  --bg-artwork-well: #121312;
-  --bg-footer: #121312;
-  --bg-dropdown: #1E201E;
-  --bg-bento: linear-gradient(180deg, #242624 0%, #1B1C1B 100%);
+  /* 60% Chassis: Pure Neutral Carbon & Anodized Slate */
+  --bg-base: #0B0D12;
+  --bg-primary: #0F1219;
+  --bg-secondary: #12161F;
+  --bg-tertiary: #1A202C;
+  --bg-surface: #12161F;
+  --bg-surface-elevated: #1A202C;
+  --bg-card: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
+  --bg-card-solid: #12161F;
+  --bg-glass: rgba(18, 22, 31, 0.90);
+  --bg-titlebar: rgba(11, 13, 18, 0.90);
+  --bg-subtle-box: rgba(11, 13, 18, 0.82);
+  --bg-hover: rgba(248, 250, 252, 0.05);
+  --bg-active-pill: rgba(230, 57, 70, 0.14);
+  --bg-artwork-well: #07090D;
+  --bg-footer: #07090D;
+  --bg-dropdown: #141923;
+  --bg-bento: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
 
-  /* 10% Signature Material Accents: Golden Teak & Brushed Nickel */
-  --brand-accent: #CC8B45;
-  --brand-accent-soft: #DDA15E;
-  --brand-accent-glow: rgba(204, 139, 69, 0.14);
-  --brand-alloy: #BFC4C0;
-  --brand-stone: #F3F0E8;
-  --brand-serif-color: #F3F0E8;
-  --brand-amber: #D89A4E;
-  --brand-success: #7BA682;
-  --brand-danger: #C85A48;
+  /* Per-Service Signature Jewel Accents (IG Signal Crimson + Suite Accents) */
+  --accent-master: #FFFFFF;
+  --accent-games: #E63946;
+  --accent-arcade: #3B82F6;
+  --accent-builder: #10B981;
+  --accent-sponsor: #8B5CF6;
+
+  --brand-accent: #E63946;
+  --brand-accent-soft: #FF4D5E;
+  --brand-accent-glow: rgba(230, 57, 70, 0.16);
+  --brand-alloy: #94A3B8;
+  --brand-stone: #F8FAFC;
+  --brand-serif-color: #F8FAFC;
+  --brand-amber: #F59E0B;
+  --brand-success: #10B981;
+  --brand-danger: #E63946;
 
   /* Mapped Semantic Tokens */
   --accent-cyan: var(--brand-accent);
@@ -43,37 +49,37 @@ html[data-theme="dark"] {
   --accent-magenta-glow: var(--brand-accent-glow);
   --accent-gold: var(--brand-amber);
   --accent-green: var(--brand-success);
-  --accent-green-glow: rgba(123, 166, 130, 0.22);
+  --accent-green-glow: rgba(16, 185, 129, 0.22);
 
-  /* 30% Typography: Limestone Chalk & Brushed Nickel */
-  --text-primary: #F3F0E8;
-  --text-secondary: #9EA39F;
-  --text-muted: #737874;
-  --text-tone-muted: #858A86;
+  /* 30% Typography: Crisp Titanium White & Cool Silver */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-tone-muted: #78879C;
 
   /* Machined 1px Borders & Specular Edge */
-  --border-subtle: #323532;
-  --border-glass: #3D403D;
-  --border-strong: #525652;
-  --border-bezel: #2E302E;
-  --border-accent: rgba(204, 139, 69, 0.34);
-  --specular-line: linear-gradient(90deg, transparent, rgba(243, 240, 232, 0.16), transparent);
-  --hero-glow: rgba(204, 139, 69, 0.06);
+  --border-subtle: #222938;
+  --border-glass: #283142;
+  --border-strong: #38445B;
+  --border-bezel: #1E2433;
+  --border-accent: rgba(230, 57, 70, 0.36);
+  --specular-line: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.16), transparent);
+  --hero-glow: rgba(230, 57, 70, 0.08);
 
   /* Tactile Hardware Buttons & Badges */
-  --btn-primary-bg: #CC8B45;
-  --btn-primary-hover: #DDA15E;
-  --btn-primary-text: #171817;
-  --btn-primary-shadow: rgba(204, 139, 69, 0.18);
-  --btn-secondary-bg: #2C2E2C;
-  --btn-secondary-hover: #363936;
-  --badge-neutral-bg: #262826;
-  --badge-accent-bg: rgba(204, 139, 69, 0.12);
-  --badge-accent-border: rgba(204, 139, 69, 0.32);
+  --btn-primary-bg: #E63946;
+  --btn-primary-hover: #FF4D5E;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-shadow: rgba(230, 57, 70, 0.24);
+  --btn-secondary-bg: #1A202C;
+  --btn-secondary-hover: #222938;
+  --badge-neutral-bg: #1A202C;
+  --badge-accent-bg: rgba(230, 57, 70, 0.14);
+  --badge-accent-border: rgba(230, 57, 70, 0.36);
   --badge-teal-bg: var(--badge-accent-bg);
   --badge-teal-border: var(--badge-accent-border);
-  --badge-amber-bg: rgba(216, 154, 78, 0.12);
-  --badge-amber-border: rgba(216, 154, 78, 0.32);
+  --badge-amber-bg: rgba(245, 158, 11, 0.14);
+  --badge-amber-border: rgba(245, 158, 11, 0.36);
   --shadow-bezel: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
 
   --radius-sm: 6px;
@@ -86,109 +92,104 @@ html[data-theme="midnight"],
 .theme-midnight {
   color-scheme: dark;
 
-  /* Foundation B: Starry Midnight (#0C0F17), Astrolabe Brass (#D8A24A) & Starlight Chalk (#F4F1EA) */
-  --bg-base: #0C0F17;
-  --bg-primary: #111520;
-  --bg-secondary: #151A26;
-  --bg-tertiary: #1E2536;
-  --bg-surface: #151A26;
-  --bg-surface-elevated: #1E2536;
-  --bg-card: linear-gradient(180deg, #171D2B 0%, #10141E 100%);
-  --bg-card-solid: #151A26;
-  --bg-glass: rgba(19, 24, 36, 0.90);
-  --bg-titlebar: rgba(12, 15, 23, 0.90);
-  --bg-subtle-box: rgba(12, 15, 23, 0.82);
-  --bg-hover: rgba(244, 241, 234, 0.05);
-  --bg-active-pill: rgba(216, 162, 74, 0.14);
-  --bg-artwork-well: #080A10;
-  --bg-footer: #080A10;
-  --bg-dropdown: #131824;
-  --bg-bento: linear-gradient(180deg, #171D2B 0%, #10141E 100%);
+  /* Midnight Cobalt Mode — Neutral Carbon + Electric Cobalt */
+  --bg-base: #0B0D12;
+  --bg-primary: #0F1219;
+  --bg-secondary: #12161F;
+  --bg-tertiary: #1A202C;
+  --bg-surface: #12161F;
+  --bg-surface-elevated: #1A202C;
+  --bg-card: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
+  --bg-card-solid: #12161F;
+  --bg-glass: rgba(18, 22, 31, 0.90);
+  --bg-titlebar: rgba(11, 13, 18, 0.90);
+  --bg-subtle-box: rgba(11, 13, 18, 0.82);
+  --bg-hover: rgba(248, 250, 252, 0.05);
+  --bg-active-pill: rgba(59, 130, 246, 0.14);
+  --bg-artwork-well: #07090D;
+  --bg-footer: #07090D;
+  --bg-dropdown: #141923;
+  --bg-bento: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
 
-  /* 10% Signature Accents: Astrolabe Brass & Sirius Silver-Blue */
-  --brand-accent: #D8A24A;
-  --brand-accent-soft: #E5B869;
-  --brand-accent-glow: rgba(216, 162, 74, 0.15);
-  --brand-alloy: #8FA8D6;
-  --brand-stone: #F4F1EA;
-  --brand-serif-color: #F4F1EA;
-  --brand-amber: #D8A24A;
-  --brand-success: #68B38E;
-  --brand-danger: #D46E48;
+  --brand-accent: #3B82F6;
+  --brand-accent-soft: #60A5FA;
+  --brand-accent-glow: rgba(59, 130, 246, 0.16);
+  --brand-alloy: #94A3B8;
+  --brand-stone: #F8FAFC;
+  --brand-serif-color: #F8FAFC;
+  --brand-amber: #F59E0B;
+  --brand-success: #10B981;
+  --brand-danger: #E63946;
 
-  /* Mapped Semantic Tokens */
   --accent-cyan: var(--brand-accent);
   --accent-cyan-glow: var(--brand-accent-glow);
-  --accent-magenta: var(--brand-alloy);
-  --accent-magenta-glow: rgba(143, 168, 214, 0.16);
+  --accent-magenta: #E63946;
+  --accent-magenta-glow: rgba(230, 57, 70, 0.16);
   --accent-gold: var(--brand-amber);
   --accent-green: var(--brand-success);
-  --accent-green-glow: rgba(104, 179, 142, 0.22);
+  --accent-green-glow: rgba(16, 185, 129, 0.22);
 
-  /* 30% Typography: Starlight Chalk & Celestial Silver */
-  --text-primary: #F4F1EA;
-  --text-secondary: #9AA5BC;
-  --text-muted: #6E7891;
-  --text-tone-muted: #7E88A0;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-tone-muted: #78879C;
 
-  /* Machined Midnight Borders */
-  --border-subtle: #252D40;
-  --border-glass: #2D364D;
-  --border-strong: #3E4A68;
-  --border-bezel: #22293A;
-  --border-accent: rgba(216, 162, 74, 0.36);
-  --specular-line: linear-gradient(90deg, transparent, rgba(216, 162, 74, 0.22), transparent);
-  --hero-glow: rgba(216, 162, 74, 0.06);
+  --border-subtle: #222938;
+  --border-glass: #283142;
+  --border-strong: #38445B;
+  --border-bezel: #1E2433;
+  --border-accent: rgba(59, 130, 246, 0.36);
+  --specular-line: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.22), transparent);
+  --hero-glow: rgba(59, 130, 246, 0.08);
 
-  /* Buttons & Badges */
-  --btn-primary-bg: #D8A24A;
-  --btn-primary-hover: #E5B869;
-  --btn-primary-text: #0C0F17;
-  --btn-primary-shadow: rgba(216, 162, 74, 0.20);
-  --btn-secondary-bg: #1E2536;
-  --btn-secondary-hover: #283147;
-  --badge-neutral-bg: #1A2030;
-  --badge-accent-bg: rgba(216, 162, 74, 0.12);
-  --badge-accent-border: rgba(216, 162, 74, 0.34);
+  --btn-primary-bg: #3B82F6;
+  --btn-primary-hover: #60A5FA;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-shadow: rgba(59, 130, 246, 0.24);
+  --btn-secondary-bg: #1A202C;
+  --btn-secondary-hover: #222938;
+  --badge-neutral-bg: #1A202C;
+  --badge-accent-bg: rgba(59, 130, 246, 0.14);
+  --badge-accent-border: rgba(59, 130, 246, 0.36);
   --badge-teal-bg: var(--badge-accent-bg);
   --badge-teal-border: var(--badge-accent-border);
-  --badge-amber-bg: rgba(216, 162, 74, 0.12);
-  --badge-amber-border: rgba(216, 162, 74, 0.34);
+  --badge-amber-bg: rgba(245, 158, 11, 0.14);
+  --badge-amber-border: rgba(245, 158, 11, 0.36);
   --shadow-bezel: 0 24px 60px -20px rgba(0, 0, 0, 0.88);
 }
 
 html[data-theme="light"] {
   color-scheme: light;
 
-  /* Light Variant: Desert Limestone Chalk (#F0EDE4) & Oiled Teak (#9E6220) */
-  --bg-base: #F0EDE4;
-  --bg-primary: #E7E3D8;
-  --bg-secondary: #FAF8F3;
-  --bg-tertiary: #E3DFD3;
-  --bg-surface: #FAF8F3;
-  --bg-surface-elevated: #FFFFFF;
-  --bg-card: linear-gradient(180deg, #FAF8F3 0%, #F2EFE7 100%);
-  --bg-card-solid: #FAF8F3;
-  --bg-glass: rgba(250, 248, 243, 0.92);
-  --bg-titlebar: rgba(240, 237, 228, 0.90);
-  --bg-subtle-box: #E3DFD3;
-  --bg-hover: rgba(23, 24, 23, 0.05);
-  --bg-active-pill: rgba(158, 98, 32, 0.12);
-  --bg-artwork-well: #171817;
-  --bg-footer: #E3DFD3;
-  --bg-dropdown: #FAF8F3;
-  --bg-bento: linear-gradient(180deg, #FAF8F3 0%, #F2EFE7 100%);
+  /* 60% Chassis: Crisp Alabaster & Cool Paper */
+  --bg-base: #F8FAFC;
+  --bg-primary: #F1F5F9;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #E2E8F0;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #F8FAFC;
+  --bg-card: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+  --bg-card-solid: #FFFFFF;
+  --bg-glass: rgba(255, 255, 255, 0.92);
+  --bg-titlebar: rgba(248, 250, 252, 0.90);
+  --bg-subtle-box: #E2E8F0;
+  --bg-hover: rgba(15, 23, 42, 0.05);
+  --bg-active-pill: rgba(230, 57, 70, 0.10);
+  --bg-artwork-well: #0B0D12;
+  --bg-footer: #E2E8F0;
+  --bg-dropdown: #FFFFFF;
+  --bg-bento: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
 
-  /* 10% Signature Material Accents: Oiled Teak & Gunmetal Titanium */
-  --brand-accent: #9E6220;
-  --brand-accent-soft: #855016;
-  --brand-accent-glow: rgba(158, 98, 32, 0.12);
-  --brand-alloy: #484B48;
-  --brand-stone: #171817;
-  --brand-serif-color: #171817;
-  --brand-amber: #9E6220;
-  --brand-success: #3F6E48;
-  --brand-danger: #A83E2D;
+  /* 10% Signature Accents: Signal Crimson & Cool Slate */
+  --brand-accent: #E63946;
+  --brand-accent-soft: #DC2626;
+  --brand-accent-glow: rgba(230, 57, 70, 0.12);
+  --brand-alloy: #475569;
+  --brand-stone: #0F172A;
+  --brand-serif-color: #0F172A;
+  --brand-amber: #D97706;
+  --brand-success: #059669;
+  --brand-danger: #DC2626;
 
   --accent-cyan: var(--brand-accent);
   --accent-cyan-glow: var(--brand-accent-glow);
@@ -196,38 +197,38 @@ html[data-theme="light"] {
   --accent-magenta-glow: var(--brand-accent-glow);
   --accent-gold: var(--brand-amber);
   --accent-green: var(--brand-success);
-  --accent-green-glow: rgba(63, 110, 72, 0.18);
+  --accent-green-glow: rgba(5, 150, 105, 0.18);
 
-  /* 30% Typography: Gunmetal Ink & Slate Ash */
-  --text-primary: #171817;
-  --text-secondary: #575956;
-  --text-muted: #737571;
-  --text-tone-muted: #68665F;
+  /* 30% Typography: Deep Slate & Cool Silver */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --text-tone-muted: #64748B;
 
   /* Machined Borders */
-  --border-subtle: #D5D0C3;
-  --border-glass: #CBC6B8;
-  --border-strong: #ACA697;
-  --border-bezel: #D5D0C3;
-  --border-accent: rgba(158, 98, 32, 0.30);
+  --border-subtle: #E2E8F0;
+  --border-glass: #CBD5E1;
+  --border-strong: #94A3B8;
+  --border-bezel: #E2E8F0;
+  --border-accent: rgba(230, 57, 70, 0.28);
   --specular-line: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
-  --hero-glow: rgba(158, 98, 32, 0.06);
+  --hero-glow: rgba(230, 57, 70, 0.06);
 
   /* Tactile Hardware Buttons */
-  --btn-primary-bg: #9E6220;
-  --btn-primary-hover: #855016;
-  --btn-primary-text: #FAF8F3;
-  --btn-primary-shadow: rgba(158, 98, 32, 0.16);
-  --btn-secondary-bg: #E3DFD3;
-  --btn-secondary-hover: #D6D1C4;
-  --badge-neutral-bg: #E6E2D7;
-  --badge-accent-bg: rgba(158, 98, 32, 0.10);
-  --badge-accent-border: rgba(158, 98, 32, 0.28);
+  --btn-primary-bg: #E63946;
+  --btn-primary-hover: #DC2626;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-shadow: rgba(230, 57, 70, 0.18);
+  --btn-secondary-bg: #F1F5F9;
+  --btn-secondary-hover: #E2E8F0;
+  --badge-neutral-bg: #F1F5F9;
+  --badge-accent-bg: rgba(230, 57, 70, 0.10);
+  --badge-accent-border: rgba(230, 57, 70, 0.28);
   --badge-teal-bg: var(--badge-accent-bg);
   --badge-teal-border: var(--badge-accent-border);
-  --badge-amber-bg: rgba(158, 98, 32, 0.10);
-  --badge-amber-border: rgba(158, 98, 32, 0.28);
-  --shadow-bezel: 0 20px 50px -18px rgba(23, 24, 23, 0.12);
+  --badge-amber-bg: rgba(217, 119, 6, 0.10);
+  --badge-amber-border: rgba(217, 119, 6, 0.28);
+  --shadow-bezel: 0 20px 50px -18px rgba(15, 23, 42, 0.12);
 }
 
 * {
@@ -284,14 +285,14 @@ body {
 
 html[data-theme="midnight"] .app-container,
 .starry-midnight-backdrop {
-  background-color: #0C0F17;
+  background-color: #0B0D12;
   background-image:
     radial-gradient(ellipse 68% 36% at 50% 0%, var(--hero-glow), transparent 70%),
-    radial-gradient(1px 1px at 12% 18%, rgba(244, 241, 234, 0.35), transparent),
-    radial-gradient(1.5px 1.5px at 38% 10%, rgba(216, 162, 74, 0.40), transparent),
-    radial-gradient(1px 1px at 68% 22%, rgba(244, 241, 234, 0.30), transparent),
-    radial-gradient(1px 1px at 88% 14%, rgba(143, 168, 214, 0.35), transparent),
-    radial-gradient(1.5px 1.5px at 78% 76%, rgba(216, 162, 74, 0.30), transparent);
+    radial-gradient(1px 1px at 12% 18%, rgba(248, 250, 252, 0.30), transparent),
+    radial-gradient(1.5px 1.5px at 38% 10%, rgba(59, 130, 246, 0.38), transparent),
+    radial-gradient(1px 1px at 68% 22%, rgba(248, 250, 252, 0.28), transparent),
+    radial-gradient(1px 1px at 88% 14%, rgba(148, 163, 184, 0.32), transparent),
+    radial-gradient(1.5px 1.5px at 78% 76%, rgba(230, 57, 70, 0.28), transparent);
 }
 
 .main-body {

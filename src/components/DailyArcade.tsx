@@ -58,12 +58,12 @@ export const DailyArcade: React.FC = () => {
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: 'var(--badge-accent-bg)',
-              border: '1px solid var(--badge-accent-border)',
+              background: 'rgba(59, 130, 246, 0.14)',
+              border: '1px solid rgba(59, 130, 246, 0.36)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--brand-accent)',
+              color: '#60A5FA',
               flexShrink: 0
             }}
           >

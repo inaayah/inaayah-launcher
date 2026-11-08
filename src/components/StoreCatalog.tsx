@@ -154,9 +154,9 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                     <span
                       className="badge"
                       style={{
-                        background: 'rgba(216, 162, 74, 0.24)',
-                        color: '#D8A24A',
-                        border: '1px solid rgba(216, 162, 74, 0.5)',
+                        background: 'var(--badge-amber-bg)',
+                        color: 'var(--brand-amber)',
+                        border: '1px solid var(--badge-amber-border)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4
@@ -260,8 +260,8 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
                         height: 34,
                         padding: '0 14px',
                         fontSize: 12,
-                        background: 'rgba(216, 162, 74, 0.14)',
-                        borderColor: 'rgba(216, 162, 74, 0.42)',
+                        background: 'var(--badge-amber-bg)',
+                        borderColor: 'var(--badge-amber-border)',
                         color: 'var(--brand-amber)'
                       }}
                       onClick={(e) => {

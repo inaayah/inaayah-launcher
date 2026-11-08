@@ -2,16 +2,16 @@
   <title>Inaayah Arcade</title>
   <defs>
     <linearGradient id="bgIA" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#171F30"/>
-      <stop offset="100%" stop-color="#0C0F17"/>
+      <stop offset="0%" stop-color="#0A1936"/>
+      <stop offset="100%" stop-color="#060D1F"/>
     </linearGradient>
-    <linearGradient id="brassIA" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#E5B869"/>
-      <stop offset="100%" stop-color="#CC8B45"/>
+    <linearGradient id="cobaltIA" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#2563EB"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="#6E5229"/>
+  <rect width="64" height="64" rx="14" fill="#2563EB"/>
   <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#bgIA)"/>
-  <path fill="url(#brassIA)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
-  <path fill="#F4F1EA" fill-rule="evenodd" clip-rule="evenodd" d="M38.5 15H45.5L54 49H47L45.2 41H37.8L36 49H29L38.5 15ZM39.3 35H43.7L41.5 24.5L39.3 35Z"/>
+  <path fill="url(#cobaltIA)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
+  <path fill="#FFFFFF" fill-rule="evenodd" clip-rule="evenodd" d="M38.5 15H45.5L54 49H47L45.2 41H37.8L36 49H29L38.5 15ZM39.3 35H43.7L41.5 24.5L39.3 35Z"/>
 </svg>

@@ -221,7 +221,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                         gap: 4,
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-sm)',
-                        background: 'rgba(23, 24, 23, 0.88)',
+                        background: 'rgba(11, 13, 18, 0.88)',
                         backdropFilter: 'blur(8px)',
                         fontSize: 11,
                         color: 'var(--text-secondary)',
@@ -247,9 +247,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                       <span
                         className="badge"
                         style={{
-                          background: 'rgba(216, 162, 74, 0.24)',
-                          color: '#D8A24A',
-                          border: '1px solid rgba(216, 162, 74, 0.5)',
+                          background: 'var(--badge-amber-bg)',
+                          color: 'var(--brand-amber)',
+                          border: '1px solid var(--badge-amber-border)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4
@@ -273,9 +273,9 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                       <span
                         className="badge"
                         style={{
-                          background: 'rgba(216, 162, 74, 0.2)',
+                          background: 'var(--badge-amber-bg)',
                           color: 'var(--brand-amber)',
-                          border: '1px solid rgba(216, 162, 74, 0.42)',
+                          border: '1px solid var(--badge-amber-border)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4
@@ -358,8 +358,8 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                           height: 34,
                           padding: '0 14px',
                           fontSize: 12,
-                          background: 'rgba(216, 162, 74, 0.14)',
-                          borderColor: 'rgba(216, 162, 74, 0.42)',
+                          background: 'var(--badge-amber-bg)',
+                          borderColor: 'var(--badge-amber-border)',
                           color: 'var(--brand-amber)'
                         }}
                         onClick={(e) => {

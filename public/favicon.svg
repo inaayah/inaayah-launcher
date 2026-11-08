@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah">
+  <title>Inaayah</title>
+  <defs>
+    <linearGradient id="bgI" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E2433"/>
+      <stop offset="100%" stop-color="#0B0D12"/>
+    </linearGradient>
+    <linearGradient id="glyphI" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#334155"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#bgI)"/>
+  <path fill="url(#glyphI)" d="M20 8H52L44 20H38V44H52L44 56H12L20 44H26V20H12L20 8Z"/>
+</svg>
