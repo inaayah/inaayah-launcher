@@ -16,7 +16,7 @@
         try {
           var saved = localStorage.getItem('inaayah_theme');
           var sysLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-          var theme = saved === 'light' || saved === 'dark' || saved === 'midnight' ? saved : (sysLight ? 'light' : 'dark');
+          var theme = saved === 'light' || saved === 'dark' ? saved : (sysLight ? 'light' : 'dark');
           document.documentElement.setAttribute('data-theme', theme);
         } catch (e) {}
       })();
