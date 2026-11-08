@@ -86,22 +86,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         <button
-          className={`nav-item ${currentTab === 'arcade' ? 'active' : ''}`}
+          className={`nav-item nav-item-arcade ${currentTab === 'arcade' ? 'active' : ''}`}
           onClick={() => onSelectTab('arcade')}
         >
           <div className="nav-item-left">
             <Gamepad2 size={18} />
             <span>Daily Arcade</span>
           </div>
-          <span
-            className="nav-badge"
-            style={{
-              fontSize: 9,
-              letterSpacing: '0.06em'
-            }}
-          >
-            DAILY
-          </span>
         </button>
 
         <button
