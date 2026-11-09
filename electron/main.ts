@@ -622,6 +622,7 @@ function setupSystemTray(): void {
 function createWindow(): void {
   const iconCandidates = [
     path.join(app.getAppPath(), 'build', 'icon.png'),
+    path.join(__dirname, '../build/icon.png'),
     path.join(app.getAppPath(), 'dist', 'icon.png'),
     path.join(__dirname, '../dist/icon.png'),
     path.join(__dirname, '../public/icon.png')

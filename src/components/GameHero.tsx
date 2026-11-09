@@ -527,10 +527,10 @@ export const GameHero: React.FC<GameHeroProps> = ({
       <div className="tab-content">
         {activeTab === 'overview' && (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="tab-main-column" style={{ display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0 }}>
               <div className="section-box">
                 <h3>About the Game</h3>
-                <p style={{ lineHeight: 1.7, color: 'var(--text-secondary)', fontSize: 14 }}>
+                <p style={{ lineHeight: 1.7, color: 'var(--text-secondary)', fontSize: 14, overflowWrap: 'break-word' }}>
                   {game.description}
                 </p>
               </div>
@@ -563,38 +563,38 @@ export const GameHero: React.FC<GameHeroProps> = ({
             </div>
 
             {/* Sidebar Metadata Box */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="tab-side-column" style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
               <div className="section-box">
                 <h3>Details</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Developer</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13, minWidth: 0 }}>
+                  <div className="detail-meta-row">
+                    <span>Developer</span>
                     <span style={{ fontWeight: 600 }}>{game.developer}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Status</span>
+                  <div className="detail-meta-row">
+                    <span>Status</span>
                     <span style={{ color: isComingSoon ? 'var(--brand-amber)' : 'var(--accent-green)', fontWeight: 600 }}>
                       {isComingSoon ? 'In Development' : isWebGame ? 'Live Web Game' : 'Available Now'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Distribution</span>
+                  <div className="detail-meta-row">
+                    <span>Distribution</span>
                     <span style={{ color: isComingSoon ? 'var(--brand-amber)' : 'var(--accent-green)', fontWeight: 600 }}>
                       {isComingSoon ? 'Coming Soon' : isWebGame ? 'Cloud / Web Hosted' : 'GitHub Releases'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Release Date</span>
+                  <div className="detail-meta-row">
+                    <span>Release Date</span>
                     <span>{game.releaseDate}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Current Version</span>
+                  <div className="detail-meta-row">
+                    <span>Current Version</span>
                     <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
                       v{game.version}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Online Backend</span>
+                  <div className="detail-meta-row">
+                    <span>Online Backend</span>
                     <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>{game.onlineBackend || 'Inaayah Cloud'}</span>
                   </div>
                 </div>
@@ -615,13 +615,13 @@ export const GameHero: React.FC<GameHeroProps> = ({
         )}
 
         {activeTab === 'requirements' && (
-          <div style={{ gridColumn: 'span 2' }}>
+          <div style={{ gridColumn: '1 / -1', minWidth: 0 }}>
             <div className="section-box">
               <h3>System Requirements</h3>
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
                   gap: 16,
                   marginTop: 8
                 }}
@@ -660,11 +660,11 @@ export const GameHero: React.FC<GameHeroProps> = ({
         )}
 
         {activeTab === 'changelog' && (
-          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ gridColumn: '1 / -1', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
             {game.changelog.map((entry) => (
               <div key={entry.version} className="section-box">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                     <span
                       style={{
                         padding: '3px 10px',
@@ -674,12 +674,13 @@ export const GameHero: React.FC<GameHeroProps> = ({
                         borderRadius: 6,
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 700,
-                        fontSize: 13
+                        fontSize: 13,
+                        flexShrink: 0
                       }}
                     >
                       v{entry.version}
                     </span>
-                    <strong style={{ fontSize: 16 }}>{entry.title}</strong>
+                    <strong style={{ fontSize: 16, overflowWrap: 'break-word', minWidth: 0 }}>{entry.title}</strong>
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{entry.date}</span>
                 </div>
