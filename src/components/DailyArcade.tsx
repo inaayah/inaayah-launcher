@@ -55,10 +55,10 @@ export const DailyArcade: React.FC = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <img
-            src={`${getAssetUrl('brand/inaayah-arcade-icon.svg')}?v=opt1`}
+            src={`${getAssetUrl('brand/inaayah-arcade-icon.svg')}?v=opt2`}
             onError={(e) => {
               e.currentTarget.onerror = null;
-              e.currentTarget.src = `${getLocalBrandFallbackUrl('inaayah-arcade-icon.svg')}?v=opt1`;
+              e.currentTarget.src = `${getLocalBrandFallbackUrl('inaayah-arcade-icon.svg')}?v=opt2`;
             }}
             alt="Inaayah Arcade"
             style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }}

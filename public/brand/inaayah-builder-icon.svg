@@ -1,17 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Builder">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Builder">
   <title>Inaayah Builder</title>
   <defs>
-    <linearGradient id="bgIB" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#06291E"/>
-      <stop offset="100%" stop-color="#041610"/>
+    <linearGradient id="ibMidnightBezel" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#314875"/>
+      <stop offset="100%" stop-color="#162238"/>
     </linearGradient>
-    <linearGradient id="emeraldIB" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
+    <linearGradient id="ibMidnightBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#152038"/>
+      <stop offset="100%" stop-color="#090C12"/>
+    </linearGradient>
+    <linearGradient id="ibTitaniumI" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#CBD5E1"/>
+    </linearGradient>
+    <linearGradient id="ibEmeraldB" x1="30" y1="15" x2="53" y2="49" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#34D399"/>
-      <stop offset="100%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10B981"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="#059669"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#bgIB)"/>
-  <path fill="url(#emeraldIB)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
-  <path fill="#FFFFFF" fill-rule="evenodd" clip-rule="evenodd" d="M30.5 15H48L52 19V28.5L48.2 31.8L53 35.8V45L49 49H30.5V15ZM37 21V29H44.2L45.5 27.7V22.3L44.2 21H37ZM37 35V43H45.2L46.5 41.7V36.3L45.2 35H37Z"/>
+  <rect width="64" height="64" rx="14" fill="url(#ibMidnightBezel)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#ibMidnightBg)"/>
+  <path fill="url(#ibTitaniumI)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
+  <path fill="url(#ibEmeraldB)" fill-rule="evenodd" clip-rule="evenodd" d="M30.5 15H48L52 19V28.5L48.2 31.8L53 35.8V45L49 49H30.5V15ZM37 21V29H44.2L45.5 27.7V22.3L44.2 21H37ZM37 35V43H45.2L46.5 41.7V36.3L45.2 35H37Z"/>
 </svg>

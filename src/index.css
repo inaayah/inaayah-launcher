@@ -6,24 +6,24 @@ html[data-theme="dark"] {
   --font-mono: 'JetBrains Mono', monospace;
   --font-serif: 'Fraunces', Georgia, serif;
 
-  /* 60% Chassis: Pure Neutral Carbon & Anodized Slate */
-  --bg-base: #0B0D12;
-  --bg-primary: #0F1219;
-  --bg-secondary: #12161F;
-  --bg-tertiary: #1A202C;
-  --bg-surface: #12161F;
-  --bg-surface-elevated: #1A202C;
-  --bg-card: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
-  --bg-card-solid: #12161F;
-  --bg-glass: rgba(18, 22, 31, 0.90);
-  --bg-titlebar: rgba(11, 13, 18, 0.90);
-  --bg-subtle-box: rgba(11, 13, 18, 0.82);
+  /* 60% Fixed Chassis: Deep Carbon & Anodized Midnight-Blue Slate */
+  --bg-base: #090C12;
+  --bg-primary: #0D1322;
+  --bg-secondary: #11192C;
+  --bg-tertiary: #17233B;
+  --bg-surface: #11192C;
+  --bg-surface-elevated: #17233B;
+  --bg-card: linear-gradient(180deg, #152038 0%, #0B101D 100%);
+  --bg-card-solid: #11192C;
+  --bg-glass: rgba(17, 25, 44, 0.90);
+  --bg-titlebar: rgba(9, 12, 18, 0.92);
+  --bg-subtle-box: rgba(9, 12, 18, 0.84);
   --bg-hover: rgba(248, 250, 252, 0.05);
   --bg-active-pill: rgba(230, 57, 70, 0.14);
-  --bg-artwork-well: #07090D;
-  --bg-footer: #07090D;
-  --bg-dropdown: #141923;
-  --bg-bento: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
+  --bg-artwork-well: #06080D;
+  --bg-footer: #06080D;
+  --bg-dropdown: #131D33;
+  --bg-bento: linear-gradient(180deg, #152038 0%, #0B101D 100%);
 
   /* Per-Service Signature Jewel Accents (IG Signal Crimson + Suite Accents) */
   --accent-master: #FFFFFF;
@@ -31,6 +31,7 @@ html[data-theme="dark"] {
   --accent-arcade: #3B82F6;
   --accent-builder: #10B981;
   --accent-sponsor: #8B5CF6;
+  --accent-studio: #F59E0B;
 
   --brand-accent: #E63946;
   --brand-accent-soft: #FF4D5E;
@@ -51,17 +52,17 @@ html[data-theme="dark"] {
   --accent-green: var(--brand-success);
   --accent-green-glow: rgba(16, 185, 129, 0.22);
 
-  /* 30% Typography: Crisp Titanium White & Cool Silver */
+  /* 30% Typography: Brushed Titanium White & Cool Silver */
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
   --text-tone-muted: #78879C;
 
-  /* Machined 1px Borders & Specular Edge */
-  --border-subtle: #222938;
-  --border-glass: #283142;
-  --border-strong: #38445B;
-  --border-bezel: #1E2433;
+  /* Machined 1px Midnight-Titanium Borders & Specular Edge */
+  --border-subtle: #1D2B45;
+  --border-glass: #253657;
+  --border-strong: #344C7A;
+  --border-bezel: #1A2742;
   --border-accent: rgba(230, 57, 70, 0.36);
   --specular-line: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.16), transparent);
   --hero-glow: rgba(230, 57, 70, 0.08);
@@ -71,9 +72,9 @@ html[data-theme="dark"] {
   --btn-primary-hover: #FF4D5E;
   --btn-primary-text: #FFFFFF;
   --btn-primary-shadow: rgba(230, 57, 70, 0.24);
-  --btn-secondary-bg: #1A202C;
-  --btn-secondary-hover: #222938;
-  --badge-neutral-bg: #1A202C;
+  --btn-secondary-bg: #17233B;
+  --btn-secondary-hover: #1D2B45;
+  --badge-neutral-bg: #17233B;
   --badge-accent-bg: rgba(230, 57, 70, 0.14);
   --badge-accent-border: rgba(230, 57, 70, 0.36);
   --badge-teal-bg: var(--badge-accent-bg);
@@ -92,24 +93,24 @@ html[data-theme="midnight"],
 .theme-midnight {
   color-scheme: dark;
 
-  /* Midnight Cobalt Mode — Neutral Carbon + Electric Cobalt */
-  --bg-base: #0B0D12;
-  --bg-primary: #0F1219;
-  --bg-secondary: #12161F;
-  --bg-tertiary: #1A202C;
-  --bg-surface: #12161F;
-  --bg-surface-elevated: #1A202C;
-  --bg-card: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
-  --bg-card-solid: #12161F;
-  --bg-glass: rgba(18, 22, 31, 0.90);
-  --bg-titlebar: rgba(11, 13, 18, 0.90);
-  --bg-subtle-box: rgba(11, 13, 18, 0.82);
+  /* Midnight Cobalt Mode — Midnight-Carbon + Electric Cobalt */
+  --bg-base: #090C12;
+  --bg-primary: #0D1322;
+  --bg-secondary: #11192C;
+  --bg-tertiary: #17233B;
+  --bg-surface: #11192C;
+  --bg-surface-elevated: #17233B;
+  --bg-card: linear-gradient(180deg, #152038 0%, #0B101D 100%);
+  --bg-card-solid: #11192C;
+  --bg-glass: rgba(17, 25, 44, 0.90);
+  --bg-titlebar: rgba(9, 12, 18, 0.92);
+  --bg-subtle-box: rgba(9, 12, 18, 0.84);
   --bg-hover: rgba(248, 250, 252, 0.05);
   --bg-active-pill: rgba(59, 130, 246, 0.14);
-  --bg-artwork-well: #07090D;
-  --bg-footer: #07090D;
-  --bg-dropdown: #141923;
-  --bg-bento: linear-gradient(180deg, #161B26 0%, #0E1118 100%);
+  --bg-artwork-well: #06080D;
+  --bg-footer: #06080D;
+  --bg-dropdown: #131D33;
+  --bg-bento: linear-gradient(180deg, #152038 0%, #0B101D 100%);
 
   --brand-accent: #3B82F6;
   --brand-accent-soft: #60A5FA;
@@ -134,10 +135,10 @@ html[data-theme="midnight"],
   --text-muted: #64748B;
   --text-tone-muted: #78879C;
 
-  --border-subtle: #222938;
-  --border-glass: #283142;
-  --border-strong: #38445B;
-  --border-bezel: #1E2433;
+  --border-subtle: #1D2B45;
+  --border-glass: #253657;
+  --border-strong: #344C7A;
+  --border-bezel: #1A2742;
   --border-accent: rgba(59, 130, 246, 0.36);
   --specular-line: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.22), transparent);
   --hero-glow: rgba(59, 130, 246, 0.08);
@@ -146,9 +147,9 @@ html[data-theme="midnight"],
   --btn-primary-hover: #60A5FA;
   --btn-primary-text: #FFFFFF;
   --btn-primary-shadow: rgba(59, 130, 246, 0.24);
-  --btn-secondary-bg: #1A202C;
-  --btn-secondary-hover: #222938;
-  --badge-neutral-bg: #1A202C;
+  --btn-secondary-bg: #17233B;
+  --btn-secondary-hover: #1D2B45;
+  --badge-neutral-bg: #17233B;
   --badge-accent-bg: rgba(59, 130, 246, 0.14);
   --badge-accent-border: rgba(59, 130, 246, 0.36);
   --badge-teal-bg: var(--badge-accent-bg);

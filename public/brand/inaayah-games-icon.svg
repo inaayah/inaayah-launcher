@@ -1,17 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Games">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inaayah Games">
   <title>Inaayah Games</title>
   <defs>
-    <linearGradient id="bgIG" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2A0B10"/>
-      <stop offset="100%" stop-color="#120407"/>
+    <linearGradient id="igMidnightBezel" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#314875"/>
+      <stop offset="100%" stop-color="#162238"/>
     </linearGradient>
-    <linearGradient id="crimsonIG" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
+    <linearGradient id="igMidnightBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#152038"/>
+      <stop offset="100%" stop-color="#090C12"/>
+    </linearGradient>
+    <linearGradient id="igTitaniumI" x1="9" y1="15" x2="28" y2="49" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#CBD5E1"/>
+    </linearGradient>
+    <linearGradient id="igCrimsonG" x1="30" y1="15" x2="54" y2="49" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FF4D5E"/>
-      <stop offset="100%" stop-color="#E11D48"/>
+      <stop offset="100%" stop-color="#E63946"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="#B91C1C"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#bgIG)"/>
-  <path fill="url(#crimsonIG)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
-  <path fill="#FFFFFF" d="M35 15H53L49 21H37V43H46.5V35.5H40.5L44.5 29.5H53V44.5L48.5 49H35L30.5 44.5V19.5L35 15Z"/>
+  <rect width="64" height="64" rx="14" fill="url(#igMidnightBezel)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="url(#igMidnightBg)"/>
+  <path fill="url(#igTitaniumI)" d="M13 15H27.5L23.5 21H21.5V43H27.5L23.5 49H9L13 43H15V21H9L13 15Z"/>
+  <path fill="url(#igCrimsonG)" d="M35 15H53L49 21H37V43H46.5V35.5H40.5L44.5 29.5H53V44.5L48.5 49H35L30.5 44.5V19.5L35 15Z"/>
 </svg>
