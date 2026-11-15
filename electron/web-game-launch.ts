@@ -1,5 +1,119 @@
+import { execFile, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+
+export interface TerminateGameOptions {
+  graceMs?: number;
+  forceMs?: number;
+  platform?: NodeJS.Platform;
+}
+
+/** Gracefully close a spawned game process and escalate to force-kill if it stays open. */
+export async function terminateSpawnedGameProcess(
+  proc: ChildProcess | undefined | null,
+  options: TerminateGameOptions = {}
+): Promise<boolean> {
+  if (!proc) return false;
+  if (proc.exitCode !== null || proc.signalCode !== null) return true;
+
+  const graceMs = options.graceMs ?? 1500;
+  const forceMs = options.forceMs ?? 1000;
+  const platform = options.platform ?? process.platform;
+  const pid = typeof proc.pid === 'number' && proc.pid > 0 ? proc.pid : null;
+
+  const isDead = (): boolean => {
+    if (proc.exitCode !== null || proc.signalCode !== null) return true;
+    if (!pid) return false;
+    try {
+      process.kill(pid, 0);
+      return false;
+    } catch (err: any) {
+      return err?.code === 'ESRCH';
+    }
+  };
+
+  const waitForExit = (timeoutMs: number): Promise<boolean> => {
+    if (isDead()) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (dead: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        clearInterval(poll);
+        proc.removeListener('exit', onExit);
+        proc.removeListener('close', onExit);
+        resolve(dead);
+      };
+      const onExit = () => finish(true);
+      proc.once('exit', onExit);
+      proc.once('close', onExit);
+
+      const poll = setInterval(() => {
+        if (isDead()) finish(true);
+      }, 40);
+      poll.unref?.();
+
+      const timer = setTimeout(() => finish(isDead()), timeoutMs);
+      timer.unref?.();
+    });
+  };
+
+  if (platform === 'win32') {
+    const runTaskkill = (force: boolean) =>
+      new Promise<void>((resolve) => {
+        if (!pid) {
+          try {
+            proc.kill();
+          } catch {}
+          return resolve();
+        }
+        const args = ['/PID', String(pid), '/T'];
+        if (force) args.push('/F');
+        execFile('taskkill', args, { windowsHide: true, timeout: 3000 }, (err) => {
+          if (err) {
+            try {
+              proc.kill();
+            } catch {}
+          }
+          resolve();
+        });
+      });
+
+    await runTaskkill(false);
+    if (await waitForExit(graceMs)) return true;
+
+    await runTaskkill(true);
+    return waitForExit(forceMs);
+  }
+
+  const sendPosixSignal = (signal: NodeJS.Signals) => {
+    let delivered = false;
+    if (pid) {
+      try {
+        process.kill(-pid, signal);
+        delivered = true;
+      } catch {}
+      if (!delivered) {
+        try {
+          process.kill(pid, signal);
+          delivered = true;
+        } catch {}
+      }
+    }
+    if (!delivered) {
+      try {
+        proc.kill(signal);
+      } catch {}
+    }
+  };
+
+  sendPosixSignal('SIGTERM');
+  if (await waitForExit(graceMs)) return true;
+
+  sendPosixSignal('SIGKILL');
+  return waitForExit(forceMs);
+}
 
 export interface WebGamePlayStat {
   id: string;

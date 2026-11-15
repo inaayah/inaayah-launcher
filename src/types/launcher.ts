@@ -128,6 +128,7 @@ export interface InaayahLauncherAPI {
   uninstallGame: (gameId: string) => Promise<boolean>;
   launchGame: (gameId: string, args?: string[]) => Promise<boolean>;
   launchWebGame: (gameId: string, url: string) => Promise<boolean>;
+  stopGame: (gameId: string) => Promise<boolean>;
   openFolder: (path: string) => Promise<void>;
   openExternalUrl: (url: string) => Promise<void>;
   checkUpdates: (gameId: string, latestVersion: string) => Promise<boolean>;

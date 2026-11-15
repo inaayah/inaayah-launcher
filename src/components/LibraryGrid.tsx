@@ -2,6 +2,7 @@ import React, { useState, useMemo, useDeferredValue } from 'react';
 import {
   Search,
   Play,
+  Square,
   Download,
   CheckCircle,
   Globe,
@@ -22,6 +23,8 @@ interface LibraryGridProps {
   activeDownloads: Record<string, DownloadProgress>;
   onSelectGame: (gameId: string) => void;
   onLaunch: (gameId: string) => void;
+  onStop: (gameId: string) => void;
+  stoppingGames?: Record<string, boolean>;
   onInstall: (gameId: string) => void;
   onOpenStore: () => void;
   isRefreshing?: boolean;
@@ -35,6 +38,8 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
   activeDownloads,
   onSelectGame,
   onLaunch,
+  onStop,
+  stoppingGames = {},
   onInstall,
   onOpenStore,
   isRefreshing = false,
@@ -321,11 +326,17 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                     {/* Primary Button */}
                     {isRunning ? (
                       <button
-                        className="btn-primary-action running"
+                        type="button"
+                        className="btn-primary-action stop"
                         style={{ height: 34, padding: '0 16px', fontSize: 12 }}
-                        onClick={(e) => e.stopPropagation()}
+                        disabled={Boolean(stoppingGames[game.id])}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStop(game.id);
+                        }}
                       >
-                        <Sparkles size={14} className="animate-spin" /> Running
+                        {stoppingGames[game.id] ? <RefreshCw size={13} className="spin-fast" /> : <Square size={12} fill="currentColor" />}
+                        <span>{stoppingGames[game.id] ? 'Stopping…' : 'Stop'}</span>
                       </button>
                     ) : isDev ? (
                       <button

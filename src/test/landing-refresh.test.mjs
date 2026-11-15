@@ -33,12 +33,14 @@ test('landing page follows new releases, install completion, failures and late s
   globalThis.localStorage = { getItem: () => null, setItem: () => {} };
   const focus = new Map(), events = {};
   globalThis.window = { addEventListener: (name, cb) => focus.set(name, cb), removeEventListener: name => focus.delete(name) };
-  let installed = { [game.id]: install('1.1.0') }, catalog = [{ ...game }], downloads = 0, finish, late;
+  let installed = { [game.id]: install('1.1.0') }, catalog = [{ ...game }], downloads = 0, stops = 0, finish, late;
   const subscribe = name => cb => { events[name] = cb; return () => delete events[name]; };
   const bridge = {
     getConfig: async () => ({ autoUpdate: false }), getInstalledGames: async () => installed,
     refreshCatalog: async () => late ? late : catalog,
     downloadGame: async (id, version, url, token) => { assert.equal(token, 'inay_renderer_fixture'); downloads++; return new Promise(resolve => { finish = resolve; }); },
+    launchGame: async (id) => { assert.equal(id, game.id); return true; },
+    stopGame: async (id) => { assert.equal(id, game.id); stops++; return true; },
     checkLauncherUpdate: async () => {}, onDownloadProgress: subscribe('progress'),
     onInstalledGamesUpdated: subscribe('installed'), onGameStatusChanged: subscribe('status'),
     onLauncherUpdateReady: subscribe('ready'), onLauncherUpdateAvailable: subscribe('available')
@@ -86,6 +88,14 @@ test('landing page follows new releases, install completion, failures and late s
   await act(async () => events.installed(installed));
   await act(async () => { resolveLate(catalog); late = null; await flush(); });
   assert.equal(get('GameHero').installed.version, '1.4.0');
+  assert.equal(get('GameHero').status, 'INSTALLED');
+
+  // Launching transitions GameHero to RUNNING and onStop delegates to bridge.stopGame and settles to INSTALLED.
+  await act(async () => { await get('GameHero').onLaunch(game.id); await flush(); });
+  assert.equal(get('GameHero').status, 'RUNNING');
+  await act(async () => { await get('GameHero').onStop(game.id); await flush(); });
+  assert.equal(stops, 1);
+  await act(async () => { events.status({ gameId: game.id, status: 'INSTALLED', exitCode: 0 }); await flush(); });
   assert.equal(get('GameHero').status, 'INSTALLED');
 
   // Selecting the Daily Arcade tab renders DailyArcade directly instead of individual arcade tiles.

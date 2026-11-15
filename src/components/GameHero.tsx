@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Play,
+  Square,
   Download,
   RefreshCw,
   FolderOpen,
@@ -31,6 +32,8 @@ interface GameHeroProps {
   onInstall: (gameId: string) => void;
   onCancelDownload: (gameId: string) => void;
   onLaunch: (gameId: string) => void;
+  onStop: (gameId: string) => void;
+  isStopping?: boolean;
   onUninstall: (gameId: string) => void;
   onCheckUpdates: (gameId: string) => void;
 }
@@ -44,6 +47,8 @@ export const GameHero: React.FC<GameHeroProps> = ({
   onInstall,
   onCancelDownload,
   onLaunch,
+  onStop,
+  isStopping = false,
   onUninstall,
   onCheckUpdates
 }) => {
@@ -69,6 +74,17 @@ export const GameHero: React.FC<GameHeroProps> = ({
 
   const allBadges = React.useMemo(() => {
     const list: Array<{ id: string; node: React.ReactNode }> = [];
+
+    if (effectiveStatus === 'RUNNING') {
+      list.push({
+        id: 'running',
+        node: (
+          <span key="running" className="badge amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Sparkles size={12} className="animate-spin" /> Running
+          </span>
+        )
+      });
+    }
 
     // Development / Release Status
     if (isDev) {
@@ -165,7 +181,20 @@ export const GameHero: React.FC<GameHeroProps> = ({
     }
 
     return list;
-  }, [isDev, isComingSoon, isWebGame, game.releaseDate, game.genres, game.version, installed?.version]);
+  }, [effectiveStatus, isDev, isComingSoon, isWebGame, game.releaseDate, game.genres, game.version, installed?.version]);
+
+  const renderStopButton = () => (
+    <button
+      type="button"
+      className="btn-primary-action stop"
+      disabled={isStopping}
+      onClick={() => onStop(game.id)}
+      title={`Stop ${game.title}`}
+    >
+      {isStopping ? <RefreshCw size={18} className="spin-fast" /> : <Square size={16} fill="currentColor" />}
+      <span>{isStopping ? 'Stopping…' : 'Stop'}</span>
+    </button>
+  );
 
   const MAX_COLLAPSED_BADGES = 4;
   const hasExtraBadges = allBadges.length > MAX_COLLAPSED_BADGES;
@@ -289,10 +318,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                   {status === 'RUNNING' ? (
-                    <button className="btn-primary-action running" style={{ background: 'var(--brand-amber)' }}>
-                      <Sparkles size={18} className="animate-spin" />
-                      <span>Running (Dev Mode)</span>
-                    </button>
+                    renderStopButton()
                   ) : (
                     <button
                       className="btn-primary-action play"
@@ -360,10 +386,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
                   {status === 'RUNNING' ? (
-                    <button className="btn-primary-action running">
-                      <Sparkles size={18} className="animate-spin" />
-                      <span>Game is Running</span>
-                    </button>
+                    renderStopButton()
                   ) : (
                     <button
                       className="btn-primary-action play"
@@ -459,12 +482,7 @@ export const GameHero: React.FC<GameHeroProps> = ({
                   </div>
                 )}
 
-                {effectiveStatus === 'RUNNING' && (
-                  <button className="btn-primary-action running">
-                    <Sparkles size={18} className="animate-spin" />
-                    <span>Game is Running</span>
-                  </button>
-                )}
+                {effectiveStatus === 'RUNNING' && renderStopButton()}
 
                 {/* Secondary Controls Bar for Installed Game */}
                 {installed && (

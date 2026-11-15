@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useDeferredValue, useRef } from 'react';
-import { ArrowUpRight, ChevronDown, Clock, Download, Globe, LoaderCircle, Play, Plus, RotateCw, Search } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Clock, Download, Globe, LoaderCircle, Play, Plus, RotateCw, Search, Square } from 'lucide-react';
 import type { GameCatalogItem, InstalledGame, GameStatus } from '../types/launcher';
 import { getAssetUrl } from '../utils/assets';
 import { settledGameStatus } from '../utils/gameStatus';
@@ -12,6 +12,8 @@ interface StoreCatalogProps {
   ownedGameIds: string[];
   onSelectGame: (gameId: string) => void;
   onLaunch: (gameId: string) => void;
+  onStop?: (gameId: string) => void;
+  stoppingGames?: Record<string, boolean>;
   onInstall: (gameId: string) => void;
   onAddToLibrary: (gameId: string) => void;
   isRefreshing?: boolean;
@@ -27,6 +29,8 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
   ownedGameIds,
   onSelectGame,
   onLaunch,
+  onStop,
+  stoppingGames = {},
   onInstall,
   onAddToLibrary,
   isRefreshing = false,
@@ -75,8 +79,15 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
     let variant = 'play';
     let action: (() => void) | undefined;
 
-    if (status === 'DOWNLOADING' || status === 'EXTRACTING' || status === 'RUNNING') {
-      label = status === 'DOWNLOADING' ? 'Downloading' : status === 'EXTRACTING' ? 'Installing' : 'Running';
+    const isStopping = Boolean(stoppingGames[game.id]);
+
+    if (status === 'RUNNING') {
+      label = isStopping ? 'Stopping…' : 'Stop';
+      Icon = isStopping ? LoaderCircle : Square;
+      variant = 'stop';
+      action = isStopping ? undefined : () => onStop?.(game.id);
+    } else if (status === 'DOWNLOADING' || status === 'EXTRACTING') {
+      label = status === 'DOWNLOADING' ? 'Downloading' : 'Installing';
       Icon = LoaderCircle;
       variant = 'running';
     } else if (game.isComingSoon && !isDev) {
@@ -107,7 +118,13 @@ export const StoreCatalog: React.FC<StoreCatalogProps> = ({
         disabled={!action}
         onClick={event => { event.stopPropagation(); action?.(); }}
       >
-        <Icon size={15} aria-hidden="true" /> {label}
+        <Icon
+          size={15}
+          className={variant === 'stop' && isStopping ? 'spin-fast' : undefined}
+          fill={variant === 'stop' && !isStopping ? 'currentColor' : 'none'}
+          aria-hidden="true"
+        />{' '}
+        {label}
       </button>
     );
   };

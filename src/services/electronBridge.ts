@@ -17,6 +17,28 @@ const defaultFallbackConfig: LauncherConfig = {
 const mockDownloadListeners = new Set<(progress: DownloadProgress) => void>();
 const mockStatusListeners = new Set<(data: { gameId: string; status: GameStatus; exitCode?: number }) => void>();
 const activeMockIntervals = new Map<string, number>();
+const activeMockLaunchTimers = new Map<string, { timer: number; url?: string }>();
+
+function settleMockSession(gameId: string, elapsedMinutes: number, url?: string) {
+  activeMockLaunchTimers.delete(gameId);
+  const installed = getMockInstalled();
+  if (url) {
+    installed[gameId] = installed[gameId] || {
+      id: gameId,
+      version: '1.0.0',
+      installPath: url,
+      installedAt: Date.now(),
+      lastPlayedAt: Date.now(),
+      totalPlaytimeMinutes: 0
+    };
+  }
+  if (installed[gameId]) {
+    installed[gameId].lastPlayedAt = Date.now();
+    installed[gameId].totalPlaytimeMinutes += elapsedMinutes;
+    saveMockInstalled(installed);
+  }
+  mockStatusListeners.forEach((fn) => fn({ gameId, status: 'INSTALLED', exitCode: 0 }));
+}
 
 function getMockConfig(): LauncherConfig {
   try {
@@ -242,17 +264,14 @@ export const launcherBridge: InaayahLauncherAPI = {
   async launchGame(gameId: string, args?: string[]): Promise<boolean> {
     if (window.inaayahLauncher) return window.inaayahLauncher.launchGame(gameId, args);
 
+    const existing = activeMockLaunchTimers.get(gameId);
+    if (existing) clearTimeout(existing.timer);
     mockStatusListeners.forEach((fn) => fn({ gameId, status: 'RUNNING' }));
 
-    setTimeout(() => {
-      const installed = getMockInstalled();
-      if (installed[gameId]) {
-        installed[gameId].lastPlayedAt = Date.now();
-        installed[gameId].totalPlaytimeMinutes += 12;
-        saveMockInstalled(installed);
-      }
-      mockStatusListeners.forEach((fn) => fn({ gameId, status: 'INSTALLED', exitCode: 0 }));
+    const timer = window.setTimeout(() => {
+      settleMockSession(gameId, 12);
     }, 6000);
+    activeMockLaunchTimers.set(gameId, { timer });
 
     return true;
   },
@@ -260,25 +279,29 @@ export const launcherBridge: InaayahLauncherAPI = {
   async launchWebGame(gameId: string, url: string): Promise<boolean> {
     if (window.inaayahLauncher) return window.inaayahLauncher.launchWebGame(gameId, url);
 
+    const existing = activeMockLaunchTimers.get(gameId);
+    if (existing) clearTimeout(existing.timer);
     window.open(url, '_blank');
     mockStatusListeners.forEach((fn) => fn({ gameId, status: 'RUNNING' }));
 
-    setTimeout(() => {
-      const installed = getMockInstalled();
-      installed[gameId] = installed[gameId] || {
-        id: gameId,
-        version: '1.0.0',
-        installPath: url,
-        installedAt: Date.now(),
-        lastPlayedAt: Date.now(),
-        totalPlaytimeMinutes: 0
-      };
-      installed[gameId].lastPlayedAt = Date.now();
-      installed[gameId].totalPlaytimeMinutes += 10;
-      saveMockInstalled(installed);
-      mockStatusListeners.forEach((fn) => fn({ gameId, status: 'INSTALLED', exitCode: 0 }));
+    const timer = window.setTimeout(() => {
+      settleMockSession(gameId, 10, url);
     }, 5000);
+    activeMockLaunchTimers.set(gameId, { timer, url });
 
+    return true;
+  },
+
+  async stopGame(gameId: string): Promise<boolean> {
+    if (window.inaayahLauncher) return window.inaayahLauncher.stopGame(gameId);
+
+    const active = activeMockLaunchTimers.get(gameId);
+    if (active) {
+      clearTimeout(active.timer);
+      settleMockSession(gameId, 1, active.url);
+    } else {
+      mockStatusListeners.forEach((fn) => fn({ gameId, status: 'INSTALLED', exitCode: 0 }));
+    }
     return true;
   },
 

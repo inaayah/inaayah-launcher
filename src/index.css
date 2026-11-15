@@ -1129,6 +1129,24 @@ html[data-theme="light"] .badge.green {
   cursor: default;
 }
 
+.btn-primary-action.stop {
+  background: linear-gradient(180deg, rgba(230, 57, 70, 0.94) 0%, rgba(190, 29, 44, 0.98) 100%);
+  color: #F8FAFC;
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 10px 26px -8px rgba(230, 57, 70, 0.45);
+  cursor: pointer;
+}
+.btn-primary-action.stop:hover:not(:disabled) {
+  background: linear-gradient(180deg, #F04754 0%, #D62839 100%);
+  border-color: rgba(252, 165, 165, 0.6);
+  transform: translateY(-2px);
+}
+.btn-primary-action.stop:disabled {
+  opacity: 0.72;
+  cursor: wait;
+  transform: none;
+}
+
 .btn-secondary {
   height: 38px;
   padding: 0 15px;
@@ -1633,6 +1651,7 @@ html[data-theme="light"] .card-banner-overlay {
 .discover-game-action { height: 36px; padding-inline: 13px; font-size: 12px; letter-spacing: 0; gap: 7px; }
 .discover-feature .discover-game-action { height: 44px; padding-inline: 16px; font-size: 14px; }
 .discover-game-action.play, .discover-game-action.install { color: var(--btn-primary-text); box-shadow: none; }
+.discover-game-action.stop { color: #F8FAFC; box-shadow: none; }
 .discover-game-action.running:disabled {
   background: var(--bg-tertiary);
   border-color: var(--border-subtle);

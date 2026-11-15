@@ -15,7 +15,13 @@ import { validateRecipe, installIncremental, commitInstall, recoverInterruptedIn
 import { autoUpdater } from 'electron-updater';
 import { macUpdatePaths, stagedAppMatchesVersion, macInstallScript, applyMacPatchToStagedBundle } from './mac-update-state';
 import { localDevRoots, findLocalGodotProject, discoverLocalGodotProjects, localDevLaunch } from './local-dev';
-import { resolveLibraryPath, validateWebGameUrl, loadWebGameStats, recordWebGameSession } from './web-game-launch';
+import {
+  resolveLibraryPath,
+  validateWebGameUrl,
+  loadWebGameStats,
+  recordWebGameSession,
+  terminateSpawnedGameProcess
+} from './web-game-launch';
 
 interface LauncherConfig {
   libraryPath: string;
@@ -562,10 +568,11 @@ function rebuildTrayMenu(): void {
     const isRunning = runningProcesses.has(gameId);
     const webUrl = WEB_GAME_URLS[gameId];
     return {
-      label: isRunning ? `${title} (Running)` : `Play ${title}`,
-      enabled: !isRunning,
+      label: isRunning ? `Stop ${title}` : `Play ${title}`,
       click: () => {
-        if (webUrl) {
+        if (isRunning) {
+          stopRunningGame(gameId).catch(() => {});
+        } else if (webUrl) {
           launchWebGame(gameId, webUrl).catch(() => {});
         } else {
           launchDesktopGame(gameId, []).catch(() => {});
@@ -760,6 +767,14 @@ app.whenReady().then(() => {
     webGameWin.on('closed', () => {
       app.quit();
     });
+    const closeWebPlayer = () => {
+      if (!webGameWin.isDestroyed()) {
+        webGameWin.destroy();
+      }
+      app.quit();
+    };
+    process.once('SIGTERM', closeWebPlayer);
+    process.once('SIGINT', closeWebPlayer);
     return;
   }
 
@@ -1090,10 +1105,7 @@ ipcMain.handle('launcher:uninstall-game', async (_event, gameId: string) => {
   if (download) { download.abort(); await download.done; }
 
   if (runningProcesses.has(gameId)) {
-    try {
-      runningProcesses.get(gameId)?.proc?.kill();
-    } catch {}
-    runningProcesses.delete(gameId);
+    await stopRunningGame(gameId);
   }
 
   delete cachedInstalledGames[gameId];
@@ -1513,6 +1525,44 @@ async function launchWebGame(gameId: string, url: string): Promise<boolean> {
 
 ipcMain.handle('launcher:launch-web-game', async (_event, gameId: string, url: string) => {
   return launchWebGame(gameId, url);
+});
+
+async function stopRunningGame(gameId: string): Promise<boolean> {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(gameId)) {
+    return false;
+  }
+
+  const settleStatus = (cachedInstalledGames[gameId] || WEB_GAME_URLS[gameId]) ? 'INSTALLED' : 'NOT_INSTALLED';
+  const entry = runningProcesses.get(gameId);
+  if (!entry) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('game-status-changed', {
+        gameId,
+        status: settleStatus,
+        exitCode: 0
+      });
+    }
+    rebuildTrayMenu();
+    return true;
+  }
+
+  const stopped = await terminateSpawnedGameProcess(entry.proc);
+  if (stopped && runningProcesses.get(gameId) === entry) {
+    runningProcesses.delete(gameId);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('game-status-changed', {
+        gameId,
+        status: settleStatus,
+        exitCode: 0
+      });
+    }
+    rebuildTrayMenu();
+  }
+  return stopped;
+}
+
+ipcMain.handle('launcher:stop-game', async (_event, gameId: string) => {
+  return stopRunningGame(gameId);
 });
 
 ipcMain.handle('launcher:open-external-url', async (_event, targetUrl: string) => {

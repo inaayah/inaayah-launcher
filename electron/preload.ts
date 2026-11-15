@@ -52,6 +52,10 @@ contextBridge.exposeInMainWorld('inaayahLauncher', {
     return ipcRenderer.invoke('launcher:launch-web-game', gameId, url);
   },
 
+  stopGame: (gameId: string): Promise<boolean> => {
+    return ipcRenderer.invoke('launcher:stop-game', gameId);
+  },
+
   openExternalUrl: (url: string): Promise<void> => {
     return ipcRenderer.invoke('launcher:open-external-url', url);
   },

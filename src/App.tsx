@@ -41,6 +41,7 @@ export const App: React.FC = () => {
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatus>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [catalog, setCatalog] = useState<GameCatalogItem[]>(catalogData);
+  const [stoppingGames, setStoppingGames] = useState<Record<string, boolean>>({});
   const [currentUser, setCurrentUser] = useState<LauncherUser | null>(() => getStoredUser());
   const [authChecking, setAuthChecking] = useState<boolean>(true);
 
@@ -286,6 +287,14 @@ export const App: React.FC = () => {
 
     const unsubStatus = launcherBridge.onGameStatusChanged((data) => {
       setGameStatuses((prev) => ({ ...prev, [data.gameId]: data.status }));
+      if (data.status !== 'RUNNING') {
+        setStoppingGames((prev) => {
+          if (!prev[data.gameId]) return prev;
+          const next = { ...prev };
+          delete next[data.gameId];
+          return next;
+        });
+      }
       if (data.status === 'NOT_INSTALLED') {
         const next = { ...installedRef.current };
         delete next[data.gameId];
@@ -349,6 +358,35 @@ export const App: React.FC = () => {
       }));
     }
   };
+
+  const handleStop = useCallback(async (gameId: string) => {
+    setStoppingGames((prev) => ({ ...prev, [gameId]: true }));
+    const resyncGameStatus = async () => {
+      const game = catalogRef.current.find((g) => g.id === gameId);
+      const updated = await launcherBridge.getInstalledGames().catch(() => installedRef.current);
+      acceptInstalledGames(updated);
+      setGameStatuses((prev) => ({
+        ...prev,
+        [gameId]: settledGameStatus(game, updated[gameId])
+      }));
+    };
+    try {
+      const ok = await launcherBridge.stopGame(gameId);
+      if (!ok) {
+        await resyncGameStatus();
+      }
+    } catch (err) {
+      console.error('Stop game failed:', err);
+      await resyncGameStatus();
+    } finally {
+      setStoppingGames((prev) => {
+        if (!prev[gameId]) return prev;
+        const next = { ...prev };
+        delete next[gameId];
+        return next;
+      });
+    }
+  }, [acceptInstalledGames]);
 
   const handleUninstall = async (gameId: string) => {
     // Optimistically remove game from installed list and reset status immediately
@@ -536,6 +574,8 @@ export const App: React.FC = () => {
                     setIsViewingDetail(true);
                   }}
                   onLaunch={handleLaunch}
+                  onStop={handleStop}
+                  stoppingGames={stoppingGames}
                   onInstall={handleInstall}
                   onAddToLibrary={handleAddToLibrary}
                   isRefreshing={isRefreshing}
@@ -554,6 +594,8 @@ export const App: React.FC = () => {
                     onInstall={handleInstall}
                     onCancelDownload={handleCancelDownload}
                     onLaunch={handleLaunch}
+                    onStop={handleStop}
+                    isStopping={Boolean(stoppingGames[selectedGame.id])}
                     onUninstall={handleUninstall}
                     onCheckUpdates={handleCheckUpdates}
                   />
@@ -568,6 +610,8 @@ export const App: React.FC = () => {
                       setIsViewingDetail(true);
                     }}
                     onLaunch={handleLaunch}
+                    onStop={handleStop}
+                    stoppingGames={stoppingGames}
                     onInstall={handleInstall}
                     onOpenStore={() => setCurrentTab('store')}
                     isRefreshing={isRefreshing}
