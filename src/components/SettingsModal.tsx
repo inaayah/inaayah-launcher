@@ -52,6 +52,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setLibraryPath(config.libraryPath);
+    setAutoUpdate(config.autoUpdate);
+    setCloseOnStart(config.closeLauncherOnGameStart);
+    setNakamaHost(config.nakamaHost);
+    setNakamaPort(config.nakamaPort);
+    setUseSSL(config.useSSL);
+    setReleaseGatewayUrl(config.releaseGatewayUrl || 'https://releases.inaayah.dev');
+    setGithubToken(config.githubToken || '');
+  }, [config, isOpen]);
+
   if (!isOpen) return null;
 
   const handleCheckUpdate = async () => {

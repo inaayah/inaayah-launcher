@@ -15,6 +15,7 @@ import { validateRecipe, installIncremental, commitInstall, recoverInterruptedIn
 import { autoUpdater } from 'electron-updater';
 import { macUpdatePaths, stagedAppMatchesVersion, macInstallScript, applyMacPatchToStagedBundle } from './mac-update-state';
 import { localDevRoots, findLocalGodotProject, discoverLocalGodotProjects, localDevLaunch } from './local-dev';
+import { resolveLibraryPath, validateWebGameUrl, loadWebGameStats, recordWebGameSession } from './web-game-launch';
 
 interface LauncherConfig {
   libraryPath: string;
@@ -244,8 +245,7 @@ async function findGameExecutable(gameDir: string): Promise<string | null> {
 }
 
 function getDefaultLibraryPath(): string {
-  const home = app.getPath('home');
-  return path.join(home, 'InaayahGames');
+  return resolveLibraryPath(undefined, app.getPath('home'));
 }
 
 function getConfigPath(): string {
@@ -254,6 +254,7 @@ function getConfigPath(): string {
 
 function loadConfig(): LauncherConfig {
   const cfgPath = getConfigPath();
+  const homeDir = app.getPath('home');
   const defaultConfig: LauncherConfig = {
     libraryPath: getDefaultLibraryPath(),
     autoUpdate: true,
@@ -267,7 +268,9 @@ function loadConfig(): LauncherConfig {
   try {
     if (fs.existsSync(cfgPath)) {
       const raw = fs.readFileSync(cfgPath, 'utf-8');
-      return { ...defaultConfig, ...JSON.parse(raw) };
+      const merged: LauncherConfig = { ...defaultConfig, ...JSON.parse(raw) };
+      merged.libraryPath = resolveLibraryPath(merged.libraryPath, homeDir);
+      return merged;
     }
   } catch (err) {
     console.error('Failed to load launcher config:', err);
@@ -278,7 +281,11 @@ function loadConfig(): LauncherConfig {
 
 function saveConfig(cfg: Partial<LauncherConfig>): LauncherConfig {
   const current = loadConfig();
-  const updated = { ...current, ...cfg };
+  const updated: LauncherConfig = {
+    ...current,
+    ...cfg,
+    libraryPath: resolveLibraryPath(cfg.libraryPath ?? current.libraryPath, app.getPath('home'))
+  };
   try {
     fs.mkdirSync(app.getPath('userData'), { recursive: true });
     fs.writeFileSync(getConfigPath(), JSON.stringify(updated, null, 2), 'utf-8');
@@ -381,7 +388,7 @@ async function scanInstalledGames(libraryPath?: string, forceFresh = false): Pro
 
 async function performInstalledScan(libraryPath?: string): Promise<Record<string, InstalledGameMeta>> {
   try {
-    const libPath = libraryPath || loadConfig().libraryPath;
+    const libPath = resolveLibraryPath(libraryPath || loadConfig().libraryPath, app.getPath('home'));
     const installed: Record<string, InstalledGameMeta> = {};
     await recoverInterruptedInstalls(libPath);
 
@@ -422,45 +429,69 @@ async function performInstalledScan(libraryPath?: string): Promise<Record<string
 
           const isWebGame = meta?.installPath && typeof meta.installPath === 'string' && meta.installPath.startsWith('http');
 
-          if (!isWebGame) {
-            const execPath = await findGameExecutable(gameDir);
-            const isStaleMock = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
+          if (isWebGame) {
+            // Preserve legacy playtime metadata without pinning web games to an outdated manifest version.
+            installed[entry.name] = {
+              id: entry.name,
+              version: 'web',
+              installPath: meta.installPath,
+              installedAt: meta?.installedAt || Date.now(),
+              lastPlayedAt: meta?.lastPlayedAt || null,
+              totalPlaytimeMinutes: meta?.totalPlaytimeMinutes || 0
+            };
+            continue;
+          }
 
-            if (!execPath || isStaleMock) {
-              if (!uninstalledDevGames.has(entry.name)) {
-                const devRepo = findLocalDevGodotProject(entry.name);
-                const godotBin = await resolveGodotBinaryAsync();
-                if (devRepo && godotBin) {
-                  installed[entry.name] = {
-                    id: entry.name,
-                    version: '1.2.0 (Local Dev)',
-                    installPath: devRepo,
-                    installedAt: Date.now() - 86400000,
-                    lastPlayedAt: Date.now() - 3600000,
-                    totalPlaytimeMinutes: 45
-                  };
-                  continue;
-                }
+          const execPath = await findGameExecutable(gameDir);
+          const isStaleMock = execPath && (execPath.endsWith('.sh') || execPath.endsWith('.bat') || execPath.endsWith('.cmd'));
+
+          if (!execPath || isStaleMock) {
+            if (!uninstalledDevGames.has(entry.name)) {
+              const devRepo = findLocalDevGodotProject(entry.name);
+              const godotBin = await resolveGodotBinaryAsync();
+              if (devRepo && godotBin) {
+                installed[entry.name] = {
+                  id: entry.name,
+                  version: '1.2.0 (Local Dev)',
+                  installPath: devRepo,
+                  installedAt: Date.now() - 86400000,
+                  lastPlayedAt: Date.now() - 3600000,
+                  totalPlaytimeMinutes: 45
+                };
+                continue;
               }
             }
+          }
 
-            // CRITICAL: A native desktop game MUST have an existing executable on disk to be installed!
-            if (!execPath || !fs.existsSync(execPath)) {
-              console.log(`[Launcher] Game "${entry.name}" has manifest but executable is missing on disk. Marked as not installed.`);
-              continue;
-            }
+          // CRITICAL: A native desktop game MUST have an existing executable on disk to be installed!
+          if (!execPath || !fs.existsSync(execPath)) {
+            console.log(`[Launcher] Game "${entry.name}" has manifest but executable is missing on disk. Marked as not installed.`);
+            continue;
           }
 
           installed[entry.name] = {
             id: entry.name,
             version: meta?.version || '1.0.0',
-            installPath: isWebGame ? meta.installPath : gameDir,
+            installPath: gameDir,
             installedAt: meta?.installedAt || Date.now(),
             lastPlayedAt: meta?.lastPlayedAt || null,
             totalPlaytimeMinutes: meta?.totalPlaytimeMinutes || 0
           };
         }
       }
+    }
+
+    const webStats = loadWebGameStats(app.getPath('userData'));
+    for (const [gId, stat] of Object.entries(webStats)) {
+      const prev = installed[gId];
+      installed[gId] = {
+        id: gId,
+        version: 'web',
+        installPath: stat.url,
+        installedAt: stat.firstPlayedAt || prev?.installedAt || Date.now(),
+        lastPlayedAt: stat.lastPlayedAt ?? prev?.lastPlayedAt ?? null,
+        totalPlaytimeMinutes: Math.max(stat.totalPlaytimeMinutes || 0, prev?.totalPlaytimeMinutes || 0)
+      };
     }
 
     // Detect games that disappeared from disk and notify frontend
@@ -1407,15 +1438,13 @@ async function launchWebGame(gameId: string, url: string): Promise<boolean> {
       return true;
     }
 
+    const targetUrl = validateWebGameUrl(url);
     const cfg = loadConfig();
-    const gameDir = path.join(cfg.libraryPath, gameId);
-    fs.mkdirSync(gameDir, { recursive: true });
-
     const title = KNOWN_GAME_TITLES[gameId] || 'Inaayah Web Game';
 
     const cliFlags = [
       `--inaayah-web-game-id=${gameId}`,
-      `--inaayah-web-game-url=${url}`,
+      `--inaayah-web-game-url=${targetUrl}`,
       `--inaayah-web-game-title=${title}`
     ];
     const spawnArgs = app.isPackaged ? cliFlags : [app.getAppPath(), ...cliFlags];
@@ -1431,34 +1460,42 @@ async function launchWebGame(gameId: string, url: string): Promise<boolean> {
 
     const startTime = Date.now();
     runningProcesses.set(gameId, { proc: child, startTime });
-    mainWindow?.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('game-status-changed', { gameId, status: 'RUNNING' });
+    }
     rebuildTrayMenu();
+
+    child.on('error', (err) => {
+      console.error('Web game process error:', err);
+      runningProcesses.delete(gameId);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: -1 });
+      }
+      rebuildTrayMenu();
+    });
 
     child.on('exit', (code) => {
       const elapsedMinutes = Math.max(1, Math.round((Date.now() - startTime) / 60000));
       runningProcesses.delete(gameId);
 
-      const manifestPath = path.join(gameDir, 'manifest.json');
-      let meta: any = {
-        id: gameId,
-        version: '1.0.0',
-        installPath: url,
-        installedAt: Date.now(),
-        lastPlayedAt: Date.now(),
-        totalPlaytimeMinutes: 0
-      };
-      if (fs.existsSync(manifestPath)) {
-        try {
-          meta = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-        } catch (e) {}
-      }
-      meta.lastPlayedAt = Date.now();
-      meta.totalPlaytimeMinutes = (meta.totalPlaytimeMinutes || 0) + elapsedMinutes;
       try {
-        fs.writeFileSync(manifestPath, JSON.stringify(meta, null, 2));
+        const stat = recordWebGameSession(app.getPath('userData'), gameId, targetUrl, elapsedMinutes);
+        cachedInstalledGames[gameId] = {
+          id: gameId,
+          version: 'web',
+          installPath: stat.url,
+          installedAt: stat.firstPlayedAt,
+          lastPlayedAt: stat.lastPlayedAt,
+          totalPlaytimeMinutes: stat.totalPlaytimeMinutes
+        };
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('launcher:installed-games-updated', cachedInstalledGames);
+        }
       } catch {}
 
-      mainWindow?.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: code || 0 });
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('game-status-changed', { gameId, status: 'INSTALLED', exitCode: code || 0 });
+      }
       rebuildTrayMenu();
     });
 
