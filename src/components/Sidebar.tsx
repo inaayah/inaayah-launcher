@@ -242,8 +242,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             marginTop: 8,
             padding: '8px 10px',
             borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-subtle-box)',
-            border: '1px solid var(--border-subtle)',
+            background: 'rgba(248, 250, 252, 0.02)',
+            border: '1px solid var(--titanium-hairline)',
             fontSize: 11,
             color: 'var(--text-muted)'
           }}

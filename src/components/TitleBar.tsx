@@ -160,12 +160,12 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
       <div className="titlebar-center">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-          <Wifi size={13} color={online ? 'var(--brand-accent)' : '#ef4444'} />
+          <Wifi size={13} color={online ? 'var(--brand-success)' : '#ef4444'} />
           <span>Nakama Backend:</span>
           <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
             {config.nakamaHost}:{config.nakamaPort}
           </span>
-          <ShieldCheck size={12} color="var(--brand-accent)" />
+          <ShieldCheck size={12} color="var(--brand-alloy)" />
         </div>
       </div>
 

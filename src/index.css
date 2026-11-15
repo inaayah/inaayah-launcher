@@ -8,15 +8,22 @@ html[data-theme="dark"] {
 
   /* 60% Fixed Chassis: Deep Carbon & Anodized Midnight-Blue Slate */
   --bg-base: #090C12;
+  --bg-carbon-deep: #06080D;
   --bg-primary: #0D1322;
   --bg-secondary: #11192C;
   --bg-tertiary: #17233B;
   --bg-surface: #11192C;
   --bg-surface-elevated: #17233B;
-  --bg-card: linear-gradient(180deg, #152038 0%, #0B101D 100%);
-  --bg-card-solid: #11192C;
-  --bg-glass: rgba(17, 25, 44, 0.90);
-  --bg-titlebar: rgba(9, 12, 18, 0.92);
+  --bg-chassis-gradient:
+    radial-gradient(ellipse 80% 44% at 50% -8%, rgba(203, 213, 225, 0.085), transparent 62%),
+    radial-gradient(ellipse 52% 34% at 88% 6%, rgba(23, 35, 59, 0.38), transparent 68%),
+    radial-gradient(ellipse 38% 24% at 12% 0%, rgba(230, 57, 70, 0.055), transparent 60%),
+    linear-gradient(180deg, #0B0F17 0%, #090C12 42%, #06080D 100%);
+  --bg-sidebar-gradient: linear-gradient(180deg, rgba(9, 12, 18, 0.94) 0%, rgba(6, 8, 13, 0.98) 100%);
+  --bg-card: linear-gradient(168deg, rgba(248, 250, 252, 0.042) 0%, rgba(17, 25, 44, 0.30) 22%, rgba(9, 12, 18, 0.90) 66%, rgba(6, 8, 13, 0.97) 100%);
+  --bg-card-solid: #0B0F17;
+  --bg-glass: rgba(9, 12, 18, 0.88);
+  --bg-titlebar: linear-gradient(180deg, rgba(13, 18, 29, 0.95) 0%, rgba(9, 12, 18, 0.97) 100%);
   --bg-subtle-box: rgba(9, 12, 18, 0.84);
   --bg-hover: rgba(248, 250, 252, 0.05);
   --bg-active-pill: rgba(230, 57, 70, 0.14);
@@ -24,6 +31,12 @@ html[data-theme="dark"] {
   --bg-footer: #06080D;
   --bg-dropdown: #131D33;
   --bg-bento: linear-gradient(180deg, #152038 0%, #0B101D 100%);
+
+  /* Brushed Titanium Surface & Text Tokens */
+  --titanium-text-gradient: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 58%, #94A3B8 100%);
+  --titanium-pill-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.11) 0%, rgba(148, 163, 184, 0.04) 100%);
+  --titanium-pill-border: rgba(203, 213, 225, 0.22);
+  --titanium-hairline: rgba(203, 213, 225, 0.12);
 
   /* Per-Service Signature Jewel Accents (IG Signal Crimson + Suite Accents) */
   --accent-master: #FFFFFF;
@@ -44,7 +57,7 @@ html[data-theme="dark"] {
   --brand-danger: #E63946;
 
   /* Mapped Semantic Tokens */
-  --accent-cyan: var(--brand-accent);
+  --accent-cyan: #CBD5E1;
   --accent-cyan-glow: var(--brand-accent-glow);
   --accent-magenta: var(--brand-accent);
   --accent-magenta-glow: var(--brand-accent-glow);
@@ -64,16 +77,17 @@ html[data-theme="dark"] {
   --border-strong: #344C7A;
   --border-bezel: #1A2742;
   --border-accent: rgba(230, 57, 70, 0.36);
-  --specular-line: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.16), transparent);
+  --specular-line: linear-gradient(90deg, transparent 0%, rgba(248, 250, 252, 0.22) 50%, transparent 100%);
   --hero-glow: rgba(230, 57, 70, 0.08);
 
   /* Tactile Hardware Buttons & Badges */
   --btn-primary-bg: #E63946;
+  --btn-primary-gradient: linear-gradient(180deg, #FF4D5E 0%, #E63946 100%);
   --btn-primary-hover: #FF4D5E;
   --btn-primary-text: #FFFFFF;
   --btn-primary-shadow: rgba(230, 57, 70, 0.24);
-  --btn-secondary-bg: #17233B;
-  --btn-secondary-hover: #1D2B45;
+  --btn-secondary-bg: linear-gradient(180deg, rgba(23, 35, 59, 0.44) 0%, rgba(9, 12, 18, 0.86) 100%);
+  --btn-secondary-hover: linear-gradient(180deg, rgba(30, 45, 74, 0.62) 0%, rgba(13, 19, 34, 0.92) 100%);
   --badge-neutral-bg: #17233B;
   --badge-accent-bg: rgba(230, 57, 70, 0.14);
   --badge-accent-border: rgba(230, 57, 70, 0.36);
@@ -95,15 +109,22 @@ html[data-theme="midnight"],
 
   /* Midnight Cobalt Mode — Midnight-Carbon + Electric Cobalt */
   --bg-base: #090C12;
+  --bg-carbon-deep: #06080D;
   --bg-primary: #0D1322;
   --bg-secondary: #11192C;
   --bg-tertiary: #17233B;
   --bg-surface: #11192C;
   --bg-surface-elevated: #17233B;
-  --bg-card: linear-gradient(180deg, #152038 0%, #0B101D 100%);
-  --bg-card-solid: #11192C;
-  --bg-glass: rgba(17, 25, 44, 0.90);
-  --bg-titlebar: rgba(9, 12, 18, 0.92);
+  --bg-chassis-gradient:
+    radial-gradient(ellipse 80% 44% at 50% -8%, rgba(203, 213, 225, 0.085), transparent 62%),
+    radial-gradient(ellipse 52% 34% at 88% 6%, rgba(23, 35, 59, 0.38), transparent 68%),
+    radial-gradient(ellipse 38% 24% at 12% 0%, rgba(59, 130, 246, 0.065), transparent 60%),
+    linear-gradient(180deg, #0B0F17 0%, #090C12 42%, #06080D 100%);
+  --bg-sidebar-gradient: linear-gradient(180deg, rgba(9, 12, 18, 0.94) 0%, rgba(6, 8, 13, 0.98) 100%);
+  --bg-card: linear-gradient(168deg, rgba(248, 250, 252, 0.042) 0%, rgba(17, 25, 44, 0.30) 22%, rgba(9, 12, 18, 0.90) 66%, rgba(6, 8, 13, 0.97) 100%);
+  --bg-card-solid: #0B0F17;
+  --bg-glass: rgba(9, 12, 18, 0.88);
+  --bg-titlebar: linear-gradient(180deg, rgba(13, 18, 29, 0.95) 0%, rgba(9, 12, 18, 0.97) 100%);
   --bg-subtle-box: rgba(9, 12, 18, 0.84);
   --bg-hover: rgba(248, 250, 252, 0.05);
   --bg-active-pill: rgba(59, 130, 246, 0.14);
@@ -111,6 +132,11 @@ html[data-theme="midnight"],
   --bg-footer: #06080D;
   --bg-dropdown: #131D33;
   --bg-bento: linear-gradient(180deg, #152038 0%, #0B101D 100%);
+
+  --titanium-text-gradient: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 58%, #94A3B8 100%);
+  --titanium-pill-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.11) 0%, rgba(148, 163, 184, 0.04) 100%);
+  --titanium-pill-border: rgba(203, 213, 225, 0.22);
+  --titanium-hairline: rgba(203, 213, 225, 0.12);
 
   --brand-accent: #3B82F6;
   --brand-accent-soft: #60A5FA;
@@ -122,7 +148,7 @@ html[data-theme="midnight"],
   --brand-success: #10B981;
   --brand-danger: #E63946;
 
-  --accent-cyan: var(--brand-accent);
+  --accent-cyan: #CBD5E1;
   --accent-cyan-glow: var(--brand-accent-glow);
   --accent-magenta: #E63946;
   --accent-magenta-glow: rgba(230, 57, 70, 0.16);
@@ -140,15 +166,16 @@ html[data-theme="midnight"],
   --border-strong: #344C7A;
   --border-bezel: #1A2742;
   --border-accent: rgba(59, 130, 246, 0.36);
-  --specular-line: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.22), transparent);
+  --specular-line: linear-gradient(90deg, transparent 0%, rgba(248, 250, 252, 0.22) 50%, transparent 100%);
   --hero-glow: rgba(59, 130, 246, 0.08);
 
   --btn-primary-bg: #3B82F6;
+  --btn-primary-gradient: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%);
   --btn-primary-hover: #60A5FA;
   --btn-primary-text: #FFFFFF;
   --btn-primary-shadow: rgba(59, 130, 246, 0.24);
-  --btn-secondary-bg: #17233B;
-  --btn-secondary-hover: #1D2B45;
+  --btn-secondary-bg: linear-gradient(180deg, rgba(23, 35, 59, 0.44) 0%, rgba(9, 12, 18, 0.86) 100%);
+  --btn-secondary-hover: linear-gradient(180deg, rgba(30, 45, 74, 0.62) 0%, rgba(13, 19, 34, 0.92) 100%);
   --badge-neutral-bg: #17233B;
   --badge-accent-bg: rgba(59, 130, 246, 0.14);
   --badge-accent-border: rgba(59, 130, 246, 0.36);
@@ -164,11 +191,14 @@ html[data-theme="light"] {
 
   /* 60% Chassis: Crisp Alabaster & Cool Paper */
   --bg-base: #F8FAFC;
+  --bg-carbon-deep: #F1F5F9;
   --bg-primary: #F1F5F9;
   --bg-secondary: #FFFFFF;
   --bg-tertiary: #E2E8F0;
   --bg-surface: #FFFFFF;
   --bg-surface-elevated: #F8FAFC;
+  --bg-chassis-gradient: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  --bg-sidebar-gradient: #FFFFFF;
   --bg-card: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
   --bg-card-solid: #FFFFFF;
   --bg-glass: rgba(255, 255, 255, 0.92);
@@ -181,6 +211,11 @@ html[data-theme="light"] {
   --bg-dropdown: #FFFFFF;
   --bg-bento: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
 
+  --titanium-text-gradient: linear-gradient(180deg, #0F172A 0%, #334155 100%);
+  --titanium-pill-bg: #F1F5F9;
+  --titanium-pill-border: #CBD5E1;
+  --titanium-hairline: #E2E8F0;
+
   /* 10% Signature Accents: Signal Crimson & Cool Slate */
   --brand-accent: #E63946;
   --brand-accent-soft: #DC2626;
@@ -192,7 +227,7 @@ html[data-theme="light"] {
   --brand-success: #059669;
   --brand-danger: #DC2626;
 
-  --accent-cyan: var(--brand-accent);
+  --accent-cyan: #334155;
   --accent-cyan-glow: var(--brand-accent-glow);
   --accent-magenta: var(--brand-accent);
   --accent-magenta-glow: var(--brand-accent-glow);
@@ -217,6 +252,7 @@ html[data-theme="light"] {
 
   /* Tactile Hardware Buttons */
   --btn-primary-bg: #E63946;
+  --btn-primary-gradient: linear-gradient(180deg, #EF4444 0%, #DC2626 100%);
   --btn-primary-hover: #DC2626;
   --btn-primary-text: #FFFFFF;
   --btn-primary-shadow: rgba(230, 57, 70, 0.18);
@@ -272,7 +308,7 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* Tactile Material Chassis Backdrop (Zero 64px Neon Grids) */
+/* Tactile Material Chassis Backdrop (Deep Carbon + Brushed Titanium Top Glow) */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -281,16 +317,16 @@ body {
   width: 100%;
   overflow: hidden;
   background-color: var(--bg-base);
-  background-image: radial-gradient(ellipse 68% 36% at 50% 0%, var(--hero-glow), transparent 70%);
+  background-image: var(--bg-chassis-gradient);
   background-size: 100% 100%;
   background-position: center top;
 }
 
 html[data-theme="midnight"] .app-container,
 .starry-midnight-backdrop {
-  background-color: #0B0D12;
+  background-color: #090C12;
   background-image:
-    radial-gradient(ellipse 68% 36% at 50% 0%, var(--hero-glow), transparent 70%),
+    var(--bg-chassis-gradient),
     radial-gradient(1px 1px at 12% 18%, rgba(248, 250, 252, 0.30), transparent),
     radial-gradient(1.5px 1.5px at 38% 10%, rgba(59, 130, 246, 0.38), transparent),
     radial-gradient(1px 1px at 68% 22%, rgba(248, 250, 252, 0.28), transparent),
@@ -307,6 +343,7 @@ html[data-theme="midnight"] .app-container,
 
 /* Titlebar */
 .titlebar {
+  position: relative;
   height: 46px;
   display: flex;
   align-items: center;
@@ -315,8 +352,19 @@ html[data-theme="midnight"] .app-container,
   background: var(--bg-titlebar);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--titanium-hairline);
   z-index: 1000;
+}
+
+.titlebar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--specular-line);
+  pointer-events: none;
 }
 
 .titlebar-left {
@@ -355,11 +403,12 @@ html[data-theme="midnight"] .app-container,
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  background: var(--badge-teal-bg);
-  color: var(--brand-accent);
+  background: var(--titanium-pill-bg);
+  color: var(--text-primary);
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid var(--badge-teal-border);
+  border: 1px solid var(--titanium-pill-border);
+  box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.10);
 }
 
 .titlebar-center {
@@ -548,8 +597,8 @@ html[data-theme="midnight"] .app-container,
 /* Sidebar */
 .sidebar {
   width: 248px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-sidebar-gradient);
+  border-right: 1px solid var(--titanium-hairline);
   display: flex;
   flex-direction: column;
   padding: 16px 12px;
@@ -627,10 +676,10 @@ html[data-theme="midnight"] .app-container,
 }
 
 .nav-item.active {
-  background: var(--bg-active-pill);
+  background: linear-gradient(90deg, var(--bg-active-pill) 0%, rgba(248, 250, 252, 0.03) 60%, transparent 100%);
   color: var(--text-primary);
   font-weight: 600;
-  border-color: var(--border-subtle);
+  border-color: var(--titanium-hairline);
   box-shadow: inset 2px 0 0 var(--brand-accent);
 }
 
@@ -644,9 +693,10 @@ html[data-theme="midnight"] .app-container,
 .nav-badge {
   font-family: var(--font-mono);
   font-size: 10px;
-  background: var(--badge-teal-bg);
-  color: var(--brand-accent);
-  border: 1px solid var(--badge-teal-border);
+  background: var(--titanium-pill-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--titanium-pill-border);
+  box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.10);
   padding: 1px 7px;
   border-radius: 999px;
   font-weight: 600;
@@ -768,8 +818,14 @@ html[data-theme="midnight"] .app-container,
   flex-direction: column;
   width: 100%;
   min-width: 0;
+  background:
+    radial-gradient(ellipse 72% 56% at 50% 0%, rgba(203, 213, 225, 0.075), transparent 65%),
+    linear-gradient(180deg, #06080D 0%, #090C12 76%, transparent 100%);
+  border-bottom: 1px solid var(--titanium-hairline);
+}
+
+html[data-theme="light"] .hero-banner {
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
 }
 
 .hero-artwork {
@@ -778,6 +834,11 @@ html[data-theme="midnight"] .app-container,
   max-height: clamp(220px, 44vh, 520px);
   object-fit: contain;
   background: var(--bg-artwork-well);
+}
+
+:root:not([data-theme="light"]) .hero-artwork {
+  -webkit-mask-image: linear-gradient(180deg, #000 65%, rgba(0, 0, 0, 0.35) 88%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 65%, rgba(0, 0, 0, 0.35) 88%, transparent 100%);
 }
 
 .hero-top-bar {
@@ -916,26 +977,61 @@ html[data-theme="midnight"] .app-container,
   letter-spacing: 0.04em;
   padding: 3px 10px;
   border-radius: 999px;
-  background: var(--btn-secondary-bg);
-  color: var(--text-secondary);
+  background: rgba(9, 12, 18, 0.72);
+  color: #CBD5E1;
   backdrop-filter: blur(8px);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--titanium-hairline);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.badge.cyan,
-.badge.magenta,
+html[data-theme="light"] .badge {
+  background: var(--badge-neutral-bg);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
+.badge.cyan {
+  background: var(--titanium-pill-bg);
+  color: var(--text-primary);
+  border-color: var(--titanium-pill-border);
+}
+
+.badge.magenta {
+  background: rgba(23, 35, 59, 0.52);
+  color: #CBD5E1;
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+html[data-theme="light"] .badge.magenta {
+  background: var(--badge-neutral-bg);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
 .badge.green {
-  background: var(--badge-teal-bg);
-  color: var(--brand-accent);
-  border-color: var(--badge-teal-border);
+  background: rgba(16, 185, 129, 0.12);
+  color: #34D399;
+  border-color: rgba(16, 185, 129, 0.30);
+}
+
+html[data-theme="light"] .badge.green {
+  background: rgba(5, 150, 105, 0.10);
+  color: #059669;
+  border-color: rgba(5, 150, 105, 0.28);
 }
 
 .badge.amber {
   background: var(--badge-amber-bg);
   color: var(--brand-amber);
   border-color: var(--badge-amber-border);
+}
+
+:root:not([data-theme="light"]) :is(.catalog-title, .hero-title, .discover-feature-copy h2, .studio-logo-wordmark > span:first-child) {
+  background: var(--titanium-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .hero-title {
@@ -988,9 +1084,9 @@ html[data-theme="midnight"] .app-container,
 }
 
 .btn-primary-action.play {
-  background: var(--btn-primary-bg);
+  background: var(--btn-primary-gradient);
   color: var(--btn-primary-text);
-  box-shadow: 0 10px 28px -8px var(--btn-primary-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 10px 28px -8px var(--btn-primary-shadow);
 }
 .btn-primary-action.play:hover:not(:disabled) {
   background: var(--btn-primary-hover);
@@ -998,9 +1094,9 @@ html[data-theme="midnight"] .app-container,
 }
 
 .btn-primary-action.install {
-  background: var(--brand-accent);
+  background: var(--btn-primary-gradient);
   color: var(--btn-primary-text);
-  box-shadow: 0 10px 28px -8px var(--brand-accent-glow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 10px 28px -8px var(--btn-primary-shadow);
 }
 .btn-primary-action.install:hover:not(:disabled) {
   filter: brightness(1.06);
@@ -1042,7 +1138,8 @@ html[data-theme="midnight"] .app-container,
   font-weight: 600;
   background: var(--btn-secondary-bg);
   color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--titanium-hairline);
+  box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.07);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1054,13 +1151,19 @@ html[data-theme="midnight"] .app-container,
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--btn-secondary-hover);
-  border-color: var(--border-glass);
+  border-color: var(--titanium-pill-border);
 }
 
 .btn-secondary.active {
-  background: var(--badge-teal-bg);
-  border-color: var(--badge-teal-border);
-  color: var(--brand-accent);
+  background: var(--titanium-pill-bg);
+  border-color: rgba(248, 250, 252, 0.30);
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="light"] .btn-secondary.active {
+  border-color: var(--border-strong);
+  box-shadow: none;
 }
 
 /* Tabs & Content Grid */
@@ -1123,16 +1226,37 @@ html[data-theme="midnight"] .app-container,
 
 .section-box {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--titanium-hairline);
   border-radius: var(--radius-lg);
   padding: clamp(18px, 2.4cqi, 24px);
-  box-shadow: var(--shadow-bezel);
+  box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.08), var(--shadow-bezel);
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-inline-size: 0;
   max-inline-size: 100%;
   overflow-wrap: break-word;
+}
+
+.tab-main-column .section-box {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--titanium-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 26px 0;
+}
+
+.tab-main-column .section-box:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tab-side-column .section-box:last-child {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 0 0 0;
 }
 
 .section-box h3 {
@@ -1153,14 +1277,19 @@ html[data-theme="midnight"] .app-container,
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
-  background: var(--bg-subtle-box);
-  border: 1px solid var(--border-subtle);
+  padding: 10px 14px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: linear-gradient(90deg, rgba(248, 250, 252, 0.04) 0%, rgba(9, 12, 18, 0.30) 100%);
+  border: none;
+  border-left: 2px solid var(--titanium-pill-border);
   font-size: 13px;
   line-height: 1.45;
   color: var(--text-primary);
   min-inline-size: 0;
+}
+
+html[data-theme="light"] .feature-pill {
+  background: var(--bg-subtle-box);
 }
 
 .feature-pill svg {
@@ -1333,19 +1462,32 @@ html[data-theme="midnight"] .app-container,
 
 .game-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--titanium-hairline);
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-bezel);
+  box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.09), 0 18px 42px -22px rgba(0, 0, 0, 0.88);
 }
 
 .game-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
+  border-color: rgba(226, 232, 240, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 22px 48px -20px rgba(0, 0, 0, 0.92),
+    0 0 0 1px rgba(230, 57, 70, 0.18);
+}
+
+html[data-theme="light"] .game-card {
+  box-shadow: var(--shadow-bezel);
+}
+
+html[data-theme="light"] .game-card:hover {
   border-color: var(--border-accent);
+  box-shadow: var(--shadow-bezel);
 }
 
 .card-banner {
@@ -1378,7 +1520,7 @@ html[data-theme="midnight"] .app-container,
   object-fit: cover;
   filter: blur(14px);
   transform: scale(1.12);
-  opacity: 0.5;
+  opacity: 0.22;
 }
 
 .card-banner-placeholder {
@@ -1390,7 +1532,11 @@ html[data-theme="midnight"] .app-container,
 .card-banner-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 58%, rgba(23, 24, 23, 0.76) 100%);
+  background: linear-gradient(180deg, rgba(9, 12, 18, 0.22) 0%, transparent 34%, rgba(9, 12, 18, 0.78) 82%, #090C12 100%);
+}
+
+html[data-theme="light"] .card-banner-overlay {
+  background: linear-gradient(180deg, transparent 60%, rgba(15, 23, 42, 0.45) 100%);
 }
 
 .card-body {
@@ -1486,7 +1632,7 @@ html[data-theme="midnight"] .app-container,
 
 .discover-game-action { height: 36px; padding-inline: 13px; font-size: 12px; letter-spacing: 0; gap: 7px; }
 .discover-feature .discover-game-action { height: 44px; padding-inline: 16px; font-size: 14px; }
-.discover-game-action.play, .discover-game-action.install { color: #0b0d12; box-shadow: none; }
+.discover-game-action.play, .discover-game-action.install { color: var(--btn-primary-text); box-shadow: none; }
 .discover-game-action.running:disabled {
   background: var(--bg-tertiary);
   border-color: var(--border-subtle);
@@ -1536,8 +1682,7 @@ html[data-theme="midnight"] .app-container,
 .discover-filter[aria-pressed='true'] { background: var(--bg-active-pill); color: var(--text-primary); }
 
 .discover-catalog .catalog-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 16px; }
-.discover-catalog .game-card { background: var(--bg-card-solid); box-shadow: none; }
-.discover-catalog .game-card:hover { transform: none; }
+.discover-catalog .game-card:hover { transform: translateY(-2px); }
 .discover-catalog .card-body { gap: 8px; padding: 14px; }
 .discover-catalog .card-title button {
   padding: 0;
@@ -1604,7 +1749,7 @@ html[data-theme="midnight"] .app-container,
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(23, 24, 23, 0.76);
+  background: rgba(6, 8, 13, 0.82);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -1618,8 +1763,8 @@ html[data-theme="midnight"] .app-container,
   width: 560px;
   max-width: 95vw;
   max-height: min(85vh, 720px);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border: 1px solid var(--titanium-pill-border);
   border-radius: var(--radius-xl);
   display: flex;
   flex-direction: column;
@@ -1644,8 +1789,8 @@ html[data-theme="midnight"] .app-container,
   justify-content: space-between;
   align-items: center;
   padding: 20px 28px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--titanium-hairline);
+  background: rgba(6, 8, 13, 0.72);
   flex-shrink: 0;
 }
 
@@ -1671,9 +1816,14 @@ html[data-theme="midnight"] .app-container,
   align-items: center;
   gap: 12px;
   padding: 16px 28px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-tertiary);
+  border-top: 1px solid var(--titanium-hairline);
+  background: rgba(6, 8, 13, 0.72);
   flex-shrink: 0;
+}
+
+html[data-theme="light"] .modal-header,
+html[data-theme="light"] .modal-footer {
+  background: var(--bg-tertiary);
 }
 
 .form-group {
@@ -1811,8 +1961,8 @@ html[data-theme="midnight"] .app-container,
   align-items: center;
   justify-content: center;
   gap: 20px;
-  background: radial-gradient(circle at 50% 35%, var(--hero-glow), transparent 55%),
-              var(--bg-primary);
+  background-color: var(--bg-base);
+  background-image: var(--bg-chassis-gradient);
 }
 
 .splash-logo-ring {
@@ -1897,8 +2047,8 @@ html[data-theme="midnight"] .app-container,
   justify-content: center;
   padding: 28px;
   overflow-y: auto;
-  background: radial-gradient(circle at 50% 15%, var(--hero-glow), transparent 55%),
-              var(--bg-primary);
+  background-color: var(--bg-base);
+  background-image: var(--bg-chassis-gradient);
 }
 
 .auth-gate-card {
@@ -2137,23 +2287,33 @@ html[data-theme="midnight"] .app-container,
   padding: 10px;
   margin-bottom: 8px;
   border-radius: var(--radius-md);
-  background: var(--bg-subtle-box);
-  border: 1px solid var(--border-subtle);
+  background: rgba(248, 250, 252, 0.025);
+  border: 1px solid var(--titanium-hairline);
 }
 
 .sidebar-account-avatar {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--badge-teal-bg);
-  border: 1px solid var(--badge-teal-border);
+  background: linear-gradient(180deg, #17233B 0%, #090C12 100%);
+  border: 1px solid var(--titanium-pill-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 800;
-  color: var(--brand-accent);
+  color: var(--text-primary);
   flex-shrink: 0;
+}
+
+html[data-theme="light"] .sidebar-account-card {
+  background: var(--bg-subtle-box);
+}
+
+html[data-theme="light"] .sidebar-account-avatar {
+  background: var(--badge-teal-bg);
+  border-color: var(--badge-teal-border);
+  color: var(--brand-accent);
 }
 
 .sidebar-account-info {

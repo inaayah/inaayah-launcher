@@ -92,7 +92,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
       <div className="catalog-header" style={{ marginBottom: 20 }}>
         <div>
           <h2 className="catalog-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Gamepad2 size={28} color="var(--accent-cyan)" />
+            <Gamepad2 size={28} color="var(--brand-alloy)" />
             <span>My Game Library</span>
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>
@@ -160,7 +160,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
         {/* Quick Stats Summary */}
         <div style={{ display: 'flex', gap: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <HardDrive size={14} color="var(--brand-accent)" />
+            <HardDrive size={14} color="var(--brand-alloy)" />
             <span>Ready: <strong style={{ color: 'var(--text-primary)' }}>{installedCount}</strong></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -195,11 +195,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                 className="game-card"
                 onClick={() => onSelectGame(game.id)}
                 style={{
-                  border: isRunning
-                    ? '1px solid var(--brand-amber)'
-                    : isInstalled
-                    ? '1px solid var(--badge-teal-border)'
-                    : undefined
+                  border: isRunning ? '1px solid var(--brand-amber)' : undefined
                 }}
               >
                 {/* Banner Thumbnail */}
