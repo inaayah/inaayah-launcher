@@ -14,15 +14,17 @@ export async function terminateSpawnedGameProcess(
   options: TerminateGameOptions = {}
 ): Promise<boolean> {
   if (!proc) return false;
-  if (proc.exitCode !== null || proc.signalCode !== null) return true;
+
+  const hasProcessExited = () => proc.exitCode !== null || proc.signalCode !== null;
+  if (hasProcessExited()) return true;
 
   const graceMs = options.graceMs ?? 1500;
   const forceMs = options.forceMs ?? 1000;
   const platform = options.platform ?? process.platform;
   const pid = typeof proc.pid === 'number' && proc.pid > 0 ? proc.pid : null;
 
-  const isDead = (): boolean => {
-    if (proc.exitCode !== null || proc.signalCode !== null) return true;
+  const isPidGone = (): boolean => {
+    if (hasProcessExited()) return true;
     if (!pid) return false;
     try {
       process.kill(pid, 0);
@@ -33,28 +35,20 @@ export async function terminateSpawnedGameProcess(
   };
 
   const waitForExit = (timeoutMs: number): Promise<boolean> => {
-    if (isDead()) return Promise.resolve(true);
+    if (hasProcessExited()) return Promise.resolve(true);
     return new Promise((resolve) => {
       let settled = false;
       const finish = (dead: boolean) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        clearInterval(poll);
         proc.removeListener('exit', onExit);
-        proc.removeListener('close', onExit);
         resolve(dead);
       };
       const onExit = () => finish(true);
       proc.once('exit', onExit);
-      proc.once('close', onExit);
 
-      const poll = setInterval(() => {
-        if (isDead()) finish(true);
-      }, 40);
-      poll.unref?.();
-
-      const timer = setTimeout(() => finish(isDead()), timeoutMs);
+      const timer = setTimeout(() => finish(hasProcessExited() || isPidGone()), timeoutMs);
       timer.unref?.();
     });
   };
@@ -63,15 +57,17 @@ export async function terminateSpawnedGameProcess(
     const runTaskkill = (force: boolean) =>
       new Promise<void>((resolve) => {
         if (!pid) {
-          try {
-            proc.kill();
-          } catch {}
+          if (force) {
+            try {
+              proc.kill();
+            } catch {}
+          }
           return resolve();
         }
         const args = ['/PID', String(pid), '/T'];
         if (force) args.push('/F');
-        execFile('taskkill', args, { windowsHide: true, timeout: 3000 }, (err) => {
-          if (err) {
+        execFile('taskkill', args, { windowsHide: true, timeout: 5000 }, (err) => {
+          if (force && err) {
             try {
               proc.kill();
             } catch {}
@@ -84,7 +80,12 @@ export async function terminateSpawnedGameProcess(
     if (await waitForExit(graceMs)) return true;
 
     await runTaskkill(true);
-    return waitForExit(forceMs);
+    if (await waitForExit(forceMs)) return true;
+
+    try {
+      proc.kill();
+    } catch {}
+    return waitForExit(250);
   }
 
   const sendPosixSignal = (signal: NodeJS.Signals) => {

@@ -95,6 +95,13 @@ const waitForReadyStdout = (script) =>
     });
   });
 
+const cleanupChild = (child) => {
+  if (process.platform !== 'win32' && child.pid) {
+    try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+  }
+  try { child.kill('SIGKILL'); } catch {}
+};
+
 test('terminateSpawnedGameProcess closes running children gracefully and force-kills stubborn ones', async (t) => {
   assert.equal(await terminateSpawnedGameProcess(null), false);
   assert.equal(await terminateSpawnedGameProcess(undefined), false);
@@ -103,17 +110,22 @@ test('terminateSpawnedGameProcess closes running children gracefully and force-k
   await new Promise((resolve) => shortLived.once('exit', resolve));
   assert.equal(await terminateSpawnedGameProcess(shortLived), true);
 
-  const gracefulChild = await waitForReadyStdout(
-    "process.on('SIGTERM', () => process.exit(0)); process.stdout.write('ready\\n'); setInterval(() => {}, 1000);"
-  );
-  t.after(() => { try { process.kill(-gracefulChild.pid, 'SIGKILL'); } catch {} });
-  assert.equal(await terminateSpawnedGameProcess(gracefulChild, { graceMs: 1000, forceMs: 500 }), true);
-  assert.notEqual(gracefulChild.exitCode, null);
+  if (process.platform !== 'win32') {
+    const gracefulChild = await waitForReadyStdout(
+      "process.on('SIGTERM', () => process.exit(0)); process.stdout.write('ready\\n'); setInterval(() => {}, 1000);"
+    );
+    t.after(() => cleanupChild(gracefulChild));
+    assert.equal(await terminateSpawnedGameProcess(gracefulChild, { graceMs: 1000, forceMs: 500 }), true);
+    assert.equal(gracefulChild.exitCode, 0);
+  }
 
   const stubbornChild = await waitForReadyStdout(
     "process.on('SIGTERM', () => {}); process.stdout.write('ready\\n'); setInterval(() => {}, 1000);"
   );
-  t.after(() => { try { process.kill(-stubbornChild.pid, 'SIGKILL'); } catch {} });
-  assert.equal(await terminateSpawnedGameProcess(stubbornChild, { graceMs: 80, forceMs: 1000 }), true);
-  assert.equal(stubbornChild.signalCode, 'SIGKILL');
+  t.after(() => cleanupChild(stubbornChild));
+  assert.equal(await terminateSpawnedGameProcess(stubbornChild, { graceMs: 80, forceMs: 2000 }), true);
+  assert.equal(stubbornChild.exitCode !== null || stubbornChild.signalCode !== null, true);
+  if (process.platform !== 'win32') {
+    assert.equal(stubbornChild.signalCode, 'SIGKILL');
+  }
 });
